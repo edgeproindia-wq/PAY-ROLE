@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ run.month }} · Payroll Run{% endblock %}
+{% block content %}
+
+<div class="breadcrumb no-print"><a href="{% url 'payroll_processing' %}">Payroll Processing</a> / {{ run.month }}</div>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ run.month }}</h1>
+    <p class="page-subtitle">
+      <span class="badge {% if run.status == 'RELEASED' %}badge-success{% elif run.status == 'APPROVED' %}badge-info{% elif run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ run.get_status_display }}</span>
+      {% if run.is_locked %}<span class="badge badge-danger" style="margin-left:6px;">Locked</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions no-print">
+    <a href="{% url 'payroll_run_download_docx' run.pk %}" class="btn btn-outline">&#8681; Download DOCX</a>
+    <button onclick="window.print()" class="btn btn-outline">&#128424; Print</button>
+    <a href="{% url 'payroll_processing' %}" class="btn btn-dark">Back to Runs</a>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Employees</div><div class="value">{{ lines|length }}</div></div>
+  <div class="kpi-card"><div class="label">Created On</div><div class="value" style="font-size:16px;">{{ run.created_at|date:"d M Y" }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Payroll Lines</h3></div>
+  <div class="table-wrap">
+    {% if lines %}
+    <table>
+      <thead><tr><th>Employee Code</th><th>Name</th><th>Basic</th><th>Gross Salary</th><th>Net Pay</th></tr></thead>
+      <tbody>
+        {% for l in lines %}
+        <tr>
+          <td>{{ l.employee.employee_code }}</td>
+          <td class="cell-title">{{ l.employee.full_name }}</td>
+          <td>&#8377;{{ l.basic }}</td>
+          <td>&#8377;{{ l.gross_salary }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ l.net_pay }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128196;</div><div class="title">No lines in this run</div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

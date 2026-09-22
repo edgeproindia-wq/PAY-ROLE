@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgePro Axis — Modern Payroll Management, Made Simple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#0f172a; --muted:#64748b; --accent:#6366f1; --accent-dark:#4f46e5; --line:#e6e9f0; --navy:#0f172a; --card-dark:#1c2742; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:'Inter',Arial,sans-serif; color:var(--ink); }
+  a{ color:inherit; }
+  nav{ display:flex; align-items:center; justify-content:space-between; padding:18px 48px; border-bottom:1px solid var(--line); }
+  .logo{ font-weight:800; font-size:17px; }
+  .navlinks{ display:flex; gap:32px; font-size:14px; font-weight:600; color:#334155; }
+  .navlinks a{ text-decoration:none; }
+  .navbtns{ display:flex; gap:12px; }
+  .btn{ padding:9px 18px; border-radius:8px; font-weight:700; font-size:13.5px; text-decoration:none; display:inline-block; border:none; cursor:pointer; }
+  .btn-outline{ border:1px solid var(--line); color:var(--ink); background:#fff; }
+  .btn-fill{ background:var(--accent); color:#fff; border:1px solid var(--accent); }
+  .btn-fill:hover{ background:var(--accent-dark); }
+
+  .hero{ text-align:center; padding:80px 24px 60px; background:linear-gradient(180deg,#f8f9fd,#fff); }
+  .hero h1{ font-size:44px; font-weight:800; line-height:1.2; margin:0 0 20px; }
+  .hero h1 .accent{ color:var(--accent); }
+  .hero p{ color:var(--muted); font-size:16px; max-width:640px; margin:0 auto 32px; }
+  .hero .btns{ display:flex; gap:14px; justify-content:center; }
+
+  .band{ background:linear-gradient(120deg,#c7b8f0,#a7a3ea); text-align:center; padding:60px 24px; color:#1e1b3a; }
+  .band h2{ font-size:28px; font-weight:800; margin:0 0 10px; }
+  .band p{ margin:0; color:#3c3564; font-size:14.5px; }
+
+  .feature-row{ display:flex; align-items:center; gap:60px; padding:70px 60px; max-width:1200px; margin:0 auto; }
+  .feature-row.reverse{ flex-direction:row-reverse; }
+  .feature-row .txt{ flex:1 1 40%; }
+  .feature-row .txt h3{ font-size:26px; font-weight:800; margin:0 0 12px; }
+  .feature-row .txt p{ color:var(--muted); font-size:15px; line-height:1.6; margin:0; }
+  .feature-row .mock{ flex:1 1 55%; }
+
+  .mockcard{ background:var(--card-dark); border-radius:14px; padding:20px 22px; color:#fff; box-shadow:0 20px 50px rgba(15,23,42,.18); }
+  .mockcard .dots{ display:flex; gap:6px; margin-bottom:16px; }
+  .mockcard .dots span{ width:8px; height:8px; border-radius:50%; background:#475569; }
+  .mockcard .row{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid #2c3752; font-size:13.5px; }
+  .mockcard .row:last-child{ border-bottom:none; }
+  .mockcard .row b{ font-size:18px; display:block; }
+  .badge{ background:#334155; color:#cbd5e1; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .badge.green{ background:#0f9d6a; color:#fff; }
+  .badge.blue{ background:#4f46e5; color:#fff; }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .stat-box{ background:#141d33; border-radius:10px; padding:12px 14px; }
+  .stat-box .label{ font-size:10.5px; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; }
+  .stat-box .val{ font-size:22px; font-weight:800; margin-top:4px; }
+
+  .cards3{ display:flex; gap:24px; padding:60px; max-width:1200px; margin:0 auto; }
+  .cards3 .card{ flex:1; background:#fff; border-radius:14px; padding:26px; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+  .cards3 .icon{ width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:19px; margin-bottom:16px; background:#eef0fe; }
+  .cards3 h4{ margin:0 0 8px; font-size:16.5px; font-weight:800; }
+  .cards3 p{ margin:0; color:var(--muted); font-size:13.5px; line-height:1.5; }
+
+  .report-section{ text-align:center; padding:70px 24px 60px; }
+  .report-section h2{ font-size:30px; font-weight:800; margin:0 0 10px; }
+  .report-section > p{ color:var(--muted); margin:0 0 40px; }
+  .report-grid{ display:flex; gap:20px; max-width:1100px; margin:0 auto; padding:0 24px; }
+  .report-grid .card{ flex:1; background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; text-align:left; }
+  .report-grid .card h4{ margin:0 0 8px; font-size:15px; font-weight:800; }
+  .report-grid .card p{ margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
+
+  .howband{ background:linear-gradient(120deg,#c7b8f0,#a7a3ea); padding:70px 24px; text-align:center; }
+  .howband h2{ font-size:30px; font-weight:800; margin:0 0 10px; color:#1e1b3a; }
+  .howband > p{ margin:0 0 44px; color:#3c3564; }
+  .steps4{ display:flex; gap:40px; max-width:1000px; margin:0 auto; justify-content:center; }
+  .steps4 .step{ flex:1; }
+  .steps4 .n{ width:44px; height:44px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; margin:0 auto 14px; }
+  .steps4 h5{ margin:0 0 8px; font-size:15px; font-weight:800; color:#1e1b3a; }
+  .steps4 p{ margin:0; font-size:12.5px; color:#3c3564; }
+
+  footer{ background:var(--navy); color:#cbd5e1; padding:50px 60px 24px; }
+  .footer-grid{ display:flex; gap:60px; max-width:1200px; margin:0 auto; padding-bottom:36px; border-bottom:1px solid #1e293b; }
+  .footer-grid .about{ flex:1.4; color:#94a3b8; font-size:13.5px; line-height:1.6; }
+  .footer-grid .col h5{ color:#fff; font-size:12px; letter-spacing:.05em; margin:0 0 14px; }
+  .footer-grid .col a{ display:block; text-decoration:none; color:#94a3b8; font-size:13.5px; margin-bottom:10px; }
+  .footer-bottom{ display:flex; justify-content:space-between; max-width:1200px; margin:20px auto 0; font-size:12px; color:#64748b; }
+  .footer-bottom a{ text-decoration:none; color:#64748b; margin-left:18px; }
+
+  @media (max-width:900px){
+    .navlinks{ display:none; } .hero h1{ font-size:30px; }
+    .feature-row, .feature-row.reverse{ flex-direction:column; padding:50px 24px; gap:28px; }
+    .cards3{ flex-direction:column; padding:40px 24px; }
+    .report-grid{ flex-direction:column; }
+    .steps4{ flex-direction:column; }
+    .footer-grid{ flex-direction:column; gap:28px; }
+  }
+</style>
+</head>
+<body>
+  <nav>
+    <div class="logo">EdgePro Axis</div>
+    <div class="navlinks">
+      <a href="#features">Features</a><a href="#modules">Modules</a><a href="#security">Security</a>
+      <a href="#reports">Reports</a><a href="#who">Who It's For</a>
+    </div>
+    <div class="navbtns">
+      <a class="btn btn-outline" href="{% url 'login' %}">Login</a>
+      <a class="btn btn-fill" href="{% url 'employee_register' %}">Register</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>Modern Payroll Management,<br><span class="accent">Made Simple</span></h1>
+    <p>Manage employees, attendance, salary, payroll, compliance, payslips, and employee self-service — all from one powerful, unified platform built for growing businesses.</p>
+    <div class="btns">
+      <a class="btn btn-fill" href="{% url 'request_demo' %}">Request a Demo</a>
+      <a class="btn btn-outline" href="{% url 'employee_register' %}">Get Started</a>
+    </div>
+  </div>
+
+  <div class="band" id="features">
+    <h2>Everything Your Payroll Team Needs</h2>
+    <p>A complete suite of tools covering the full employee and payroll lifecycle.</p>
+  </div>
+
+  <div class="feature-row" id="modules">
+    <div class="txt"><h3>Employee Management</h3><p>Complete employee master with lifecycle tracking, profiles, and document management.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="label">Active Employees</div><div class="val">114</div></div>
+        <div class="stat-box"><div class="label">Departments</div><div class="val">9</div></div>
+      </div>
+      <div class="row">EPRO0091 · Priya Sharma <span class="badge green">Active</span></div>
+      <div class="row">EPRO0092 · Arun Kumar <span class="badge green">Active</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row reverse">
+    <div class="txt"><h3>Salary Management</h3><p>Configurable earnings, deductions, and CTC structures per employee.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">Basic <b style="font-size:14px;font-weight:700;">₹35,000</b></div>
+      <div class="row">HRA <b style="font-size:14px;font-weight:700;">₹14,000</b></div>
+      <div class="row">Special Allowance <b style="font-size:14px;font-weight:700;">₹6,200</b></div>
+      <div class="row">Gross <b style="font-size:14px;font-weight:700;color:#a5b4fc;">₹55,200</b></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row">
+    <div class="txt"><h3>Employee Self Service</h3><p>Employees access their own payslips, leave, and personal details.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">My Payslips <span class="badge">3 Available</span></div>
+      <div class="row">Leave Balance <span class="badge">10 Days</span></div>
+      <div class="row">My Documents <span class="badge">4 Files</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row reverse">
+    <div class="txt"><h3>Notifications</h3><p>Stay on top of approvals and important payroll events, in real time.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">Leave request approved <span class="badge blue">New</span></div>
+      <div class="row">Payslip for March released <span class="badge blue">New</span></div>
+      <div class="row">Reimbursement pending review <span class="badge">2h ago</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row">
+    <div class="txt"><h3>User Roles &amp; Permissions</h3><p>Role-based access control across every module of the platform.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">Admin <span class="badge blue">Full Access</span></div>
+      <div class="row">HR <span class="badge">Employee &amp; Leave</span></div>
+      <div class="row">Employee <span class="badge">Self-Service Only</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row reverse">
+    <div class="txt"><h3>Payroll Processing</h3><p>Draft, validate, approve, and release payroll runs with full audit history.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">March <span class="badge green">Released</span></div>
+      <div class="row">April <span class="badge">Draft</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row">
+    <div class="txt"><h3>Payslip Management</h3><p>Professional payslips with PDF export, bulk generation, and email delivery.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="row">Payslip_EPRO0091_March.pdf <span class="badge blue">Sent</span></div>
+      <div class="row">Payslip_EPRO0092_March.pdf <span class="badge blue">Sent</span></div>
+      <div class="row">Bulk Generate <span class="badge blue">61 employees</span></div>
+    </div></div>
+  </div>
+
+  <div class="feature-row reverse">
+    <div class="txt"><h3>Bank Transfer</h3><p>Track salary disbursement status across every released payroll run.</p></div>
+    <div class="mock"><div class="mockcard">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="label">Successful</div><div class="val">58</div></div>
+        <div class="stat-box"><div class="label">Failed</div><div class="val">3</div></div>
+      </div>
+      <div class="row">Batch #204 <span class="badge green">Completed</span></div>
+    </div></div>
+  </div>
+
+  <div class="cards3" id="security">
+    <div class="card"><div class="icon">🔒</div><h4>Role-Based Access</h4><p>Every user sees only what they're authorized to access.</p></div>
+    <div class="card"><div class="icon">✅</div><h4>Secure Authentication</h4><p>Email verification and admin approval for every new account.</p></div>
+    <div class="card"><div class="icon">🛡️</div><h4>Data Protection</h4><p>Employee and payroll data handled with care at every layer.</p></div>
+  </div>
+
+  <div class="report-section" id="reports">
+    <h2>Reporting Built for Decision-Making</h2>
+    <p>Monitor payroll cost, headcount, attendance, and compliance from one place.</p>
+    <div class="report-grid">
+      <div class="card"><h4>Payroll Cost</h4><p>Track monthly cost trends across your organization.</p></div>
+      <div class="card"><h4>Headcount</h4><p>Department-wise employee distribution and status.</p></div>
+      <div class="card"><h4>Attendance &amp; Leave</h4><p>Summaries across teams and time periods.</p></div>
+      <div class="card"><h4>Compliance</h4><p>PF, ESI, and statutory contribution summaries.</p></div>
+    </div>
+  </div>
+
+  <div class="howband" id="who">
+    <h2>How It Works</h2>
+    <p>Get up and running in four simple steps.</p>
+    <div class="steps4">
+      <div class="step"><div class="n">1</div><h5>Add Employees</h5><p>Onboard your team with full profile and statutory details.</p></div>
+      <div class="step"><div class="n">2</div><h5>Configure Salary</h5><p>Set up earnings, deductions, and company policies.</p></div>
+      <div class="step"><div class="n">3</div><h5>Process Payroll</h5><p>Validate, approve, and release each payroll cycle.</p></div>
+      <div class="step"><div class="n">4</div><h5>Generate Payslips</h5><p>Deliver payslips and reports automatically.</p></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="about">A modern payroll and HR platform built to simplify employee and salary management for growing teams.</div>
+      <div class="col"><h5>PRODUCT</h5>
+        <a href="#features">Features</a><a href="#modules">Modules</a><a href="{% url 'request_demo' %}">Request Demo</a>
+      </div>
+      <div class="col"><h5>ACCOUNT</h5>
+        <a href="{% url 'login' %}">Login</a><a href="{% url 'employee_register' %}">Register</a>
+      </div>
+      <div class="col"><h5>CONTACT</h5>
+        <a href="mailto:jaganbharath46@gmail.com">jaganbharath46@gmail.com</a><a href="tel:+916383538565">+91 63835 38565</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; {% now "Y" %} Payroll Management System. All rights reserved.</div>
+      <div><a href="#">Privacy Policy</a><a href="#">Terms &amp; Conditions</a></div>
+    </div>
+  </footer>
+</body>
+</html>

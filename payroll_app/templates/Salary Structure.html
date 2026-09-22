@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Salary Structure · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Salary Structure</h1>
+    <p class="page-subtitle">Define basic pay, HRA, conveyance and allowances for each employee</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addSalModal').classList.add('open')">+ Add Salary Structure</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Basic vs HRA (Top 15)</h3></div>
+  <div class="card-body"><div class="chart-box"><canvas id="salChart"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="salSearch" placeholder="Search employee..." onkeyup="filterSalTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ structures.paginator.count }} structure{{ structures.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if structures %}
+    <table id="salTable">
+      <thead><tr><th>Employee</th><th>Basic</th><th>HRA</th><th>Conveyance</th><th>Special Allowance</th><th>Gross Salary</th></tr></thead>
+      <tbody>
+        {% for s in structures %}
+        <tr>
+          <td><span class="cell-main"><span class="avatar-sm">{{ s.employee.first_name|first }}{{ s.employee.last_name|first }}</span><span class="cell-title">{{ s.employee.full_name }}</span></span></td>
+          <td>&#8377;{{ s.basic }}</td>
+          <td>&#8377;{{ s.hra }}</td>
+          <td>&#8377;{{ s.conveyance }}</td>
+          <td>&#8377;{{ s.special_allowance }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ s.gross_salary }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No salary structures yet</div><div class="desc">Add a salary structure for an employee to include them in payroll runs.</div></div>
+    {% endif %}
+  </div>
+  {% if structures.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ structures.number }} of {{ structures.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if structures.has_previous %}<a href="?page={{ structures.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in structures.paginator.page_range %}{% if p == structures.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}{% endfor %}
+      {% if structures.has_next %}<a href="?page={{ structures.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="addSalModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>Add Salary Structure</h3><button class="modal-close" onclick="document.getElementById('addSalModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'salary_structure' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addSalModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterSalTable(){
+    const q = document.getElementById('salSearch').value.toLowerCase();
+    document.querySelectorAll('#salTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  new Chart(document.getElementById('salChart'), {
+    type: 'bar',
+    data: { labels: {{ chart_labels|safe }}, datasets: [
+      { label:'Basic', data: {{ chart_basic|safe }}, backgroundColor:'#4f46e5', borderRadius:5 },
+      { label:'HRA', data: {{ chart_hra|safe }}, backgroundColor:'#0f9d6a', borderRadius:5 }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } }, plugins:{ legend:{ position:'bottom' } } }
+  });
+  {% if form.errors %}document.getElementById('addSalModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

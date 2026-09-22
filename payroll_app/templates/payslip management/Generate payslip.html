@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Generate Payslip{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Generate Payslip</h1><p class="page-subtitle">Payslips are generated automatically when a payroll run is released — see Payroll Processing.</p></div></div>
+<div class="card"><div class="card-body"><a class="btn btn-primary" href="{% url 'payroll_combined' %}">Go to Payroll Processing</a></div></div>
+{% endblock %}

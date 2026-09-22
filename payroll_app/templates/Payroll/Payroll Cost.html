@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Payroll Cost Report{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'reports_analytics' %}">Reports &amp; Analytics</a> / Payroll Cost</div>
+<div class="page-header">
+  <div><h1 class="page-title">Payroll Cost by Department</h1><p class="page-subtitle">Total salary cost based on current salary structures</p></div>
+  <div class="page-actions no-print"><button onclick="window.print()" class="btn btn-outline">&#128424; Print</button></div>
+</div>
+<div class="kpi-row"><div class="kpi-card"><div class="label">Overall Monthly Cost</div><div class="value">&#8377;{{ overall_total|floatformat:2 }}</div></div></div>
+<div class="card"><div class="card-header"><h3>Cost Distribution</h3></div><div class="card-body"><div class="chart-box"><canvas id="costChart"></canvas></div></div></div>
+<div class="card">
+  <div class="table-wrap">
+    {% if dept_costs %}
+    <table><thead><tr><th>Department</th><th>Employees</th><th>Total Cost</th></tr></thead>
+    <tbody>{% for d in dept_costs %}<tr><td class="cell-title">{{ d.department }}</td><td>{{ d.employee_count }}</td><td>&#8377;{{ d.total_cost|floatformat:2 }}</td></tr>{% endfor %}</tbody></table>
+    {% else %}<div class="empty-state"><div class="icon">&#128179;</div><div class="title">No salary structures yet</div></div>{% endif %}
+  </div>
+</div>
+<script>
+  new Chart(document.getElementById('costChart'), {
+    type:'doughnut',
+    data:{ labels:{{ chart_labels|safe }}, datasets:[{ data:{{ chart_values|safe }}, backgroundColor:['#4f46e5','#0f9d6a','#f5a524','#ef6c5a','#0369a1','#8b5cf6'] }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}}} }
+  });
+</script>
+{% endblock %}

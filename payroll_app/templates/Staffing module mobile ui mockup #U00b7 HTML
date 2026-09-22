@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staffing Module — Mobile UI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0f172a; --navy-soft:#1e293b;
+    --ink:#0f172a; --body:#334155; --muted:#64748b; --faint:#94a3b8;
+    --paper:#f4f6f9; --card:#ffffff; --line:#e6e9f0; --line-soft:#eef1f6;
+    --accent:#4f46e5; --accent-dark:#4338ca; --accent-soft:#eef0fe;
+    --success:#0f9d6a; --success-soft:#e5f8f1;
+    --warn:#b45309; --warn-soft:#fef3e0;
+    --danger:#dc2626; --danger-soft:#fdeceb;
+    --info:#0369a1; --info-soft:#e6f4fb;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body{
+    font-family:'Inter',Arial,sans-serif; background:#e8eaf0; color:var(--body);
+    display:flex; flex-wrap:wrap; gap:36px; justify-content:center; padding:40px 20px;
+    font-size:14px;
+  }
+  .frame-block{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .frame-label{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .phone{
+    width:340px; height:700px; background:var(--paper); border-radius:36px; overflow:hidden;
+    box-shadow:0 0 0 8px #1a1a1a, 0 0 0 10px #333, 0 20px 50px rgba(0,0,0,.25);
+    position:relative; display:flex; flex-direction:column;
+  }
+  .notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:130px; height:22px; background:#1a1a1a; border-radius:0 0 14px 14px; z-index:20; }
+  .statusbar{ height:38px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 20px 4px; font-size:12px; font-weight:700; color:#fff; background:var(--navy); flex-shrink:0; }
+
+  .appbar{ background:var(--navy); color:#fff; padding:14px 18px 18px; flex-shrink:0; }
+  .appbar-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+  .appbar-title{ font-size:18px; font-weight:800; }
+  .appbar-sub{ font-size:11.5px; color:#94a3b8; margin-top:2px; }
+  .icon-btn{ width:32px; height:32px; border-radius:9px; background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; }
+
+  .scroll{ flex:1; overflow-y:auto; padding:16px; }
+  .scroll::-webkit-scrollbar{ display:none; }
+
+  .kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .kpi{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .kpi .n{ font-size:20px; font-weight:800; color:var(--ink); }
+  .kpi .l{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; font-weight:700; margin-top:3px; }
+  .kpi .d{ font-size:10.5px; font-weight:700; margin-top:5px; }
+  .kpi .d.up{ color:var(--success); }
+  .kpi .d.warn{ color:var(--warn); }
+
+  .section-title{ font-size:13px; font-weight:800; color:var(--ink); margin:18px 0 10px; display:flex; align-items:center; justify-content:space-between; }
+  .section-title a{ font-size:11.5px; font-weight:700; color:var(--accent); text-decoration:none; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px; }
+  .row-between{ display:flex; align-items:center; justify-content:space-between; }
+
+  .avatar{ width:38px; height:38px; border-radius:11px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+  .list-item{ display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .list-item:last-child{ border-bottom:none; }
+  .li-title{ font-size:13px; font-weight:700; color:var(--ink); }
+  .li-sub{ font-size:11.5px; color:var(--muted); margin-top:1px; }
+
+  .badge{ font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; }
+  .badge-success{ background:var(--success-soft); color:var(--success); }
+  .badge-warn{ background:var(--warn-soft); color:var(--warn); }
+  .badge-danger{ background:var(--danger-soft); color:var(--danger); }
+  .badge-info{ background:var(--info-soft); color:var(--info); }
+  .badge-neutral{ background:#eef0f4; color:var(--muted); }
+
+  .fab{ position:absolute; right:16px; bottom:78px; width:52px; height:52px; border-radius:16px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:400; box-shadow:0 10px 20px rgba(79,70,229,.35); z-index:10; }
+
+  .bottomnav{ height:64px; background:#fff; border-top:1px solid var(--line); display:flex; flex-shrink:0; }
+  .bn-item{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--faint); font-size:9.5px; font-weight:700; }
+  .bn-item .ic{ font-size:17px; }
+  .bn-item.active{ color:var(--accent); }
+
+  .search-bar{ display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:11px; padding:10px 12px; margin-bottom:10px; }
+  .search-bar input{ border:none; outline:none; font-family:inherit; font-size:12.5px; flex:1; color:var(--ink); }
+  .chip-row{ display:flex; gap:7px; overflow-x:auto; margin-bottom:14px; padding-bottom:2px; }
+  .chip{ padding:7px 13px; border-radius:20px; background:#fff; border:1px solid var(--line); font-size:11.5px; font-weight:700; color:var(--body); white-space:nowrap; }
+  .chip.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:11.5px; font-weight:700; color:var(--body); margin-bottom:6px; }
+  .field input, .field select{ width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; font-family:inherit; font-size:13px; background:#fff; color:var(--ink); }
+
+  .stepper{ display:flex; align-items:center; margin-bottom:18px; }
+  .step{ display:flex; align-items:center; flex:1; }
+  .step .dot{ width:24px; height:24px; border-radius:50%; background:#eef0f4; color:var(--muted); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; flex-shrink:0; }
+  .step.done .dot{ background:var(--success); color:#fff; }
+  .step.active .dot{ background:var(--accent); color:#fff; }
+  .step .bar{ flex:1; height:2px; background:var(--line); margin:0 4px; }
+  .step.done .bar{ background:var(--success); }
+
+  .btn-primary{ display:block; width:100%; background:var(--accent); color:#fff; border:none; padding:13px; border-radius:11px; font-family:inherit; font-size:13px; font-weight:700; text-align:center; }
+  .btn-outline{ display:block; width:100%; background:#fff; color:var(--body); border:1px solid var(--line); padding:13px; border-radius:11px; font-family:inherit; font-size:13px; font-weight:700; text-align:center; margin-top:8px; }
+
+  .progress-track{ height:6px; background:#eef0f4; border-radius:4px; overflow:hidden; margin-top:8px; }
+  .progress-fill{ height:100%; background:var(--accent); border-radius:4px; }
+
+  .sync-hero{ background:var(--navy); border-radius:16px; padding:20px; color:#fff; margin-bottom:16px; }
+  .sync-hero .big{ font-size:26px; font-weight:800; margin:8px 0 2px; }
+  .sync-hero .lbl{ font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+
+  .checklist-item{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line-soft); }
+  .checklist-item:last-child{ border-bottom:none; }
+  .check-circle{ width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; }
+  .check-circle.done{ background:var(--success); border-color:var(--success); color:#fff; }
+
+  .kanban-col{ min-width:170px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; margin-right:10px; }
+  .kanban-row{ display:flex; overflow-x:auto; margin:0 -16px; padding:0 16px 4px; }
+  .kanban-title{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); margin-bottom:10px; display:flex; justify-content:space-between; }
+  .kanban-card{ background:var(--paper); border-radius:10px; padding:10px; margin-bottom:8px; font-size:11.5px; font-weight:700; color:var(--ink); }
+  .kanban-card .s{ font-size:10.5px; color:var(--muted); font-weight:500; margin-top:3px; }
+
+  .report-card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:10px; display:flex; align-items:center; gap:12px; }
+  .report-icon{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+
+  .drawer{ position:absolute; inset:0; background:rgba(15,23,42,.5); z-index:30; display:none; }
+  .drawer.open{ display:block; }
+  .drawer-panel{ position:absolute; top:0; left:0; bottom:0; width:270px; background:var(--navy); color:#fff; padding:20px 16px; overflow-y:auto; }
+  .drawer-item{ display:flex; align-items:center; gap:12px; padding:11px 10px; border-radius:9px; color:#cbd5e1; font-size:13px; font-weight:600; margin-bottom:2px; }
+  .drawer-item.active{ background:var(--navy-soft); color:#fff; }
+  .drawer-header{ display:flex; align-items:center; gap:11px; padding-bottom:16px; margin-bottom:14px; border-bottom:1px solid #334155; }
+  .drawer-avatar{ width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,var(--accent),#8b7cf6); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+  .drawer-group{ font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.05em; font-weight:800; margin:14px 0 6px 10px; }
+</style>
+</head>
+<body>
+
+<div class="frame-block">
+  <div class="frame-label">01 · Staffing dashboard</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div>
+          <div class="appbar-title">Staffing</div>
+          <div class="appbar-sub">Zylker Corp · August 2026</div>
+        </div>
+        <div class="icon-btn">&#9776;</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="n">151</div><div class="l">Total Staff</div><div class="d up">&#9650; 6 this month</div></div>
+        <div class="kpi"><div class="n">138</div><div class="l">Active</div><div class="d up">91% of total</div></div>
+        <div class="kpi"><div class="n">9</div><div class="l">Open Positions</div><div class="d warn">3 urgent</div></div>
+        <div class="kpi"><div class="n">4</div><div class="l">Onboarding</div><div class="d warn">Due this week</div></div>
+      </div>
+
+      <div class="section-title">Quick actions</div>
+      <div class="kpi-grid">
+        <div class="kpi" style="text-align:center;"><div style="font-size:20px;">&#128101;</div><div class="l" style="margin-top:6px;">Add Employee</div></div>
+        <div class="kpi" style="text-align:center;"><div style="font-size:20px;">&#128260;</div><div class="l" style="margin-top:6px;">Sync Records</div></div>
+      </div>
+
+      <div class="section-title">Recent activity <a href="#">See all</a></div>
+      <div class="card">
+        <div class="list-item">
+          <div class="avatar">DS</div>
+          <div style="flex:1;"><div class="li-title">Divya Sharma</div><div class="li-sub">Onboarding &middot; HR Executive</div></div>
+          <span class="badge badge-warn">In progress</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">AR</div>
+          <div style="flex:1;"><div class="li-title">Arjun Reddy</div><div class="li-sub">Attendance synced &middot; Finance</div></div>
+          <span class="badge badge-success">Synced</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">MK</div>
+          <div style="flex:1;"><div class="li-title">Mahalakshmi K S</div><div class="li-sub">Interview scheduled &middot; Tekla</div></div>
+          <span class="badge badge-info">Recruitment</span>
+        </div>
+      </div>
+    </div>
+    <div class="fab">+</div>
+    <div class="bottomnav">
+      <div class="bn-item active"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">02 · Add new employee</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="icon-btn">&#8592;</div>
+        <div class="appbar-title" style="font-size:15px;">Add Employee</div>
+        <div style="width:32px;"></div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="stepper">
+        <div class="step done"><div class="dot">&#10003;</div><div class="bar"></div></div>
+        <div class="step active"><div class="dot">2</div><div class="bar"></div></div>
+        <div class="step"><div class="dot">3</div></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700; color:var(--muted); margin:-10px 0 18px; text-transform:uppercase; letter-spacing:.03em;">
+        <span>Basic info</span><span style="color:var(--accent);">Job details</span><span>Documents</span>
+      </div>
+
+      <div class="field"><label>Employee code</label><input value="EPRO0152" disabled style="background:#f4f6f9;"></div>
+      <div class="field"><label>Department</label><select><option>Engineering</option></select></div>
+      <div class="field"><label>Designation</label><input placeholder="e.g. Software Engineer"></div>
+      <div class="field"><label>Reporting manager</label><select><option>Meera Krishnan</option></select></div>
+      <div class="field"><label>Date of joining</label><input type="date" value="2026-08-18"></div>
+      <div class="field"><label>Employment type</label><select><option>Full-time</option><option>Contract</option><option>Intern</option></select></div>
+
+      <button class="btn-primary">Continue to documents</button>
+      <button class="btn-outline">Back</button>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item active"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">03 · Employee sync</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div><div class="appbar-title">Employee Sync</div><div class="appbar-sub">HRMS &harr; Payroll</div></div>
+        <div class="icon-btn">&#8635;</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="sync-hero">
+        <div class="lbl">Last synced</div>
+        <div class="big">2 min ago</div>
+        <div style="font-size:11.5px; color:#cbd5e1;">151 records &middot; 0 conflicts</div>
+      </div>
+      <button class="btn-primary">&#128260; Sync now</button>
+
+      <div class="section-title">Sync log</div>
+      <div class="card">
+        <div class="list-item">
+          <div style="flex:1;"><div class="li-title">Full sync completed</div><div class="li-sub">Today, 9:38 AM &middot; 151 records</div></div>
+          <span class="badge badge-success">Success</span>
+        </div>
+        <div class="list-item">
+          <div style="flex:1;"><div class="li-title">3 new hires added</div><div class="li-sub">Today, 9:38 AM</div></div>
+          <span class="badge badge-info">Added</span>
+        </div>
+        <div class="list-item">
+          <div style="flex:1;"><div class="li-title">Bank details mismatch</div><div class="li-sub">Yesterday, 6:14 PM &middot; Ravi Kakade</div></div>
+          <span class="badge badge-danger">Conflict</span>
+        </div>
+        <div class="list-item">
+          <div style="flex:1;"><div class="li-title">Full sync completed</div><div class="li-sub">Yesterday, 6:00 PM &middot; 148 records</div></div>
+          <span class="badge badge-success">Success</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item active"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">04 · Employee list (filterable)</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="appbar-title">Employees</div>
+        <div class="icon-btn">&#128269;</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="search-bar">&#128269; <input placeholder="Search by name, code, department"></div>
+      <div class="chip-row">
+        <div class="chip active">All (151)</div>
+        <div class="chip">Active</div>
+        <div class="chip">On leave</div>
+        <div class="chip">Engineering</div>
+        <div class="chip">Finance</div>
+      </div>
+      <div class="card">
+        <div class="list-item">
+          <div class="avatar">MK</div>
+          <div style="flex:1;"><div class="li-title">Meera Krishnan</div><div class="li-sub">EPRO0001 &middot; Engineering</div></div>
+          <span class="badge badge-success">Active</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">AR</div>
+          <div style="flex:1;"><div class="li-title">Arjun Reddy</div><div class="li-sub">EPRO0002 &middot; Finance</div></div>
+          <span class="badge badge-success">Active</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">DS</div>
+          <div style="flex:1;"><div class="li-title">Divya Sharma</div><div class="li-sub">EPRO0003 &middot; HR</div></div>
+          <span class="badge badge-warn">On leave</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">RK</div>
+          <div style="flex:1;"><div class="li-title">Ravi Kakade</div><div class="li-sub">EPRO0011 &middot; General</div></div>
+          <span class="badge badge-danger">Terminated</span>
+        </div>
+      </div>
+    </div>
+    <div class="fab">+</div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item active"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">05 · Departments</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="icon-btn">&#8592;</div>
+        <div class="appbar-title" style="font-size:15px;">Departments</div>
+        <div class="icon-btn">+</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Engineering</div><div class="li-sub">42 employees &middot; 3 open roles</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Finance</div><div class="li-sub">18 employees &middot; 1 open role</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Tekla</div><div class="li-sub">27 employees &middot; 2 open roles</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">HR</div><div class="li-sub">9 employees &middot; No open roles</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Estimation</div><div class="li-sub">14 employees &middot; 1 open role</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Management</div><div class="li-sub">6 employees &middot; No open roles</div></div><span style="font-size:16px;color:var(--faint);">&#8250;</span></div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item active"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">06 · Designations</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="icon-btn">&#8592;</div>
+        <div class="appbar-title" style="font-size:15px;">Designations</div>
+        <div class="icon-btn">+</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="section-title" style="margin-top:2px;">Engineering</div>
+      <div class="card">
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Software Engineer</div><div class="li-sub">18 employees</div></div></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Detailer</div><div class="li-sub">12 employees</div></div></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Fresher</div><div class="li-sub">6 employees</div></div></div>
+      </div>
+      <div class="section-title">Finance</div>
+      <div class="card">
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Accountant</div><div class="li-sub">10 employees</div></div></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Branch Head</div><div class="li-sub">4 employees</div></div></div>
+      </div>
+      <div class="section-title">HR</div>
+      <div class="card">
+        <div class="list-item"><div style="flex:1;"><div class="li-title">HR Executive</div><div class="li-sub">7 employees</div></div></div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item active"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">07 · Recruitment</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="icon-btn">&#8592;</div>
+        <div class="appbar-title" style="font-size:15px;">Recruitment</div>
+        <div class="icon-btn">+</div>
+      </div>
+    </div>
+    <div class="scroll" style="padding:16px 0 16px 16px;">
+      <div class="kanban-row">
+        <div class="kanban-col">
+          <div class="kanban-title">Open <span>3</span></div>
+          <div class="kanban-card">Backend Engineer<div class="s">Engineering &middot; 8 applicants</div></div>
+          <div class="kanban-card">Estimator<div class="s">Estimation &middot; 4 applicants</div></div>
+          <div class="kanban-card">HR Executive<div class="s">HR &middot; 12 applicants</div></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-title">Interviewing <span>2</span></div>
+          <div class="kanban-card">Detailer<div class="s">Tekla &middot; Round 2</div></div>
+          <div class="kanban-card">Accountant<div class="s">Finance &middot; Round 1</div></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-title">Offer <span>1</span></div>
+          <div class="kanban-card">Software Engineer<div class="s">Engineering &middot; Awaiting response</div></div>
+        </div>
+      </div>
+      <div style="padding:0 16px;">
+        <div class="section-title">Pipeline summary</div>
+        <div class="kpi-grid">
+          <div class="kpi"><div class="n">24</div><div class="l">Applicants</div></div>
+          <div class="kpi"><div class="n">9</div><div class="l">Open Roles</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item active"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">08 · Onboarding</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="icon-btn">&#8592;</div>
+        <div class="appbar-title" style="font-size:15px;">Onboarding</div>
+        <div style="width:32px;"></div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="row-between">
+          <div class="list-item" style="border:none; padding:0;">
+            <div class="avatar">DS</div>
+            <div><div class="li-title">Divya Sharma</div><div class="li-sub">HR Executive &middot; Joins 20 Aug</div></div>
+          </div>
+          <span class="badge badge-warn">60%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:60%;"></div></div>
+        <div style="margin-top:12px;">
+          <div class="checklist-item"><div class="check-circle done">&#10003;</div><span style="font-size:12.5px;">Offer letter signed</span></div>
+          <div class="checklist-item"><div class="check-circle done">&#10003;</div><span style="font-size:12.5px;">Documents collected</span></div>
+          <div class="checklist-item"><div class="check-circle done">&#10003;</div><span style="font-size:12.5px;">Bank details verified</span></div>
+          <div class="checklist-item"><div class="check-circle"></div><span style="font-size:12.5px;color:var(--muted);">IT equipment assigned</span></div>
+          <div class="checklist-item"><div class="check-circle"></div><span style="font-size:12.5px;color:var(--muted);">Orientation scheduled</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">Other new hires</div>
+      <div class="card">
+        <div class="list-item">
+          <div class="avatar">KR</div>
+          <div style="flex:1;"><div class="li-title">Kamisetti Rakesh</div><div class="li-sub">Estimation &middot; Joins 25 Aug</div></div>
+          <span class="badge badge-neutral">20%</span>
+        </div>
+        <div class="list-item">
+          <div class="avatar">S</div>
+          <div style="flex:1;"><div class="li-title">Sowmiya</div><div class="li-sub">Management &middot; Joined 18 May</div></div>
+          <span class="badge badge-success">100%</span>
+        </div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item active"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">09 · Attendance sync</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div><div class="appbar-title">Attendance Sync</div><div class="appbar-sub">Biometric devices</div></div>
+        <div class="icon-btn">&#8635;</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="sync-hero">
+        <div class="lbl">Devices online</div>
+        <div class="big">3 / 4</div>
+        <div style="font-size:11.5px; color:#cbd5e1;">Last pull: 8:02 AM today</div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="n">142</div><div class="l">Records Synced</div></div>
+        <div class="kpi"><div class="n">2</div><div class="l">Failed</div><div class="d warn">Needs review</div></div>
+      </div>
+      <div class="section-title">Devices</div>
+      <div class="card">
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Main Gate &middot; Device 01</div><div class="li-sub">Last sync 8:02 AM</div></div><span class="badge badge-success">Online</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Engineering Floor &middot; Device 02</div><div class="li-sub">Last sync 8:01 AM</div></div><span class="badge badge-success">Online</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Finance Wing &middot; Device 03</div><div class="li-sub">Last sync 8:00 AM</div></div><span class="badge badge-success">Online</span></div>
+        <div class="list-item"><div style="flex:1;"><div class="li-title">Annex Block &middot; Device 04</div><div class="li-sub">Unreachable since 6:40 AM</div></div><span class="badge badge-danger">Offline</span></div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item active"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">10 · Reports</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="appbar-title">Staffing Reports</div>
+        <div class="icon-btn">&#128197;</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="report-card">
+        <div class="report-icon" style="background:var(--accent-soft); color:var(--accent);">&#128101;</div>
+        <div style="flex:1;"><div class="li-title">Headcount Report</div><div class="li-sub">By department &middot; Updated today</div></div>
+        <span style="font-size:16px;color:var(--faint);">&#8250;</span>
+      </div>
+      <div class="report-card">
+        <div class="report-icon" style="background:var(--danger-soft); color:var(--danger);">&#128201;</div>
+        <div style="flex:1;"><div class="li-title">Attrition Report</div><div class="li-sub">Last 6 months</div></div>
+        <span style="font-size:16px;color:var(--faint);">&#8250;</span>
+      </div>
+      <div class="report-card">
+        <div class="report-icon" style="background:var(--info-soft); color:var(--info);">&#128203;</div>
+        <div style="flex:1;"><div class="li-title">Recruitment Funnel</div><div class="li-sub">Applied &rarr; Hired conversion</div></div>
+        <span style="font-size:16px;color:var(--faint);">&#8250;</span>
+      </div>
+      <div class="report-card">
+        <div class="report-icon" style="background:var(--success-soft); color:var(--success);">&#9203;</div>
+        <div style="flex:1;"><div class="li-title">Onboarding TAT</div><div class="li-sub">Avg. time to fully onboard</div></div>
+        <span style="font-size:16px;color:var(--faint);">&#8250;</span>
+      </div>
+      <div class="report-card">
+        <div class="report-icon" style="background:var(--warn-soft); color:var(--warn);">&#128260;</div>
+        <div style="flex:1;"><div class="li-title">Sync Health</div><div class="li-sub">Attendance & HRMS sync accuracy</div></div>
+        <span style="font-size:16px;color:var(--faint);">&#8250;</span>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item active"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+<div class="frame-block">
+  <div class="frame-label">Navigation drawer (from "More")</div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>&#128246; &#128225; &#128267;</span></div>
+    <div class="appbar">
+      <div class="appbar-top">
+        <div class="appbar-title">Staffing</div>
+        <div class="icon-btn">&#9776;</div>
+      </div>
+    </div>
+    <div style="flex:1; position:relative; background:var(--paper);">
+      <div class="drawer open" style="position:absolute;">
+        <div class="drawer-panel">
+          <div class="drawer-header">
+            <div class="drawer-avatar">MK</div>
+            <div><div style="font-weight:700; font-size:14px;">Meera Krishnan</div><div style="font-size:11px; color:#94a3b8;">HR Administrator</div></div>
+          </div>
+          <div class="drawer-item active">&#8962; Dashboard</div>
+          <div class="drawer-item">&#128101; Employees</div>
+          <div class="drawer-group">Organization</div>
+          <div class="drawer-item">&#127970; Departments</div>
+          <div class="drawer-item">&#127908; Designations</div>
+          <div class="drawer-group">Hiring</div>
+          <div class="drawer-item">&#128203; Recruitment</div>
+          <div class="drawer-item">&#9989; Onboarding</div>
+          <div class="drawer-group">Sync</div>
+          <div class="drawer-item">&#128260; Employee Sync</div>
+          <div class="drawer-item">&#9200; Attendance Sync</div>
+          <div class="drawer-group">Insights</div>
+          <div class="drawer-item">&#128202; Reports</div>
+          <div class="drawer-item">&#9881; Settings</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottomnav">
+      <div class="bn-item"><span class="ic">&#8962;</span>Dashboard</div>
+      <div class="bn-item"><span class="ic">&#128101;</span>Employees</div>
+      <div class="bn-item"><span class="ic">&#128260;</span>Sync</div>
+      <div class="bn-item"><span class="ic">&#128202;</span>Reports</div>
+      <div class="bn-item active"><span class="ic">&#9776;</span>More</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

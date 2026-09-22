@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Income Tax · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Income Tax (TDS)</h1>
+    <p class="page-subtitle">Estimated monthly TDS based on annualized gross salary (old regime slabs)</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Monthly TDS by Employee</h3></div>
+  <div class="card-body"><div class="chart-box"><canvas id="taxChart"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="taxSearch" placeholder="Search employee..." onkeyup="filterTaxTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ rows|length }} employee{{ rows|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if rows %}
+    <table id="taxTable">
+      <thead><tr><th>Employee</th><th>Annual Gross</th><th>Annual TDS</th><th>Monthly TDS</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="cell-title">{{ r.employee.full_name }}</td>
+          <td>&#8377;{{ r.annual_gross }}</td>
+          <td>&#8377;{{ r.tds_annual }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ r.tds_monthly }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No salary structures to calculate tax from</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Slab Reference (Illustrative)</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Annual Income</th><th>Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Up to &#8377;3,00,000</td><td>Nil</td></tr>
+        <tr><td>&#8377;3,00,001 &ndash; &#8377;7,00,000</td><td>5%</td></tr>
+        <tr><td>Above &#8377;7,00,000</td><td>&#8377;20,000 + 10% on balance</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function filterTaxTable(){
+    const q = document.getElementById('taxSearch').value.toLowerCase();
+    document.querySelectorAll('#taxTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  new Chart(document.getElementById('taxChart'), {
+    type:'bar',
+    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Monthly TDS', data:{{ chart_values|safe }}, backgroundColor:'#ef6c5a', borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
+  });
+</script>
+{% endblock %}

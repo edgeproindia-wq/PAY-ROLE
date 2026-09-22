@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Employees On Leave{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'reports_analytics' %}">Reports &amp; Analytics</a> / Employees On Leave</div>
+<div class="page-header">
+  <div><h1 class="page-title">Employees On Leave Today</h1><p class="page-subtitle">As of {{ today }}</p></div>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    {% if on_leave %}
+    <table><thead><tr><th>Employee</th><th>Leave Type</th><th>From</th><th>To</th></tr></thead>
+    <tbody>
+      {% for l in on_leave %}
+      <tr>
+        <td><span class="cell-main"><span class="avatar-sm">{{ l.employee.first_name|first }}{{ l.employee.last_name|first }}</span><span class="cell-title">{{ l.employee.full_name }}</span></span></td>
+        <td>{{ l.get_leave_type_display }}</td><td>{{ l.from_date }}</td><td>{{ l.to_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+    {% else %}<div class="empty-state"><div class="icon">&#127774;</div><div class="title">No one is on leave today</div></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

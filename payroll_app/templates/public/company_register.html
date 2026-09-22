@@ -1,0 +1,22 @@
+{% extends "public_base.html" %}
+{% block title %}Register your Company{% endblock %}
+{% block boxsize %}wide{% endblock %}
+{% block content %}
+<h1>Register your Company</h1>
+<p class="sub">Your account will be activated once our team approves the registration.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="form-grid">
+    <div class="field">{{ form.company_name.label_tag }}{{ form.company_name }}{{ form.company_name.errors }}</div>
+    <div class="field">{{ form.contact_email.label_tag }}{{ form.contact_email }}{{ form.contact_email.errors }}</div>
+    <div class="field">{{ form.contact_phone.label_tag }}{{ form.contact_phone }}{{ form.contact_phone.errors }}</div>
+    <div class="field">{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
+    <div class="field">{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
+    <div class="field">{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
+  </div>
+  <div class="field">{{ form.address.label_tag }}{{ form.address }}{{ form.address.errors }}</div>
+  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <button class="btn" type="submit">Register</button>
+</form>
+<div class="links">Already registered? <a href="{% url 'login' %}">Sign in</a></div>
+{% endblock %}

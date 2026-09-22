@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Reports &amp; Analytics · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reports &amp; Analytics</h1>
+    <p class="page-subtitle">Organization-wide snapshot and detailed reports</p>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Total Employees</div><div class="value">{{ total_employees }}</div></div>
+  <div class="kpi-card"><div class="label">Payroll Runs</div><div class="value">{{ total_payroll_runs }}</div></div>
+  <div class="kpi-card"><div class="label">Released Runs</div><div class="value">{{ total_released }}</div></div>
+  <div class="kpi-card"><div class="label">Pending Leave</div><div class="value">{{ total_pending_leave }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Summary Overview</h3></div>
+  <div class="card-body"><div class="chart-box"><canvas id="raChart"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Detailed Reports</h3><div class="sub">Drill into specific report views</div></div>
+  <div class="card-body">
+    <div class="grid-3">
+      <a href="{% url 'total_employees_report' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#128101; Total Employees</a>
+      <a href="{% url 'new_joiners_report' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#127881; New Joiners</a>
+      <a href="{% url 'payroll_cost_report' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#128179; Payroll Cost</a>
+      <a href="{% url 'pending_payroll_report' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#9203; Pending Payroll</a>
+      <a href="{% url 'employees_on_leave_report' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#127974; Employees On Leave</a>
+      <a href="{% url 'compliance_reports' %}" class="btn btn-outline" style="justify-content:flex-start;padding:14px 16px;">&#128220; Compliance Reports</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  new Chart(document.getElementById('raChart'), {
+    type:'bar',
+    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Count', data:{{ chart_values|safe }}, backgroundColor:['#4f46e5','#0f9d6a','#0369a1','#f5a524'], borderRadius:8 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
+  });
+</script>
+{% endblock %}

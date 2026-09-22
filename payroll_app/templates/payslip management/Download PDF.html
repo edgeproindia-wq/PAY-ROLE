@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Download Payslip{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Download Payslip</h1><p class="page-subtitle">Download a real PDF for any of your released payslips.</p></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Month</th><th>Employee</th><th>Net Pay</th><th></th></tr></thead>
+<tbody>
+{% for line in lines %}<tr><td>{{ line.payroll_run.month }}</td><td>{{ line.employee.full_name }}</td><td>{{ line.net_pay }}</td><td><a class="btn btn-sm" href="{% url 'payslip_pdf_download' line.pk %}">Download PDF</a></td></tr>
+{% empty %}<tr><td colspan="4">No released payslips yet.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

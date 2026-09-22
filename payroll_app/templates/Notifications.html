@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Notifications · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Notifications</h1>
+    <p class="page-subtitle">Pending leave, reimbursements and payroll approvals</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body flush">
+    {% if notices %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:110px;">Type</th><th class="wrap">Message</th><th style="width:130px;">Date</th></tr></thead>
+        <tbody>
+          {% for n in notices %}
+          <tr>
+            <td>
+              <span class="badge {% if n.type == 'Leave' %}badge-warn{% elif n.type == 'Reimbursement' %}badge-info{% else %}badge-neutral{% endif %}">{{ n.type }}</span>
+            </td>
+            <td class="wrap">{{ n.message }}</td>
+            <td class="text-sm text-muted">{{ n.date }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">&#128276;</div>
+      <div class="title">You're all caught up</div>
+      <div class="desc">No pending notifications right now.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

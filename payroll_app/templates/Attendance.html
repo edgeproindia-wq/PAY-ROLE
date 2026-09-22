@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Attendance · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Attendance</h1>
+    <p class="page-subtitle">Daily attendance records per employee</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addAttModal').classList.add('open')">+ Mark Attendance</button>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Status Breakdown</h3></div>
+    <div class="card-body"><div class="chart-box sm"><canvas id="attChart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Quick Legend</h3></div>
+    <div class="card-body stack-gap">
+      <div class="flex-between"><span class="badge badge-success">Present</span><span class="text-sm text-muted">On duty for the day</span></div>
+      <div class="flex-between"><span class="badge badge-danger">Absent</span><span class="text-sm text-muted">No attendance recorded</span></div>
+      <div class="flex-between"><span class="badge badge-warn">Half Day</span><span class="text-sm text-muted">Worked part of the day</span></div>
+      <div class="flex-between"><span class="badge badge-info">On Leave</span><span class="text-sm text-muted">Approved leave</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="attSearch" placeholder="Search employee..." onkeyup="filterAttTable()"></div>
+    <select class="filter-select" id="attStatusFilter" onchange="filterAttTable()">
+      <option value="">All Status</option>
+      <option value="Present">Present</option>
+      <option value="Absent">Absent</option>
+      <option value="Half Day">Half Day</option>
+      <option value="On Leave">On Leave</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ records.paginator.count }} record{{ records.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if records %}
+    <table id="attTable">
+      <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Remarks</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td><span class="cell-main"><span class="avatar-sm">{{ r.employee.first_name|first }}{{ r.employee.last_name|first }}</span><span class="cell-title">{{ r.employee.full_name }}</span></span></td>
+          <td>{{ r.date }}</td>
+          <td><span class="badge {% if r.status == 'PRESENT' %}badge-success{% elif r.status == 'ABSENT' %}badge-danger{% elif r.status == 'HALF_DAY' %}badge-warn{% else %}badge-info{% endif %}">{{ r.get_status_display }}</span></td>
+          <td class="wrap">{{ r.remarks|default:"&mdash;" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128197;</div><div class="title">No attendance records yet</div></div>
+    {% endif %}
+  </div>
+  {% if records.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ records.number }} of {{ records.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if records.has_previous %}<a href="?page={{ records.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in records.paginator.page_range %}{% if p == records.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}{% endfor %}
+      {% if records.has_next %}<a href="?page={{ records.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="addAttModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>Mark Attendance</h3><button class="modal-close" onclick="document.getElementById('addAttModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'attendance' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addAttModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterAttTable(){
+    const q = document.getElementById('attSearch').value.toLowerCase();
+    const status = document.getElementById('attStatusFilter').value.toLowerCase();
+    document.querySelectorAll('#attTable tbody tr').forEach(r => {
+      const t = r.innerText.toLowerCase();
+      r.style.display = (t.includes(q) && (!status || t.includes(status))) ? '' : 'none';
+    });
+  }
+  new Chart(document.getElementById('attChart'), {
+    type: 'doughnut',
+    data: { labels: {{ chart_labels|safe }}, datasets: [{ data: {{ chart_values|safe }}, backgroundColor:['#0f9d6a','#dc2626','#b45309','#0369a1'] }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:11}} } } }
+  });
+  {% if form.errors %}document.getElementById('addAttModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

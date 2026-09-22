@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Create ESS Login{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Create Login for {{ employee.full_name }}</h1></div></div>
+<div class="card"><div class="card-body">
+  <form method="post">{% csrf_token %}
+    <div class="field">{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
+    <div class="field">{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
+    <div class="field">{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <button class="btn btn-primary" type="submit">Create Account</button>
+  </form>
+</div></div>
+{% endblock %}

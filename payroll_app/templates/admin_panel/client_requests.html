@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Client Requests{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Client Requests</h1></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Company</th><th>Type</th><th>Status</th><th>Received</th><th>Respond</th></tr></thead>
+<tbody>
+{% for r in requests %}
+<tr>
+  <td>{{ r.company.name }}</td><td class="wrap">{{ r.request_type }}</td>
+  <td><span class="badge {% if r.status == 'PENDING' %}badge-warn{% elif r.status == 'APPROVED' or r.status == 'COMPLETED' %}badge-success{% else %}badge-danger{% endif %}">{{ r.get_status_display }}</span></td>
+  <td class="text-sm text-muted">{{ r.created_at|date:"d M Y" }}</td>
+  <td>
+    <form method="post" action="{% url 'admin_request_respond' r.pk %}" class="stack-gap">
+      {% csrf_token %}
+      <textarea name="admin_response" rows="2" placeholder="Response...">{{ r.admin_response }}</textarea>
+      <select name="status">{% for val, label in r.STATUS_CHOICES %}<option value="{{ val }}" {% if r.status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <button class="btn btn-primary btn-sm" type="submit">Save</button>
+    </form>
+  </td>
+</tr>
+{% empty %}<tr><td colspan="5">No requests yet.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

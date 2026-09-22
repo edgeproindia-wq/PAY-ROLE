@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Pending Payroll Report{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'reports_analytics' %}">Reports &amp; Analytics</a> / Pending Payroll</div>
+<div class="page-header">
+  <div><h1 class="page-title">Pending Payroll Runs</h1><p class="page-subtitle">Runs that have not yet been released</p></div>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    {% if pending_runs %}
+    <table><thead><tr><th>Month</th><th>Status</th><th>Lines</th><th class="no-print">Action</th></tr></thead>
+    <tbody>
+      {% for run in pending_runs %}
+      <tr>
+        <td class="cell-title">{{ run.month }}</td>
+        <td><span class="badge {% if run.status == 'APPROVED' %}badge-info{% elif run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ run.get_status_display }}</span></td>
+        <td>{{ run.lines.count }}</td>
+        <td class="no-print"><a href="{% url 'payroll_run_detail' run.pk %}" class="btn btn-outline btn-sm">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+    {% else %}<div class="empty-state"><div class="icon">&#9989;</div><div class="title">All payroll runs are released</div></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

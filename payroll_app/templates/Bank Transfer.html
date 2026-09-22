@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Bank Transfer · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Bank Transfer</h1>
+    <p class="page-subtitle">Net pay disbursement for released payroll runs</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'download_pdf' %}" class="btn btn-outline">&#8681; Download PDF</a>
+    <a href="{% url 'salary_transfer_file' %}" class="btn btn-outline">&#8681; Salary Transfer File (CSV)</a>
+  </div>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="tabs no-print" style="padding:0 0 0 0;margin-bottom:20px;border:none;">
+  <a href="{% url 'bank_transfer' %}" class="tab {% if request.resolver_match.url_name == 'bank_transfer' %}active{% endif %}">Overview</a>
+  <a href="{% url 'payment_states' %}" class="tab {% if request.resolver_match.url_name == 'payment_states' %}active{% endif %}">Payment Status</a>
+  <a href="{% url 'failed_transaction_report' %}" class="tab {% if request.resolver_match.url_name == 'failed_transaction_report' %}active{% endif %}">Failed Transactions</a>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">{% if is_failed_view %}Failed Transfers{% else %}Employees to Pay{% endif %}</div><div class="value">{{ lines|length }}</div></div>
+  {% if counts %}
+    <div class="kpi-card"><div class="label">Pending</div><div class="value">{{ counts.pending }}</div></div>
+    <div class="kpi-card"><div class="label">Success</div><div class="value">{{ counts.success }}</div></div>
+    <div class="kpi-card"><div class="label">Failed</div><div class="value">{{ counts.failed }}</div></div>
+  {% else %}
+    <div class="kpi-card"><div class="label">Transfer Mode</div><div class="value" style="font-size:16px;">NEFT / IMPS</div></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="btSearch" placeholder="Search employee or IFSC..." onkeyup="filterBtTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ lines|length }} record{{ lines|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if lines %}
+    <form method="post">
+      {% csrf_token %}
+      <table id="btTable">
+        <thead><tr>{% if not is_failed_view %}<th style="width:24px;"><input type="checkbox" onclick="document.querySelectorAll('.btchk').forEach(c=>c.checked=this.checked)"></th>{% endif %}<th>Employee</th><th>Bank A/C No.</th><th>IFSC</th><th>Month</th><th>Net Pay</th><th>Status</th><th>Reference</th>{% if is_failed_view %}<th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for l in lines %}
+          <tr>
+            {% if not is_failed_view %}<td><input class="btchk" type="checkbox" name="line_id" value="{{ l.pk }}" {% if l.payment_status == 'SUCCESS' %}disabled{% endif %}></td>{% endif %}
+            <td><span class="cell-main"><span class="avatar-sm">{{ l.employee.first_name|first }}{{ l.employee.last_name|first }}</span><span class="cell-title">{{ l.employee.full_name }}</span></span></td>
+            <td>{{ l.employee.bank_account_no|default:"Not on file" }}</td>
+            <td>{{ l.employee.ifsc_code|default:"&mdash;" }}</td>
+            <td>{{ l.payroll_run.month }}</td>
+            <td style="font-weight:700;color:var(--ink);">&#8377;{{ l.net_pay }}</td>
+            <td>
+              {% if l.payment_status == 'SUCCESS' %}<span class="badge badge-success">Success</span>
+              {% elif l.payment_status == 'FAILED' %}<span class="badge badge-danger">Failed{% if l.failure_reason %} &mdash; {{ l.failure_reason }}{% endif %}</span>
+              {% else %}<span class="badge">Pending</span>{% endif %}
+            </td>
+            <td>{{ l.payment_reference|default:"&mdash;" }}</td>
+            {% if is_failed_view %}<td><button type="submit" name="line_id" value="{{ l.pk }}" class="btn btn-sm">Retry</button></td>{% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if not is_failed_view and lines %}
+      <div style="padding:14px;"><button type="submit" class="btn btn-fill">Initiate Transfer for Selected</button></div>
+      {% endif %}
+    </form>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">&#127974;</div>
+      <div class="title">No transfers pending</div>
+      <div class="desc">Bank transfer records appear here once a payroll run is released.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function filterBtTable(){
+    const q = document.getElementById('btSearch').value.toLowerCase();
+    document.querySelectorAll('#btTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+</script>
+{% endblock %}

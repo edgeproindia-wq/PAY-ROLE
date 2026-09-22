@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Admin Dashboard</h1><p class="page-subtitle">Platform-wide overview</p></div></div>
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Pending Demo Requests</div><div class="value">{{ pending_demo_requests }}</div></div>
+  <div class="kpi-card"><div class="label">Pending Company Approvals</div><div class="value">{{ pending_company_approvals }}</div></div>
+  <div class="kpi-card"><div class="label">Open Complaints</div><div class="value">{{ open_complaints }}</div></div>
+  <div class="kpi-card"><div class="label">Pending Client Requests</div><div class="value">{{ pending_client_requests }}</div></div>
+  <div class="kpi-card"><div class="label">Active Companies</div><div class="value">{{ total_companies }}</div></div>
+  <div class="kpi-card"><div class="label">Total Employees</div><div class="value">{{ total_employees }}</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>Recent Demo Requests</h3><a class="btn btn-outline btn-sm" href="{% url 'admin_demo_requests' %}">View all</a></div>
+    <div class="card-body flush"><div class="table-wrap"><table><thead><tr><th>Company</th><th>Status</th></tr></thead><tbody>
+      {% for d in recent_demo_requests %}<tr><td>{{ d.company_name }}</td><td>{{ d.get_status_display }}</td></tr>{% empty %}<tr><td colspan="2">None yet</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+  <div class="card"><div class="card-header"><h3>Recent Companies</h3><a class="btn btn-outline btn-sm" href="{% url 'admin_company_list' %}">View all</a></div>
+    <div class="card-body flush"><div class="table-wrap"><table><thead><tr><th>Company</th><th>Status</th></tr></thead><tbody>
+      {% for c in recent_companies %}<tr><td>{{ c.name }}</td><td>{{ c.get_status_display }}</td></tr>{% empty %}<tr><td colspan="2">None yet</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+</div>
+{% endblock %}

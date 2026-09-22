@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Payslips · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Payslips</h1>
+    <p class="page-subtitle">Released payslips across all payroll runs</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'payslips_export_csv' %}" class="btn btn-outline">&#8681; Export CSV</a>
+    <a href="{% url 'payslips_export_excel' %}" class="btn btn-outline">&#8681; Export Excel</a>
+    <a href="{% url 'payslip_history' %}" class="btn btn-dark">Payslip History</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="psSearch" placeholder="Search employee or month..." onkeyup="filterPsTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ lines|length }} payslip{{ lines|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if lines %}
+    <table id="psTable">
+      <thead><tr><th>Employee</th><th>Code</th><th>Month</th><th>Basic</th><th>Gross</th><th>Net Pay</th><th class="no-print">Actions</th></tr></thead>
+      <tbody>
+        {% for l in lines %}
+        <tr>
+          <td><span class="cell-main"><span class="avatar-sm">{{ l.employee.first_name|first }}{{ l.employee.last_name|first }}</span><span class="cell-title">{{ l.employee.full_name }}</span></span></td>
+          <td>{{ l.employee.employee_code }}</td>
+          <td>{{ l.payroll_run.month }}</td>
+          <td>&#8377;{{ l.basic }}</td>
+          <td>&#8377;{{ l.gross_salary }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ l.net_pay }}</td>
+          <td class="no-print">
+            <div class="row-actions">
+              <a href="{% url 'generate_payslip' %}" class="btn btn-outline btn-sm">View</a>
+              <a href="{% url 'email_payslip' %}" class="btn btn-outline btn-sm">Email</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">&#128179;</div>
+      <div class="title">No payslips yet</div>
+      <div class="desc">Payslips appear here once a payroll run is released.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function filterPsTable(){
+    const q = document.getElementById('psSearch').value.toLowerCase();
+    document.querySelectorAll('#psTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Payroll{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Overview of employees, payroll runs and pending approvals</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'payroll_processing' %}" class="btn btn-primary">+ New Payroll Run</a>
+    <a href="{% url 'employee_master' %}" class="btn btn-outline">+ Add Employee</a>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:var(--accent-soft);color:var(--accent);">&#128101;</span>
+    <div class="label">Active Employees</div>
+    <div class="value">{{ total_employees }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:var(--success-soft);color:var(--success);">&#128179;</span>
+    <div class="label">Salary Structures</div>
+    <div class="value">{{ total_salary_structures }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:var(--info-soft);color:var(--info);">&#128196;</span>
+    <div class="label">Payroll Runs Processed</div>
+    <div class="value">{{ salary_generated_count }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:var(--warn-soft);color:var(--warn);">&#9203;</span>
+    <div class="label">Pending Approvals</div>
+    <div class="value">{{ pending_approvals }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3>Latest Payroll Run</h3>
+      <div class="sub">{% if latest_payroll_run %}{{ latest_payroll_run.month }}{% else %}No payroll runs yet{% endif %}</div>
+    </div>
+    {% if latest_payroll_run %}
+      <span class="badge {% if latest_payroll_run.status == 'RELEASED' %}badge-success{% elif latest_payroll_run.status == 'APPROVED' %}badge-info{% elif latest_payroll_run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ latest_payroll_run.get_status_display }}</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if latest_payroll_run %}
+      <div class="grid-3">
+        <div>
+          <div class="label" style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Net Payout</div>
+          <div style="font-size:20px;font-weight:800;color:var(--ink);margin-top:4px;">&#8377;{{ latest_run_net_pay|floatformat:2 }}</div>
+        </div>
+        <div>
+          <div class="label" style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;">Employees Paid</div>
+          <div style="font-size:20px;font-weight:800;color:var(--ink);margin-top:4px;">{{ latest_run_employee_count }}</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <a href="{% url 'payroll_processing' %}" class="btn btn-dark">View Payroll Runs</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">&#128196;</div>
+        <div class="title">No payroll run yet</div>
+        <div class="desc">Start your first payroll run to see net payout and headcount here.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Employees by Department</h3></div>
+    <div class="card-body"><div class="chart-box"><canvas id="deptChart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Employee Status Breakdown</h3></div>
+    <div class="card-body"><div class="chart-box"><canvas id="statusChart"></canvas></div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Payroll Run Status</h3></div>
+    <div class="card-body"><div class="chart-box sm"><canvas id="runChart"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h3>To-Do</h3>
+    </div>
+    <div class="card-body stack-gap">
+      <div class="flex-between">
+        <span>Pending Leave Requests</span>
+        <a href="{% url 'leave_management' %}" class="badge badge-warn">{{ pending_leave }} pending</a>
+      </div>
+      <div class="flex-between">
+        <span>Pending Reimbursements</span>
+        <a href="{% url 'reimbursement' %}" class="badge badge-warn">{{ pending_reimbursements }} pending</a>
+      </div>
+      <div class="flex-between">
+        <span>Unverified Investment Declarations</span>
+        <a href="{% url 'investment_declaration' %}" class="badge badge-warn">{{ pending_investment_declarations }} pending</a>
+      </div>
+      <div class="flex-between">
+        <span>Payroll Runs Awaiting Approval</span>
+        <a href="{% url 'payroll_processing' %}" class="badge badge-warn">{{ pending_approvals }} pending</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Recent Leave Requests</h3></div>
+    <div class="table-wrap">
+      {% if recent_leaves %}
+      <table>
+        <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for l in recent_leaves %}
+          <tr>
+            <td>{{ l.employee.full_name }}</td>
+            <td>{{ l.get_leave_type_display }}</td>
+            <td>{{ l.from_date }} &rarr; {{ l.to_date }}</td>
+            <td><span class="badge {% if l.status == 'APPROVED' %}badge-success{% elif l.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ l.get_status_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><div class="icon">&#128197;</div><div class="title">No leave requests yet</div></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Recent Reimbursements</h3></div>
+    <div class="table-wrap">
+      {% if recent_reimbursements %}
+      <table>
+        <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for r in recent_reimbursements %}
+          <tr>
+            <td>{{ r.employee.full_name }}</td>
+            <td>{{ r.get_category_display }}</td>
+            <td>&#8377;{{ r.amount }}</td>
+            <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No reimbursement claims yet</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  const palette = ['#4f46e5','#0f9d6a','#f5a524','#ef6c5a','#0369a1','#8b5cf6','#14b8a6'];
+
+  new Chart(document.getElementById('deptChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ dept_labels|safe }},
+      datasets: [{ label:'Employees', data: {{ dept_values|safe }}, backgroundColor:'#4f46e5', borderRadius:6, maxBarThickness:36 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } } }
+  });
+
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ status_labels|safe }},
+      datasets: [{ data: {{ status_values|safe }}, backgroundColor: palette }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}} }
+  });
+
+  new Chart(document.getElementById('runChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ run_labels|safe }},
+      datasets: [{ label:'Runs', data: {{ run_values|safe }}, backgroundColor:'#0f9d6a', borderRadius:6, maxBarThickness:36 }]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, grid:{color:'#eef1f6'} }, y:{ grid:{display:false} } } }
+  });
+</script>
+{% endblock %}

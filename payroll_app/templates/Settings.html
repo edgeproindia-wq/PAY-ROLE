@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Settings · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Settings</h1>
+    <p class="page-subtitle">Company details and statutory configuration</p>
+  </div>
+</div>
+
+<form method="post" action="{% url 'settings' %}">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-header"><h3>Company Details</h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>{{ form.company_name.label }}</label>{{ form.company_name }}{{ form.company_name.errors }}</div>
+        <div class="field"><label>{{ form.pan_number.label }}</label>{{ form.pan_number }}{{ form.pan_number.errors }}</div>
+        <div class="field"><label>{{ form.gst_number.label }}</label>{{ form.gst_number }}{{ form.gst_number.errors }}</div>
+        <div class="field" style="grid-column:1/-1;"><label>{{ form.address.label }}</label>{{ form.address }}{{ form.address.errors }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Statutory Configuration</h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>{{ form.pf_percentage.label }}</label>{{ form.pf_percentage }}{{ form.pf_percentage.errors }}</div>
+        <div class="field"><label>{{ form.esi_percentage.label }}</label>{{ form.esi_percentage }}{{ form.esi_percentage.errors }}</div>
+        <div class="field"><label>{{ form.pf_wage_ceiling.label }}</label>{{ form.pf_wage_ceiling }}{{ form.pf_wage_ceiling.errors }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Leave Policy</h3></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field"><label>{{ form.casual_leave_days.label }}</label>{{ form.casual_leave_days }}{{ form.casual_leave_days.errors }}</div>
+        <div class="field"><label>{{ form.sick_leave_days.label }}</label>{{ form.sick_leave_days }}{{ form.sick_leave_days.errors }}</div>
+        <div class="field"><label>{{ form.earned_leave_days.label }}</label>{{ form.earned_leave_days }}{{ form.earned_leave_days.errors }}</div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

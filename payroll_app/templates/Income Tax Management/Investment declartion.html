@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Investment Declaration · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Investment Declaration</h1>
+    <p class="page-subtitle">Employee tax-saving investment declarations for income tax purposes</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addInvModal').classList.add('open')">+ New Declaration</button>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Total Declarations</div><div class="value">{{ declarations|length }}</div></div>
+  <div class="kpi-card"><div class="label">Verified</div><div class="value">{{ declarations|dictsortreversed:"is_verified"|length }}</div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="invSearch" placeholder="Search employee..." onkeyup="filterInvTable()"></div>
+    <select class="filter-select" id="invSectionFilter" onchange="filterInvTable()">
+      <option value="">All Sections</option>
+      <option value="80C">80C</option><option value="80D">80D</option><option value="80CCD">80CCD (NPS)</option><option value="HRA">HRA</option><option value="Other">Other</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ declarations|length }} declaration{{ declarations|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if declarations %}
+    <table id="invTable">
+      <thead><tr><th>Employee</th><th>FY</th><th>Section</th><th>Investment Type</th><th>Declared Amount</th><th>Proof</th><th>Verified</th></tr></thead>
+      <tbody>
+        {% for d in declarations %}
+        <tr>
+          <td class="cell-title">{{ d.employee.full_name }}</td>
+          <td>{{ d.financial_year }}</td>
+          <td>{{ d.get_section_display }}</td>
+          <td>{{ d.investment_type }}</td>
+          <td>&#8377;{{ d.declared_amount }}</td>
+          <td>{% if d.proof_document %}<a href="{{ d.proof_document.url }}" target="_blank">View file</a>{% else %}&mdash;{% endif %}</td>
+          <td>{% if d.is_verified %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-warn">Pending</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No declarations submitted yet</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="addInvModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Investment Declaration</h3><button class="modal-close" onclick="document.getElementById('addInvModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'investment_declaration' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addInvModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Declaration</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterInvTable(){
+    const q = document.getElementById('invSearch').value.toLowerCase();
+    const section = document.getElementById('invSectionFilter').value.toLowerCase();
+    document.querySelectorAll('#invTable tbody tr').forEach(r => {
+      const t = r.innerText.toLowerCase();
+      r.style.display = (t.includes(q) && (!section || t.includes(section))) ? '' : 'none';
+    });
+  }
+  {% if form.errors %}document.getElementById('addInvModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

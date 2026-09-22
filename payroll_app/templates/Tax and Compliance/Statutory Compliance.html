@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Statutory Compliance · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Statutory Compliance</h1>
+    <p class="page-subtitle">PF (12% of Basic) and ESI (0.75% of Gross, if Gross &le; &#8377;21,000) per employee</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>PF vs ESI by Employee</h3></div>
+  <div class="card-body"><div class="chart-box"><canvas id="scChart"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="scSearch" placeholder="Search employee..." onkeyup="filterScTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ rows|length }} employee{{ rows|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if rows %}
+    <table id="scTable">
+      <thead><tr><th>Employee</th><th>Basic</th><th>Gross</th><th>PF (12%)</th><th>ESI</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="cell-title">{{ r.employee.full_name }}</td>
+          <td>&#8377;{{ r.basic }}</td>
+          <td>&#8377;{{ r.gross }}</td>
+          <td>&#8377;{{ r.pf }}</td>
+          <td>{% if r.esi > 0 %}&#8377;{{ r.esi }}{% else %}<span class="text-muted">Not applicable</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128220;</div><div class="title">No salary structures to calculate compliance from</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function filterScTable(){
+    const q = document.getElementById('scSearch').value.toLowerCase();
+    document.querySelectorAll('#scTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  new Chart(document.getElementById('scChart'), {
+    type:'bar',
+    data:{ labels:{{ chart_labels|safe }}, datasets:[
+      { label:'PF', data:{{ chart_pf|safe }}, backgroundColor:'#4f46e5', borderRadius:5 },
+      { label:'ESI', data:{{ chart_esi|safe }}, backgroundColor:'#0f9d6a', borderRadius:5 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
+  });
+</script>
+{% endblock %}

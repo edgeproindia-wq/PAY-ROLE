@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Employee Self Service · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Employee Self Service</h1>
+    <p class="page-subtitle">Quick access to payslips, leave and reimbursements</p>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Payslips Available</div><div class="value">{{ total_payslips }}</div></div>
+  <div class="kpi-card"><div class="label">Pending Leave Requests</div><div class="value">{{ pending_leave }}</div></div>
+  <div class="kpi-card"><div class="label">Pending Reimbursements</div><div class="value">{{ pending_reimbursements }}</div></div>
+</div>
+
+<div class="grid-3">
+  <div class="card">
+    <div class="card-header"><h3>Payslips</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">View and download your released payslips.</p>
+      <a href="{% url 'payslips' %}" class="btn btn-primary" style="margin-top:8px;">Go to Payslips</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Leave</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">Apply for leave and track approval status.</p>
+      <a href="{% url 'leave_management' %}" class="btn btn-primary" style="margin-top:8px;">Go to Leave Management</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Reimbursements</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">Submit expense claims and check status.</p>
+      <a href="{% url 'reimbursement' %}" class="btn btn-primary" style="margin-top:8px;">Go to Reimbursement</a>
+    </div>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div class="card">
+    <div class="card-header"><h3>Investment Declarations</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">Declare tax-saving investments for the financial year.</p>
+      <a href="{% url 'investment_declaration' %}" class="btn btn-outline" style="margin-top:8px;">Declare Investments</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Attendance</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">View your daily attendance records.</p>
+      <a href="{% url 'attendance' %}" class="btn btn-outline" style="margin-top:8px;">View Attendance</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Notifications</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted">Stay updated on approvals and announcements.</p>
+      <a href="{% url 'notifications' %}" class="btn btn-outline" style="margin-top:8px;">View Notifications</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

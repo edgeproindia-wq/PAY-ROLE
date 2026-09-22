@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}User Roles &amp; Permissions · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">User Roles &amp; Permissions</h1>
+    <p class="page-subtitle">Assign system roles to employees</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addRoleModal').classList.add('open')">+ Assign Role</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Role Reference</h3></div>
+  <div class="card-body">
+    <div class="grid-3">
+      <div><span class="badge badge-danger">Admin</span><p class="text-sm text-muted" style="margin-top:6px;">Full system configuration and access</p></div>
+      <div><span class="badge badge-info">HR</span><p class="text-sm text-muted" style="margin-top:6px;">Manage employee records and salary structures</p></div>
+      <div><span class="badge badge-warn">Finance</span><p class="text-sm text-muted" style="margin-top:6px;">Bank transfers and financial reports</p></div>
+      <div><span class="badge badge-success">Payroll Executive</span><p class="text-sm text-muted" style="margin-top:6px;">Process payroll and generate reports</p></div>
+      <div><span class="badge badge-neutral">Reporting Manager</span><p class="text-sm text-muted" style="margin-top:6px;">Approve leave and overtime</p></div>
+      <div><span class="badge badge-neutral">Employee</span><p class="text-sm text-muted" style="margin-top:6px;">View payslips, tax and reimbursements</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="roleSearch" placeholder="Search employee..." onkeyup="filterRoleTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ assignments|length }} assignment{{ assignments|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if assignments %}
+    <table id="roleTable">
+      <thead><tr><th>Employee</th><th>Role</th><th>Assigned On</th></tr></thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td class="cell-title">{{ a.employee.full_name }}</td>
+          <td><span class="badge {% if a.role == 'ADMIN' %}badge-danger{% elif a.role == 'HR' %}badge-info{% elif a.role == 'FINANCE' %}badge-warn{% elif a.role == 'PAYROLL_EXECUTIVE' %}badge-success{% else %}badge-neutral{% endif %}">{{ a.get_role_display }}</span></td>
+          <td>{{ a.assigned_on }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128274;</div><div class="title">No roles assigned yet</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="addRoleModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>Assign Role</h3><button class="modal-close" onclick="document.getElementById('addRoleModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'user_roles_permissions' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addRoleModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Assign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterRoleTable(){
+    const q = document.getElementById('roleSearch').value.toLowerCase();
+    document.querySelectorAll('#roleTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  {% if form.errors %}document.getElementById('addRoleModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

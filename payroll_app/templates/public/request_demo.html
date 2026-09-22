@@ -1,0 +1,38 @@
+{% extends "public/marketing_base.html" %}
+{% block title %}Request a Demo - EDGEPRO Payroll{% endblock %}
+{% block cardsize %}wide{% endblock %}
+{% block left %}
+  <h1>See How <span class="accent">Smarter Payroll</span> Can Transform Your Business</h1>
+  <p class="desc">Discover how our payroll platform simplifies employee management, salary processing, attendance, compliance, payslips, and reporting — all from one powerful platform.</p>
+  <div class="checklist">
+    <div class="item"><div class="tick">✓</div>Complete Payroll Management, end to end</div>
+    <div class="item"><div class="tick">✓</div>Built-in Employee Self-Service portal</div>
+    <div class="item"><div class="tick">✓</div>Attendance, Leave &amp; Payroll fully integrated</div>
+    <div class="item"><div class="tick">✓</div>Automated payroll processing &amp; validation</div>
+  </div>
+  <div class="feature-grid">
+    <div class="f">👤 Employee Management</div>
+    <div class="f">💰 Salary Management</div>
+    <div class="f">⚙️ Payroll Processing</div>
+    <div class="f">🗓️ Attendance &amp; Leave</div>
+    <div class="f">📋 Compliance</div>
+    <div class="f">📊 Reports &amp; Analytics</div>
+  </div>
+{% endblock %}
+{% block right %}
+  <h2>Request Your Demo</h2>
+  <p class="sub">Fill in your details and our team will reach out to schedule your personalized walkthrough.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="form-grid">
+      <div class="field"><label>Full name</label>{{ form.full_name }}{{ form.full_name.errors }}</div>
+      <div class="field"><label>Company name</label>{{ form.company_name }}{{ form.company_name.errors }}</div>
+      <div class="field"><label>Email</label>{{ form.email }}{{ form.email.errors }}</div>
+      <div class="field"><label>Phone</label>{{ form.phone }}{{ form.phone.errors }}</div>
+    </div>
+    <div class="field"><label>Message</label>{{ form.message }}{{ form.message.errors }}</div>
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <button class="btn btn-fill btn-block" type="submit">Request My Demo</button>
+  </form>
+  <div class="trust-row">No cost, no obligation<span class="dot-sep">•</span>Personalized walkthrough<span class="dot-sep">•</span>Quick response</div>
+{% endblock %}

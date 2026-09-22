@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Full &amp; Final Settlement · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Full &amp; Final Settlement</h1>
+    <p class="page-subtitle">Settlement calculations for exiting employees</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addFfsModal').classList.add('open')">+ New Settlement</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="ffsSearch" placeholder="Search employee..." onkeyup="filterFfsTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ records|length }} settlement{{ records|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if records %}
+    <table id="ffsTable">
+      <thead><tr><th>Employee</th><th>Last Working Day</th><th>Pending Salary</th><th>Leave Encashment</th><th>Deductions</th><th>Net Settlement</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td class="cell-title">{{ r.employee.full_name }}</td>
+          <td>{{ r.last_working_day }}</td>
+          <td>&#8377;{{ r.pending_salary }}</td>
+          <td>&#8377;{{ r.leave_encashment }}</td>
+          <td>&#8377;{{ r.deductions }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ r.net_settlement }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128203;</div><div class="title">No settlements recorded yet</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="addFfsModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Full &amp; Final Settlement</h3><button class="modal-close" onclick="document.getElementById('addFfsModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'full_final_settlement' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addFfsModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterFfsTable(){
+    const q = document.getElementById('ffsSearch').value.toLowerCase();
+    document.querySelectorAll('#ffsTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  {% if form.errors %}document.getElementById('addFfsModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Payslip History{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Payslip History</h1></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Month</th><th>Employee</th><th>Basic</th><th>Gross</th><th>Net Pay</th></tr></thead>
+<tbody>
+{% for line in lines %}
+<tr><td>{{ line.payroll_run.month }}</td><td>{{ line.employee.full_name }}</td><td>{{ line.basic }}</td><td>{{ line.gross_salary }}</td><td>{{ line.net_pay }}</td></tr>
+{% empty %}<tr><td colspan="5">No released payslips yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="pagination">
+  {% if lines.has_previous %}<a href="?page={{ lines.previous_page_number }}">&laquo; Prev</a>{% endif %}
+  <span class="current">Page {{ lines.number }} of {{ lines.paginator.num_pages }}</span>
+  {% if lines.has_next %}<a href="?page={{ lines.next_page_number }}">Next &raquo;</a>{% endif %}
+</div>
+</div>
+{% endblock %}

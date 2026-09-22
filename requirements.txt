@@ -1,0 +1,10 @@
+Django>=6.1,<6.2
+python-docx>=1.1
+openpyxl>=3.1
+whitenoise>=6.7
+gunicorn>=22.0
+dj-database-url>=2.2
+mysqlclient>=2.2; sys_platform != "win32"
+psycopg2-binary>=2.9
+reportlab>=4.2
+django-axes>=6.5

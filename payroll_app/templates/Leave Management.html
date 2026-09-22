@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Leave Management · Payroll{% endblock %}
+{% block extra_head %}<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Leave Management</h1>
+    <p class="page-subtitle">Track and review employee leave requests</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addLeaveModal').classList.add('open')">+ New Leave Request</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Leave Requests by Type</h3></div>
+  <div class="card-body"><div class="chart-box sm"><canvas id="leaveChart"></canvas></div></div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="lvSearch" placeholder="Search employee..." onkeyup="filterLvTable()"></div>
+    <select class="filter-select" id="lvStatusFilter" onchange="filterLvTable()">
+      <option value="">All Status</option>
+      <option value="Pending">Pending</option>
+      <option value="Approved">Approved</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ leave_requests.paginator.count }} request{{ leave_requests.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if leave_requests %}
+    <table id="lvTable">
+      <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for l in leave_requests %}
+        <tr>
+          <td><span class="cell-main"><span class="avatar-sm">{{ l.employee.first_name|first }}{{ l.employee.last_name|first }}</span><span class="cell-title">{{ l.employee.full_name }}</span></span></td>
+          <td>{{ l.get_leave_type_display }}</td>
+          <td>{{ l.from_date }}</td>
+          <td>{{ l.to_date }}</td>
+          <td class="wrap">{{ l.reason|default:"&mdash;" }}</td>
+          <td><span class="badge {% if l.status == 'APPROVED' %}badge-success{% elif l.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ l.get_status_display }}</span></td>
+          {% if not is_employee_role %}
+          <td class="row-actions">
+            {% if l.status == 'PENDING' %}
+            <form method="post" action="{% url 'leave_decision' l.pk %}"><input type="hidden" name="decision" value="APPROVED">{% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Approve</button></form>
+            <form method="post" action="{% url 'leave_decision' l.pk %}"><input type="hidden" name="decision" value="REJECTED">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Reject</button></form>
+            {% else %}&mdash;{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128203;</div><div class="title">No leave requests yet</div></div>
+    {% endif %}
+  </div>
+  {% if leave_requests.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ leave_requests.number }} of {{ leave_requests.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if leave_requests.has_previous %}<a href="?page={{ leave_requests.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in leave_requests.paginator.page_range %}{% if p == leave_requests.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}{% endfor %}
+      {% if leave_requests.has_next %}<a href="?page={{ leave_requests.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="addLeaveModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Leave Request</h3><button class="modal-close" onclick="document.getElementById('addLeaveModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'leave_management' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addLeaveModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterLvTable(){
+    const q = document.getElementById('lvSearch').value.toLowerCase();
+    const status = document.getElementById('lvStatusFilter').value.toLowerCase();
+    document.querySelectorAll('#lvTable tbody tr').forEach(r => {
+      const t = r.innerText.toLowerCase();
+      r.style.display = (t.includes(q) && (!status || t.includes(status))) ? '' : 'none';
+    });
+  }
+  new Chart(document.getElementById('leaveChart'), {
+    type: 'bar',
+    data: { labels: {{ chart_labels|safe }}, datasets: [{ label:'Requests', data: {{ chart_values|safe }}, backgroundColor:'#4f46e5', borderRadius:6, maxBarThickness:44 }] },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, grid:{color:'#eef1f6'} }, y:{ grid:{display:false} } } }
+  });
+  {% if form.errors %}document.getElementById('addLeaveModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

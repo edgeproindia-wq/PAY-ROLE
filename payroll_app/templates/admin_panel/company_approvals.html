@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Company Approvals{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Company Approvals</h1><p class="page-subtitle">New self-registrations awaiting review</p></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Company</th><th>Contact Email</th><th>Registered</th><th>Action</th></tr></thead>
+<tbody>
+{% for c in companies %}
+<tr>
+  <td>{{ c.name }}</td><td>{{ c.contact_email }}</td><td class="text-sm text-muted">{{ c.created_at|date:"d M Y" }}</td>
+  <td>
+    <form method="post" action="{% url 'admin_company_decide' c.pk %}" style="display:flex; gap:4px;">
+      {% csrf_token %}
+      <button class="btn btn-success btn-sm" name="decision" value="APPROVED">Approve</button>
+      <button class="btn btn-danger btn-sm" name="decision" value="REJECTED">Reject</button>
+    </form>
+  </td>
+</tr>
+{% empty %}<tr><td colspan="4">No pending approvals.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

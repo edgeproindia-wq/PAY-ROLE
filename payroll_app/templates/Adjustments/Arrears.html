@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Arrears · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Arrears</h1>
+    <p class="page-subtitle">Retroactive salary revisions and back-pay calculations</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addArrModal').classList.add('open')">+ New Arrears Entry</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="arrSearch" placeholder="Search employee..." onkeyup="filterArrTable()"></div>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ records|length }} record{{ records|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if records %}
+    <table id="arrTable">
+      <thead><tr><th>Employee</th><th>Effective From</th><th>Old Basic</th><th>New Basic</th><th>Difference</th><th>Months</th><th>Total Arrears</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td class="cell-title">{{ r.employee.full_name }}</td>
+          <td>{{ r.effective_from }}</td>
+          <td>&#8377;{{ r.old_basic }}</td>
+          <td>&#8377;{{ r.new_basic }}</td>
+          <td>&#8377;{{ r.difference }}</td>
+          <td>{{ r.months }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ r.total_arrears }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No arrears records yet</div></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="addArrModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Arrears Entry</h3><button class="modal-close" onclick="document.getElementById('addArrModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'arrears' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addArrModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterArrTable(){
+    const q = document.getElementById('arrSearch').value.toLowerCase();
+    document.querySelectorAll('#arrTable tbody tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  {% if form.errors %}document.getElementById('addArrModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Client Management{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Client Management</h1></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Company</th><th>Contact</th><th>Status</th><th>Registered</th></tr></thead>
+<tbody>
+{% for c in companies %}
+<tr><td>{{ c.name }}</td><td>{{ c.contact_email }}</td>
+<td><span class="badge {% if c.status == 'APPROVED' %}badge-success{% elif c.status == 'PENDING_APPROVAL' %}badge-warn{% else %}badge-danger{% endif %}">{{ c.get_status_display }}</span></td>
+<td class="text-sm text-muted">{{ c.created_at|date:"d M Y" }}</td></tr>
+{% empty %}<tr><td colspan="4">No companies yet.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="pagination">
+  {% if companies.has_previous %}<a href="?page={{ companies.previous_page_number }}">&laquo; Prev</a>{% endif %}
+  <span class="current">Page {{ companies.number }} of {{ companies.paginator.num_pages }}</span>
+  {% if companies.has_next %}<a href="?page={{ companies.next_page_number }}">Next &raquo;</a>{% endif %}
+</div>
+</div>
+{% endblock %}

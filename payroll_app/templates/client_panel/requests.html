@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Raise a Request{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Client Requests</h1></div></div>
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>New Request</h3></div><div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="field">{{ form.request_type.label_tag }}{{ form.request_type }}{{ form.request_type.errors }}</div>
+      <div class="field">{{ form.description.label_tag }}{{ form.description }}{{ form.description.errors }}</div>
+      <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+  </div></div>
+  <div class="card"><div class="card-header"><h3>Your Requests</h3></div><div class="card-body flush"><div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Status</th><th>Response</th></tr></thead><tbody>
+    {% for r in requests %}<tr><td class="wrap">{{ r.request_type }}</td><td><span class="badge badge-info">{{ r.get_status_display }}</span></td><td class="wrap">{{ r.admin_response|default:"—" }}</td></tr>
+    {% empty %}<tr><td colspan="3">No requests raised yet.</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+</div>
+{% endblock %}

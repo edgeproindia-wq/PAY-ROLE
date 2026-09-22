@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Payroll Processing · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Payroll Processing</h1>
+    <p class="page-subtitle">Create, validate, approve and release monthly payroll runs</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('newRunModal').classList.add('open')">+ New Payroll Run</button>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Total Runs</div><div class="value">{{ summary.total_runs }}</div></div>
+  <div class="kpi-card"><div class="label">Employees Paid (Released)</div><div class="value">{{ summary.total_employees_paid }}</div></div>
+  <div class="kpi-card"><div class="label">Total Net Payout</div><div class="value">&#8377;{{ summary.total_net_payout|floatformat:2 }}</div></div>
+  <div class="kpi-card"><div class="label">Locked Runs</div><div class="value">{{ summary.locked_count }}</div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>All Payroll Runs</h3><div class="sub">Workflow: Draft &rarr; Validated &rarr; Approved &rarr; Released</div></div>
+  <div class="table-wrap">
+    {% if payroll_runs %}
+    <table>
+      <thead><tr><th>Month</th><th>Status</th><th>Employees</th><th>Net Payout</th><th>Locked</th><th>Created</th><th class="no-print">Actions</th></tr></thead>
+      <tbody>
+        {% for run in payroll_runs %}
+        <tr>
+          <td class="cell-title"><a href="{% url 'payroll_run_detail' run.pk %}" style="color:var(--accent);text-decoration:none;">{{ run.month }}</a></td>
+          <td><span class="badge {% if run.status == 'RELEASED' %}badge-success{% elif run.status == 'APPROVED' %}badge-info{% elif run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ run.get_status_display }}</span></td>
+          <td>{{ run.lines.count }} employee{{ run.lines.count|pluralize }}</td>
+          <td><a href="{% url 'payroll_run_detail' run.pk %}" class="text-sm" style="color:var(--accent);text-decoration:none;">View breakdown &rarr;</a></td>
+          <td>{% if run.is_locked %}<span class="badge badge-danger">Locked</span>{% else %}<span class="badge badge-neutral">Unlocked</span>{% endif %}</td>
+          <td>{{ run.created_at|date:"d M Y" }}</td>
+          <td class="no-print">
+            <div class="row-actions">
+              <a href="{% url 'payroll_run_detail' run.pk %}" class="btn btn-outline btn-sm">View</a>
+              {% if run.status == 'DRAFT' %}
+                <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="validate"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-dark btn-sm">Validate</button></form>
+              {% elif run.status == 'VALIDATED' %}
+                <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="approve"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-dark btn-sm">Approve</button></form>
+                <form method="post" style="display:inline;" onsubmit="return confirm('Reject and move back to Draft?');">{% csrf_token %}<input type="hidden" name="action" value="reject"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-danger btn-sm">Reject</button></form>
+              {% elif run.status == 'APPROVED' %}
+                <form method="post" style="display:inline;" onsubmit="return confirm('Release payroll for {{ run.month|escapejs }}? This finalizes payslips.');">{% csrf_token %}<input type="hidden" name="action" value="release"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-success btn-sm">Release</button></form>
+              {% endif %}
+              {% if run.status != 'RELEASED' %}
+                {% if run.is_locked %}
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="unlock"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-outline btn-sm">Unlock</button></form>
+                {% else %}
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="lock"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-outline btn-sm">Lock</button></form>
+                  <form method="post" style="display:inline;" onsubmit="return confirm('Reprocess {{ run.month|escapejs }}? Existing lines will be recalculated.');">{% csrf_token %}<input type="hidden" name="action" value="reprocess"><input type="hidden" name="run_id" value="{{ run.pk }}"><button class="btn btn-outline btn-sm">Reprocess</button></form>
+                {% endif %}
+              {% endif %}
+              <a href="{% url 'payroll_run_download_docx' run.pk %}" class="btn btn-outline btn-sm">&#8681; DOCX</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">&#128196;</div>
+      <div class="title">No payroll runs yet</div>
+      <div class="desc">Create your first payroll run to calculate salaries for active employees.</div>
+    </div>
+    {% endif %}
+  </div>
+  {% if payroll_runs.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ payroll_runs.number }} of {{ payroll_runs.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if payroll_runs.has_previous %}<a href="?page={{ payroll_runs.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in payroll_runs.paginator.page_range %}{% if p == payroll_runs.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}{% endfor %}
+      {% if payroll_runs.has_next %}<a href="?page={{ payroll_runs.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="newRunModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Payroll Run</h3><button class="modal-close" onclick="document.getElementById('newRunModal').classList.remove('open')">&times;</button></div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+      <div class="modal-body">
+        <div class="field">
+          <label>{{ form.month.label }}</label>
+          {{ form.month }}
+          <div class="helptext">Payroll lines will be generated automatically for all active employees with a salary structure.</div>
+          {{ form.month.errors }}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('newRunModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Run</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% if form.errors %}<script>document.getElementById('newRunModal').classList.add('open');</script>{% endif %}
+{% endblock %}

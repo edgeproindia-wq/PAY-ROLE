@@ -1,0 +1,24 @@
+{% extends "public/marketing_base.html" %}
+{% block title %}Sign In - EDGEPRO Payroll{% endblock %}
+{% block left %}
+  <h1>Your Payroll,<br><span class="accent">Simplified.</span></h1>
+  <p class="desc">A unified platform for employees, HR managers, and administrators to manage attendance, leave, payroll runs, and payslips.</p>
+  <div class="roles">
+    <div class="role-card"><div class="dot" style="background:var(--dot-blue);"></div><div><b>Employee</b><span>Attendance, leave requests, reimbursements &amp; payslips</span></div></div>
+    <div class="role-card"><div class="dot" style="background:var(--dot-purple);"></div><div><b>HR Manager</b><span>Approvals, payroll processing &amp; reports</span></div></div>
+    <div class="role-card"><div class="dot" style="background:var(--dot-yellow);"></div><div><b>Administrator</b><span>Complete system access and configuration</span></div></div>
+  </div>
+  <div class="footer-note">EDGEPRO &copy; {% now "Y" %} — Payroll &amp; HR Management</div>
+{% endblock %}
+{% block right %}
+  <h2>Welcome back</h2>
+  <p class="sub">Sign in to your EDGEPRO Payroll workspace</p>
+  {% if form.errors %}<ul class="errorlist"><li>Invalid username or password, or your account is not yet active.</li></ul>{% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="field"><label>Username</label>{{ form.username }}</div>
+    <div class="field"><label>Password <a href="{% url 'password_reset' %}">Forgot password?</a></label>{{ form.password }}</div>
+    <button class="btn btn-fill btn-block" type="submit">Sign In</button>
+  </form>
+  <div class="links">New employee? <a href="{% url 'employee_register' %}">Create an account</a></div>
+{% endblock %}

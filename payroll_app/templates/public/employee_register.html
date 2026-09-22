@@ -1,0 +1,88 @@
+{% extends "public/marketing_base.html" %}
+{% block title %}Create Account - EDGEPRO Payroll{% endblock %}
+{% block left %}
+  <h1>Create your<br><span class="accent">employee account.</span></h1>
+  <p class="desc">Verify your email, set your details, and an admin will assign you to your company and approve your access.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div>Verify your official company email with a one-time code</div>
+    <div class="step"><div class="n">2</div>Set your name, mobile number, and choose a password</div>
+    <div class="step"><div class="n">3</div>Wait for admin approval, then sign in</div>
+  </div>
+  <div class="footer-note">EDGEPRO &copy; {% now "Y" %} — Payroll &amp; HR Management</div>
+{% endblock %}
+{% block right %}
+  <h2>Create Account</h2>
+  <p class="sub">EDGEPRO Payroll — create your employee account</p>
+
+  <form method="post" id="regForm" novalidate>
+    {% csrf_token %}
+    <div class="field">
+      <label>Email address</label>
+      <div class="row">
+        <input type="email" name="email" id="id_email" value="{{ email|default:'' }}" required>
+        <button type="button" class="btn btn-fill" id="otpBtn">Send OTP</button>
+      </div>
+      <div class="hint" id="otpHint"></div>
+    </div>
+
+    <div class="field" id="otpField" style="display:none;">
+      <label>Enter OTP</label>
+      <input type="text" name="otp" id="id_otp" maxlength="6" placeholder="6-digit code">
+    </div>
+
+    <div class="field"><label>Full name</label>{{ form.full_name }}{{ form.full_name.errors }}</div>
+    <div class="field"><label>Mobile number</label>{{ form.mobile_number }}{{ form.mobile_number.errors }}</div>
+    <div class="field"><label>Choose username</label>{{ form.username }}{{ form.username.errors }}</div>
+    <div class="field"><label>Password</label>{{ form.password1 }}{{ form.password1.errors }}</div>
+    <div class="field"><label>Confirm password</label>{{ form.password2 }}{{ form.password2.errors }}</div>
+
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+    <button class="btn btn-fill btn-block" type="submit" id="createBtn" disabled>Create Account</button>
+  </form>
+  <div class="links">Already have an account? <a href="{% url 'login' %}">Sign in</a></div>
+{% endblock %}
+{% block extra_body %}
+<script>
+(function(){
+  var otpBtn = document.getElementById('otpBtn');
+  var otpField = document.getElementById('otpField');
+  var otpHint = document.getElementById('otpHint');
+  var createBtn = document.getElementById('createBtn');
+  var emailInput = document.getElementById('id_email');
+  var formInputs = document.querySelectorAll('#regForm input:not(#id_email):not(#id_otp)');
+  var csrf = document.querySelector('#regForm [name=csrfmiddlewaretoken]').value;
+
+  otpBtn.addEventListener('click', function(){
+    var email = emailInput.value.trim();
+    if(!email){ otpHint.textContent = 'Enter your email first.'; otpHint.className = 'hint err'; return; }
+    otpBtn.disabled = true; otpBtn.textContent = 'Sending…';
+    fetch("{% url 'send_registration_otp' %}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+      body: 'email=' + encodeURIComponent(email) + '&csrfmiddlewaretoken=' + encodeURIComponent(csrf)
+    }).then(function(r){ return r.json(); }).then(function(data){
+      otpBtn.disabled = false;
+      if(data.ok){
+        otpBtn.textContent = 'Resend OTP';
+        otpField.style.display = 'block';
+        formInputs.forEach(function(el){ el.disabled = false; });
+        createBtn.disabled = false;
+        otpHint.textContent = data.message;
+        otpHint.className = 'hint ok';
+      } else {
+        otpBtn.textContent = 'Send OTP';
+        otpHint.textContent = data.error;
+        otpHint.className = 'hint err';
+      }
+    }).catch(function(){
+      otpBtn.disabled = false; otpBtn.textContent = 'Send OTP';
+      otpHint.textContent = 'Something went wrong. Try again.';
+      otpHint.className = 'hint err';
+    });
+  });
+
+  formInputs.forEach(function(el){ el.disabled = true; });
+})();
+</script>
+{% endblock %}

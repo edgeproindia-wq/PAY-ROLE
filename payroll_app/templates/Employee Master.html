@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Employee Master · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Employee Master</h1>
+    <p class="page-subtitle">Manage employee records, personal details and employment status</p>
+  </div>
+  <div class="page-actions">
+    <a href="{% url 'employee_master_export_csv' %}" class="btn btn-outline">&#8681; Export CSV</a>
+    <button class="btn btn-primary" onclick="document.getElementById('addEmpModal').classList.add('open')">+ Add Employee</button>
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="label">Total Employees</div>
+    <div class="value">{{ employees.paginator.count }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">Existing Codes</div>
+    <div class="value">{{ existing_codes|length }}</div>
+  </div>
+</div>
+
+{% if edit_employee %}
+<div class="card">
+  <div class="card-header">
+    <h3>Edit Employee &mdash; {{ edit_employee.full_name }}</h3>
+    <a href="{% url 'employee_master' %}" class="btn btn-outline btn-sm">Cancel</a>
+  </div>
+  <div class="card-body">
+    <form method="post" action="{% url 'employee_edit' edit_employee.pk %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in form %}
+        <div class="field">
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+          {{ field.errors }}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'employee_master' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="empSearch" placeholder="Search by name, code, department..." onkeyup="filterEmpTable()"></div>
+    <select class="filter-select" id="empStatusFilter" onchange="filterEmpTable()">
+      <option value="">All Status</option>
+      <option value="Active">Active</option>
+      <option value="On Leave">On Leave</option>
+      <option value="Resigned">Resigned</option>
+      <option value="Terminated">Terminated</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ employees.paginator.count }} employee{{ employees.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if employees %}
+    <table id="empTable">
+      <thead>
+        <tr>
+          <th>Employee</th><th>Code</th><th>Department</th><th>Designation</th>
+          <th>Joined</th><th>Status</th><th>Contact</th><th class="no-print">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        <tr>
+          <td>
+            <span class="cell-main">
+              <span class="avatar-sm">{{ emp.first_name|first }}{{ emp.last_name|first }}</span>
+              <span class="cell-title">{{ emp.full_name }}</span>
+            </span>
+          </td>
+          <td>{{ emp.employee_code }}</td>
+          <td>{{ emp.department }}</td>
+          <td>{{ emp.designation }}</td>
+          <td>{{ emp.date_of_joining }}</td>
+          <td>
+            <span class="badge {% if emp.employment_status == 'ACTIVE' %}badge-success{% elif emp.employment_status == 'ON_LEAVE' %}badge-warn{% elif emp.employment_status == 'RESIGNED' %}badge-neutral{% else %}badge-danger{% endif %}">
+              {{ emp.get_employment_status_display }}
+            </span>
+          </td>
+          <td><span class="cell-sub">{{ emp.email }}</span></td>
+          <td class="no-print">
+            <div class="row-actions">
+              <a href="{% url 'employee_edit' emp.pk %}" class="btn btn-outline btn-sm">Edit</a>
+              {% if not emp.user_id %}<a href="{% url 'employee_create_account' emp.pk %}" class="btn btn-outline btn-sm">Create Login</a>{% endif %}
+              <form method="post" action="{% url 'employee_delete' emp.pk %}" onsubmit="return confirm('Delete {{ emp.full_name|escapejs }}? This cannot be undone.');" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">&#128101;</div>
+      <div class="title">No employees yet</div>
+      <div class="desc">Add your first employee to get started with payroll.</div>
+    </div>
+    {% endif %}
+  </div>
+  {% if employees.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ employees.number }} of {{ employees.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if employees.has_previous %}<a href="?page={{ employees.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in employees.paginator.page_range %}
+        {% if p == employees.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}
+      {% endfor %}
+      {% if employees.has_next %}<a href="?page={{ employees.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="addEmpModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Employee</h3>
+      <button class="modal-close" onclick="document.getElementById('addEmpModal').classList.remove('open')">&times;</button>
+    </div>
+    <form method="post" action="{% url 'employee_master' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Employee Code Prefix</label>
+            <input type="text" name="code_prefix" value="EPRO" maxlength="10" required>
+          </div>
+          <div class="field">
+            <label>Employee Number</label>
+            <select name="employee_code" required>
+              {% for n in number_options %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+            </select>
+          </div>
+          {% for field in form %}
+            {% if field.name != 'employee_code' %}
+            <div class="field">
+              <label>{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+              {{ field.errors }}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addEmpModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Employee</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterEmpTable(){
+    const q = document.getElementById('empSearch').value.toLowerCase();
+    const status = document.getElementById('empStatusFilter').value;
+    document.querySelectorAll('#empTable tbody tr').forEach(row => {
+      const text = row.innerText.toLowerCase();
+      const matchesText = text.includes(q);
+      const matchesStatus = !status || text.includes(status.toLowerCase());
+      row.style.display = (matchesText && matchesStatus) ? '' : 'none';
+    });
+  }
+  {% if form.errors and not edit_employee %}
+  document.getElementById('addEmpModal').classList.add('open');
+  {% endif %}
+</script>
+{% endblock %}

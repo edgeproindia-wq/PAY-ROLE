@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Demo Requests{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Demo / Book Requests</h1></div></div>
+<div class="card"><div class="card-body flush"><div class="table-wrap"><table>
+<thead><tr><th>Company</th><th>Contact</th><th>Email</th><th>Status</th><th>Received</th><th>Action</th></tr></thead>
+<tbody>
+{% for d in demos %}
+<tr>
+  <td>{{ d.company_name }}</td><td>{{ d.full_name }}</td><td>{{ d.email }}</td>
+  <td><span class="badge {% if d.status == 'PENDING' %}badge-warn{% elif d.status == 'APPROVED' %}badge-success{% elif d.status == 'REJECTED' %}badge-danger{% else %}badge-info{% endif %}">{{ d.get_status_display }}</span></td>
+  <td class="text-sm text-muted">{{ d.created_at|date:"d M Y" }}</td>
+  <td>
+    <form method="post" action="{% url 'admin_demo_request_decide' d.pk %}" style="display:flex; gap:4px;">
+      {% csrf_token %}
+      <button class="btn btn-success btn-sm" name="decision" value="APPROVED">Approve</button>
+      <button class="btn btn-outline btn-sm" name="decision" value="CONTACTED">Contacted</button>
+      <button class="btn btn-danger btn-sm" name="decision" value="REJECTED">Reject</button>
+    </form>
+  </td>
+</tr>
+{% empty %}<tr><td colspan="6">No demo requests yet.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

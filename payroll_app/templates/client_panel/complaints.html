@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Raise a Complaint{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Client Complaints</h1></div></div>
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>New Complaint</h3></div><div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="field">{{ form.subject.label_tag }}{{ form.subject }}{{ form.subject.errors }}</div>
+      <div class="field">{{ form.description.label_tag }}{{ form.description }}{{ form.description.errors }}</div>
+      <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+  </div></div>
+  <div class="card"><div class="card-header"><h3>Your Complaints</h3></div><div class="card-body flush"><div class="table-wrap"><table>
+    <thead><tr><th>Subject</th><th>Status</th><th>Response</th></tr></thead><tbody>
+    {% for c in complaints %}<tr><td class="wrap">{{ c.subject }}</td><td><span class="badge badge-info">{{ c.get_status_display }}</span></td><td class="wrap">{{ c.admin_response|default:"—" }}</td></tr>
+    {% empty %}<tr><td colspan="3">No complaints raised yet.</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+</div>
+{% endblock %}

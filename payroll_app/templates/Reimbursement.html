@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Reimbursement · Payroll{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reimbursement</h1>
+    <p class="page-subtitle">Employee expense claims for travel, medical and other categories</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" onclick="document.getElementById('addReimbModal').classList.add('open')">+ New Claim</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div class="search-box"><input type="text" id="rbSearch" placeholder="Search employee..." onkeyup="filterRbTable()"></div>
+    <select class="filter-select" id="rbCatFilter" onchange="filterRbTable()">
+      <option value="">All Categories</option>
+      <option value="Travel">Travel</option>
+      <option value="Medical">Medical</option>
+      <option value="Food">Food</option>
+      <option value="Other">Other</option>
+    </select>
+    <select class="filter-select" id="rbStatusFilter" onchange="filterRbTable()">
+      <option value="">All Status</option>
+      <option value="Pending">Pending</option>
+      <option value="Approved">Approved</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+    <div class="toolbar-spacer"></div>
+    <span class="text-sm text-muted">{{ reimbursements.paginator.count }} claim{{ reimbursements.paginator.count|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if reimbursements %}
+    <table id="rbTable">
+      <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Date</th><th>Description</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for r in reimbursements %}
+        <tr>
+          <td><span class="cell-main"><span class="avatar-sm">{{ r.employee.first_name|first }}{{ r.employee.last_name|first }}</span><span class="cell-title">{{ r.employee.full_name }}</span></span></td>
+          <td>{{ r.get_category_display }}</td>
+          <td style="font-weight:700;color:var(--ink);">&#8377;{{ r.amount }}</td>
+          <td>{{ r.date }}</td>
+          <td class="wrap">{{ r.description|default:"&mdash;" }}</td>
+          <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span></td>
+          {% if not is_employee_role %}
+          <td class="row-actions">
+            {% if r.status == 'PENDING' %}
+            <form method="post" action="{% url 'reimbursement_decision' r.pk %}"><input type="hidden" name="decision" value="APPROVED">{% csrf_token %}<button class="btn btn-success btn-sm" type="submit">Approve</button></form>
+            <form method="post" action="{% url 'reimbursement_decision' r.pk %}"><input type="hidden" name="decision" value="REJECTED">{% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Reject</button></form>
+            {% else %}&mdash;{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No reimbursement claims yet</div></div>
+    {% endif %}
+  </div>
+  {% if reimbursements.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Page {{ reimbursements.number }} of {{ reimbursements.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if reimbursements.has_previous %}<a href="?page={{ reimbursements.previous_page_number }}">&lsaquo; Prev</a>{% endif %}
+      {% for p in reimbursements.paginator.page_range %}{% if p == reimbursements.number %}<span class="current">{{ p }}</span>{% else %}<a href="?page={{ p }}">{{ p }}</a>{% endif %}{% endfor %}
+      {% if reimbursements.has_next %}<a href="?page={{ reimbursements.next_page_number }}">Next &rsaquo;</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="addReimbModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>New Reimbursement Claim</h3><button class="modal-close" onclick="document.getElementById('addReimbModal').classList.remove('open')">&times;</button></div>
+    <form method="post" action="{% url 'reimbursement' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-grid">
+          {% for field in form %}
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addReimbModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Claim</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function filterRbTable(){
+    const q = document.getElementById('rbSearch').value.toLowerCase();
+    const cat = document.getElementById('rbCatFilter').value.toLowerCase();
+    const status = document.getElementById('rbStatusFilter').value.toLowerCase();
+    document.querySelectorAll('#rbTable tbody tr').forEach(r => {
+      const t = r.innerText.toLowerCase();
+      r.style.display = (t.includes(q) && (!cat || t.includes(cat)) && (!status || t.includes(status))) ? '' : 'none';
+    });
+  }
+  {% if form.errors %}document.getElementById('addReimbModal').classList.add('open');{% endif %}
+</script>
+{% endblock %}
