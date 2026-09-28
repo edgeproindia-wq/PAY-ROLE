@@ -7,6 +7,20 @@ from django.conf import settings
 # Multi-tenant / RBAC foundation
 # ---------------------------------------------------------------------------
 
+import os as _os
+from django.core.exceptions import ValidationError as _ValidationError
+
+
+def validate_proof_document(file):
+    """Validator for investment proof uploads (used by migration 0002)."""
+    allowed = {'.pdf', '.jpg', '.jpeg', '.png'}
+    ext = _os.path.splitext(file.name)[1].lower()
+    if ext not in allowed:
+        raise _ValidationError('Only PDF, JPG, JPEG or PNG files are allowed.')
+    if file.size > 5 * 1024 * 1024:
+        raise _ValidationError('File size must be 5 MB or less.')
+
+
 class Company(models.Model):
     """A client/tenant company using the payroll SaaS. All company-scoped
     data (employees, payroll, leave, etc.) is isolated by this FK."""
@@ -112,7 +126,7 @@ class Employee(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employee_profile', help_text='Login account for this employee (ESS access).'
     )
-    employee_code = models.CharField(max_length=20, unique=True, help_text='e.g. EMP0001')
+    employee_code = models.CharField(max_length=20, help_text='e.g. EMP0001')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(unique=True)
@@ -147,6 +161,9 @@ class Employee(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['company', 'employee_code'], name='unique_employee_code_per_company'),
+        ]
         ordering = ['employee_code']
 
     @property
@@ -313,6 +330,15 @@ class PayrollRun(models.Model):
 
 
 class PayrollRunLine(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+    ]
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    payment_reference = models.CharField(max_length=50, blank=True)
+    payment_attempted_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.CharField(max_length=255, blank=True)
     payroll_run = models.ForeignKey(PayrollRun, on_delete=models.CASCADE, related_name='lines')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     payslip_number = models.CharField(max_length=40, blank=True, db_index=True)
@@ -427,7 +453,10 @@ class InvestmentDeclaration(models.Model):
     section = models.CharField(max_length=10, choices=SECTION_CHOICES)
     investment_type = models.CharField(max_length=100)
     declared_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    proof_document = models.CharField(max_length=255, blank=True)
+    proof_document = models.FileField(
+        upload_to='investment_proofs/%Y/%m/', blank=True, null=True,
+        validators=[validate_proof_document],
+    )
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -557,6 +586,7 @@ class AuditLog(models.Model):
         ('DELETE', 'Delete'),
         ('PROCESS_PAYROLL', 'Payroll Processing'),
         ('PAYMENT_STATUS_CHANGE', 'Payment Status Change'),
+        ('EXPORT', 'Export'),
         ('OTHER', 'Other'),
     ]
 
@@ -657,17 +687,3 @@ class BankPayment(models.Model):
 
     def __str__(self):
         return f"{self.payroll_line.employee} - {self.amount} - {self.status}"
-
-
-import os as _os
-from django.core.exceptions import ValidationError as _ValidationError
-
-
-def validate_proof_document(file):
-    """Validator for investment proof uploads (required by migration 0002)."""
-    allowed = {'.pdf', '.jpg', '.jpeg', '.png'}
-    ext = _os.path.splitext(file.name)[1].lower()
-    if ext not in allowed:
-        raise _ValidationError('Only PDF, JPG, JPEG or PNG files are allowed.')
-    if file.size > 5 * 1024 * 1024:
-        raise _ValidationError('File size must be 5 MB or less.')
