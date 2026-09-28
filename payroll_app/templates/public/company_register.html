@@ -17,13 +17,13 @@
 </style>
 
 <h2>Register Your Company</h2>
-<p class="sub">{% if step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Your account is activated after our team approves the registration.{% endif %}</p>
+<p class="sub">{% if simple %}Fill in your details. Your account is activated after our team approves the registration.{% elif step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Your account is activated after our team approves the registration.{% endif %}</p>
 
-<div class="steps">
+{% if not simple %}<div class="steps">
   <div class="{% if step == 1 %}on{% else %}done{% endif %}"><b>{% if step > 1 %}&#10003;{% else %}1{% endif %}</b>Email</div>
   <div class="{% if step == 2 %}on{% elif step > 2 %}done{% endif %}"><b>{% if step > 2 %}&#10003;{% else %}2{% endif %}</b>Verify OTP</div>
   <div class="{% if step == 3 %}on{% endif %}"><b>3</b>Company details</div>
-</div>
+</div>{% endif %}
 
 {% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
 

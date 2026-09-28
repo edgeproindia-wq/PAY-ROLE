@@ -58,6 +58,7 @@ def register_payload(**over):
 # Authentication
 # ---------------------------------------------------------------------------
 
+@override_settings(REQUIRE_EMAIL_VERIFICATION=True)
 class RegistrationOtpApprovalLoginTests(TestCase):
     def _otp_from_mail(self):
         body = mail.outbox[-1].body
@@ -690,6 +691,7 @@ class SchemaAuditCommandTests(TestCase):
         self.assertIn('Schema matches the models', out.getvalue())
 
 
+@override_settings(REQUIRE_EMAIL_VERIFICATION=True)
 class EmailFirstRegistrationTests(TestCase):
     """Email -> OTP -> company details, and up to 20 accounts per email."""
 

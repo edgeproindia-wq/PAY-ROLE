@@ -93,6 +93,9 @@ def company_register(request):
     (3) company and login details. Step 3's email is locked to the address
     verified in step 2. A full POST without the 'action' field keeps the
     older flow (create account, then verify on the verify-email page)."""
+    from django.conf import settings
+    if not settings.REQUIRE_EMAIL_VERIFICATION:
+        return _company_register_single_step(request)
     from .forms import RegistrationEmailForm
     session = request.session
     now = timezone.now().timestamp()
@@ -208,6 +211,38 @@ def company_register(request):
         'step': step, 'form': form or CompanyRegistrationForm(), 'email_form': email_form, 'otp_form': otp_form,
         'pending_email': (pending or {}).get('email', ''), 'verified_email': (verified or {}).get('email', ''),
     })
+
+
+def _company_register_single_step(request):
+    """One-page company sign-up with no email verification (default).
+    The owner stays inactive until an admin approves the company."""
+    form = CompanyRegistrationForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        data = form.cleaned_data
+        with transaction.atomic():
+            company = Company.objects.create(
+                name=data['company_name'],
+                contact_email=data['contact_email'],
+                contact_phone=data['contact_phone'],
+                address=data['address'],
+                status='PENDING_APPROVAL',
+            )
+            name_parts = data['owner_full_name'].strip().split(' ', 1)
+            owner = User.objects.create_user(
+                username=data['username'],
+                email=data['contact_email'],
+                password=data['password1'],
+                first_name=name_parts[0],
+                last_name=name_parts[1] if len(name_parts) > 1 else '',
+                role='COMPANY_OWNER',
+                company=company,
+                is_active=False,      # cannot log in until the company is approved
+                email_verified=True,  # verification switched off, nothing to wait for
+            )
+            log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
+        messages.success(request, 'Registration submitted. You can sign in once our team approves your company.')
+        return redirect('login')
+    return render(request, 'public/company_register.html', {'step': 3, 'form': form, 'simple': True})
 
 
 def _issue_registration_otp(user):

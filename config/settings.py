@@ -194,6 +194,10 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=True)
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@edgepro-payroll.local')
+
+# Company sign-up email OTP. OFF by default: registration is one step and no
+# email is needed. Set REQUIRE_EMAIL_VERIFICATION=true once real email works.
+REQUIRE_EMAIL_VERIFICATION = env_bool('REQUIRE_EMAIL_VERIFICATION', default=False)
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))  # never hang a request on a dead SMTP server
 
 # Demo-request alert recipients (not secrets; override per environment).
