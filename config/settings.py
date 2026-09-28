@@ -166,7 +166,7 @@ STORAGES = {
         # Manifest storage needs `collectstatic`; locally (DEBUG) use the plain
         # backend so runserver works without collecting first.
         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG
-        else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        else 'config.storage.TolerantManifestStaticFilesStorage',
     },
 }
 
