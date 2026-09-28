@@ -657,17 +657,3 @@ class BankPayment(models.Model):
 
     def __str__(self):
         return f"{self.payroll_line.employee} - {self.amount} - {self.status}"
-
-
-import os as _os
-from django.core.exceptions import ValidationError as _ValidationError
-
-
-def validate_proof_document(file):
-    """Validator for investment proof uploads (required by migration 0002)."""
-    allowed = {'.pdf', '.jpg', '.jpeg', '.png'}
-    ext = _os.path.splitext(file.name)[1].lower()
-    if ext not in allowed:
-        raise _ValidationError('Only PDF, JPG, JPEG or PNG files are allowed.')
-    if file.size > 5 * 1024 * 1024:
-        raise _ValidationError('File size must be 5 MB or less.')
