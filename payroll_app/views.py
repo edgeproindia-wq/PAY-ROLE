@@ -83,9 +83,84 @@ def request_demo(request):
     return render(request, 'public/request_demo.html', {'form': form})
 
 
+REG_OTP_KEY = 'reg_otp'
+REG_VERIFIED_KEY = 'reg_verified_email'
+REG_VERIFIED_TTL_SECONDS = 30 * 60
+
+
 def company_register(request):
-    if request.method == 'POST':
-        form = CompanyRegistrationForm(request.POST)
+    """Company sign-up in three steps: (1) email, (2) emailed 6-digit OTP,
+    (3) company and login details. Step 3's email is locked to the address
+    verified in step 2. A full POST without the 'action' field keeps the
+    older flow (create account, then verify on the verify-email page)."""
+    from .forms import RegistrationEmailForm
+    session = request.session
+    now = timezone.now().timestamp()
+    action = request.POST.get('action', '') if request.method == 'POST' else ''
+
+    verified = session.get(REG_VERIFIED_KEY)
+    if verified and now - verified.get('at', 0) > REG_VERIFIED_TTL_SECONDS:
+        session.pop(REG_VERIFIED_KEY, None)
+        verified = None
+    pending = session.get(REG_OTP_KEY)
+
+    if action == 'change_email':
+        session.pop(REG_OTP_KEY, None)
+        session.pop(REG_VERIFIED_KEY, None)
+        return redirect('company_register')
+
+    email_form = RegistrationEmailForm(request.POST if action == 'send_otp' else None)
+    otp_form = OTPVerifyForm(request.POST if action == 'verify_otp' else None)
+    form = None
+
+    if action in ('send_otp', 'resend_otp'):
+        email = None
+        if action == 'resend_otp':
+            email = (pending or {}).get('email')
+        elif email_form.is_valid():
+            email = email_form.cleaned_data['email']
+        if email:
+            if pending and pending.get('email') == email and now - pending.get('sent', 0) < 60:
+                messages.error(request, 'Please wait a minute before requesting another code.')
+            else:
+                code = f"{secrets.randbelow(1_000_000):06d}"
+                ok, err = send_email_safe(
+                    'Your EdgePro Payroll verification code',
+                    f"Hello,\n\nYour verification code is {code}. It expires in {OTP_TTL_MINUTES} minutes.\n\n"
+                    "If you did not start a registration, please ignore this email.",
+                    [email],
+                )
+                if ok:
+                    session[REG_OTP_KEY] = {'email': email, 'hash': make_password(code), 'sent': now,
+                                            'exp': now + OTP_TTL_MINUTES * 60, 'attempts': 0}
+                    session.pop(REG_VERIFIED_KEY, None)
+                    messages.success(request, f"We've emailed a 6-digit code to {email}.")
+                else:
+                    logger.warning('Pre-registration OTP email failed: %s', err)
+                    messages.error(request, 'We could not send the email right now. Please try again shortly.')
+            return redirect('company_register')
+
+    elif action == 'verify_otp' and pending:
+        if otp_form.is_valid():
+            if now > pending.get('exp', 0):
+                otp_form.add_error('code', 'This code has expired. Request a new one.')
+            elif pending.get('attempts', 0) >= OTP_MAX_ATTEMPTS:
+                otp_form.add_error('code', 'Too many wrong attempts. Request a new code.')
+            elif not check_password(otp_form.cleaned_data['code'], pending['hash']):
+                pending['attempts'] = pending.get('attempts', 0) + 1
+                session[REG_OTP_KEY] = pending
+                otp_form.add_error('code', 'Incorrect code.')
+            else:
+                session.pop(REG_OTP_KEY, None)
+                session[REG_VERIFIED_KEY] = {'email': pending['email'], 'at': now}
+                messages.success(request, 'Email verified. Now complete your company details.')
+                return redirect('company_register')
+
+    elif request.method == 'POST' and action in ('register', ''):
+        data = request.POST.copy()
+        if verified:
+            data['contact_email'] = verified['email']
+        form = CompanyRegistrationForm(data)
         if form.is_valid():
             data = form.cleaned_data
             with transaction.atomic():
@@ -105,17 +180,34 @@ def company_register(request):
                     last_name=name_parts[1] if len(name_parts) > 1 else '',
                     role='COMPANY_OWNER',
                     company=company,
-                    is_active=False,       # cannot log in until the company is approved
-                    email_verified=False,  # must confirm the emailed OTP first
+                    is_active=False,               # cannot log in until the company is approved
+                    email_verified=bool(verified),  # already verified in step 2 of the new flow
                 )
                 log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
+            if verified:
+                session.pop(REG_VERIFIED_KEY, None)
+                messages.success(request, 'Registration submitted. Your email is verified - you can sign in '
+                                          'once our team approves your company.')
+                return redirect('login')
             _issue_registration_otp(owner)
-            request.session['otp_user_id'] = owner.pk
+            session['otp_user_id'] = owner.pk
             messages.success(request, f"We've emailed a 6-digit verification code to {owner.email}.")
             return redirect('verify_email')
+
+    if verified or (form is not None and form.is_bound):
+        step = 3
+        if form is None:
+            form = CompanyRegistrationForm(initial={'contact_email': verified['email']})
+        if verified:
+            form.fields['contact_email'].widget.attrs['readonly'] = 'readonly'
+    elif pending:
+        step = 2
     else:
-        form = CompanyRegistrationForm()
-    return render(request, 'public/company_register.html', {'form': form})
+        step = 1
+    return render(request, 'public/company_register.html', {
+        'step': step, 'form': form or CompanyRegistrationForm(), 'email_form': email_form, 'otp_form': otp_form,
+        'pending_email': (pending or {}).get('email', ''), 'verified_email': (verified or {}).get('email', ''),
+    })
 
 
 def _issue_registration_otp(user):

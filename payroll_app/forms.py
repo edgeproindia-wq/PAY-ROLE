@@ -342,6 +342,25 @@ class DemoRequestForm(forms.ModelForm):
         return cleaned
 
 
+MAX_ACCOUNTS_PER_EMAIL = 20  # one email address may be used by up to 20 accounts
+
+
+class RegistrationEmailForm(forms.Form):
+    """Step 1 of company sign-up: the email that will receive the OTP."""
+    email = forms.EmailField(label='Email')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style(self.fields)
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=email).count() >= MAX_ACCOUNTS_PER_EMAIL:
+            raise forms.ValidationError(
+                f'This email already exists on {MAX_ACCOUNTS_PER_EMAIL} accounts, the maximum allowed for one email.')
+        return email
+
+
 class CompanyRegistrationForm(forms.Form):
     """Self-service company signup. Creates a Company (PENDING_APPROVAL) and
     an inactive COMPANY_OWNER user; the account is enabled only after an
@@ -368,8 +387,9 @@ class CompanyRegistrationForm(forms.Form):
 
     def clean_contact_email(self):
         email = self.cleaned_data['contact_email'].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError('An account with this email already exists. Try signing in or resetting your password.')
+        if User.objects.filter(email__iexact=email).count() >= MAX_ACCOUNTS_PER_EMAIL:
+            raise forms.ValidationError(
+                f'This email already exists on {MAX_ACCOUNTS_PER_EMAIL} accounts, the maximum allowed for one email.')
         return email
 
     def clean_contact_phone(self):
@@ -440,6 +460,10 @@ class LoginForm(AuthenticationForm):
                     raise forms.ValidationError('Your company account is suspended. Please contact support.', code='suspended')
                 if not user.is_active:
                     raise forms.ValidationError('This account is inactive. Please contact your administrator.', code='inactive')
+            if ident and '@' in ident and len(users) > 1:
+                raise forms.ValidationError(
+                    'This email is linked to more than one account. Please sign in with your username.',
+                    code='ambiguous_email')
             raise forms.ValidationError('Invalid username/email or password.', code='invalid_login')
 
 

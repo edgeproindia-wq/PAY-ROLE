@@ -2,20 +2,69 @@
 {% block title %}Register your Company{% endblock %}
 {% block nav_register %}on{% endblock %}
 {% block hero_title %}Start running <span class="hl">Smarter Payroll</span> for your company{% endblock %}
-{% block hero_text %}Register your company. Once our team approves it, your account is activated and you can add employees and run your first payroll.{% endblock %}
+{% block hero_text %}Verify your email, add your company details, and once our team approves it you can add employees and run your first payroll.{% endblock %}
 {% block content %}
+<style>
+  .steps{display:flex;gap:8px;margin-top:22px}
+  .steps div{flex:1;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#94a3b8}
+  .steps b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#eef0f5;color:#64748b;font-size:12.5px;flex:none}
+  .steps .on{color:var(--ink)} .steps .on b{background:var(--brand);color:#fff}
+  .steps .done{color:#16a34a} .steps .done b{background:#dcfce7;color:#16a34a}
+  .linkbtn{background:none;border:none;color:var(--brand);font:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:0}
+  .row-actions{margin-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--body)}
+  .verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:700;color:#16a34a}
+  input[readonly]{background:#f6f7fa;color:#475569}
+</style>
+
 <h2>Register Your Company</h2>
-<p class="sub">Your account is activated after our team approves the registration.</p>
+<p class="sub">{% if step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Your account is activated after our team approves the registration.{% endif %}</p>
+
+<div class="steps">
+  <div class="{% if step == 1 %}on{% else %}done{% endif %}"><b>{% if step > 1 %}&#10003;{% else %}1{% endif %}</b>Email</div>
+  <div class="{% if step == 2 %}on{% elif step > 2 %}done{% endif %}"><b>{% if step > 2 %}&#10003;{% else %}2{% endif %}</b>Verify OTP</div>
+  <div class="{% if step == 3 %}on{% endif %}"><b>3</b>Company details</div>
+</div>
+
 {% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
+
+{% if step == 1 %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ email_form.email.id_for_label }}">Email *</label>
+    {{ email_form.email }}
+    {{ email_form.email.errors }}
+  </div>
+  <button class="btn" type="submit" name="action" value="send_otp">Send OTP</button>
+</form>
+
+{% elif step == 2 %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label for="{{ otp_form.code.id_for_label }}">6-digit code *</label>
+    {{ otp_form.code }}
+    {{ otp_form.code.errors }}
+  </div>
+  <button class="btn" type="submit" name="action" value="verify_otp">Verify Email</button>
+  <div class="row-actions">
+    <span>Didn't get it? <button class="linkbtn" type="submit" name="action" value="resend_otp">Resend code</button></span>
+    <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
+  </div>
+</form>
+
+{% else %}
 {% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
 <form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
+  <input type="hidden" name="action" value="register">
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   <div class="grid2">
     {% for field in form.visible_fields %}
       <div class="field{% if field.widget_type == 'textarea' %} full{% endif %}">
         <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
         {{ field }}
+        {% if field.name == 'contact_email' and verified_email %}<div class="verified">&#10003; Verified</div>{% endif %}
         {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
         {{ field.errors }}
       </div>
@@ -23,5 +72,12 @@
   </div>
   <button class="btn" type="submit">Create Account</button>
 </form>
-<p class="alt">Already registered? <a href="{% url 'login' %}">Sign in</a> &middot; <a href="{% url 'request_demo' %}">Request a demo</a></p>
+{% if verified_email %}
+<form method="post" class="row-actions" style="margin-top:14px">
+  {% csrf_token %}
+  <span>Registering with <b>{{ verified_email }}</b></span>
+  <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
+</form>
+{% endif %}
+{% endif %}
 {% endblock %}

@@ -110,7 +110,8 @@ class RegistrationOtpApprovalLoginTests(TestCase):
         self.assertFalse(owner.email_verified)
 
     def test_duplicate_email_and_username_rejected(self):
-        user('taken', 'EMPLOYEE', email='dup@ex.com')
+        for i in range(20):
+            user(f'taken{i}' if i else 'taken', 'EMPLOYEE', email='dup@ex.com')
         resp = self.client.post(reverse('company_register'), register_payload(contact_email='DUP@ex.com'))
         self.assertContains(resp, 'already exists')
         resp = self.client.post(reverse('company_register'), register_payload(username='TAKEN', contact_email='new@ex.com'))
@@ -687,3 +688,48 @@ class SchemaAuditCommandTests(TestCase):
         out = StringIO()
         call_command('schema_audit', stdout=out)
         self.assertIn('Schema matches the models', out.getvalue())
+
+
+class EmailFirstRegistrationTests(TestCase):
+    """Email -> OTP -> company details, and up to 20 accounts per email."""
+
+    def _code(self):
+        return re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)
+
+    def test_email_otp_then_details(self):
+        url = reverse('company_register')
+        self.assertContains(self.client.get(url), 'Send OTP')
+        self.client.post(url, {'action': 'send_otp', 'email': 'First@Co.com'})
+        self.assertEqual(len(mail.outbox), 1)
+        wrong = '111111' if self._code() != '111111' else '222222'
+        self.assertContains(self.client.post(url, {'action': 'verify_otp', 'code': wrong}), 'Incorrect code')
+        self.client.post(url, {'action': 'verify_otp', 'code': self._code()})
+        resp = self.client.get(url)
+        self.assertContains(resp, 'first@co.com')
+        self.assertContains(resp, 'Verified')
+        payload = register_payload(contact_email='someone.else@x.com')
+        payload['action'] = 'register'
+        resp = self.client.post(url, payload)
+        self.assertRedirects(resp, reverse('login'), fetch_redirect_response=False)
+        owner = User.objects.get(username=payload['username'])
+        self.assertEqual(owner.email, 'first@co.com', 'email must be the verified one, not the posted one')
+        self.assertTrue(owner.email_verified)
+
+    def test_details_step_needs_verified_email(self):
+        url = reverse('company_register')
+        self.client.post(url, {'action': 'send_otp', 'email': 'x@co.com'})
+        resp = self.client.get(url)
+        self.assertContains(resp, 'Verify Email')
+        self.assertNotContains(resp, 'Create Account')
+
+    def test_up_to_twenty_accounts_per_email(self):
+        for i in range(19):
+            user(f'team{i}', 'EMPLOYEE', email='team@co.com')
+        url = reverse('company_register')
+        self.client.post(url, {'action': 'send_otp', 'email': 'team@co.com'})
+        self.assertEqual(len(mail.outbox), 1, '20th account on the same email is allowed')
+        user('team19', 'EMPLOYEE', email='team@co.com')
+        self.client.post(url, {'action': 'change_email'})
+        resp = self.client.post(url, {'action': 'send_otp', 'email': 'team@co.com'})
+        self.assertContains(resp, 'maximum allowed')
+        self.assertEqual(len(mail.outbox), 1, 'no OTP for a 21st account')
