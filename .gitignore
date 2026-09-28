@@ -10,3 +10,6 @@ db_backup_*.sqlite3
 *.sqlite3
 .env.*
 !.env.example
+
+*.bak
+test_result.txt
