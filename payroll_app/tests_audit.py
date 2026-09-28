@@ -467,7 +467,9 @@ class AttendanceLeaveReimbursementTests(TestCase):
         self.assertRedirects(resp, reverse('reimbursement'))
         r = Reimbursement.objects.get()
         self.assertTrue(r.receipt)
-        self.assertEqual(self.client.get(reverse('reimbursement_receipt', args=[r.pk])).status_code, 200)
+        dl = self.client.get(reverse('reimbursement_receipt', args=[r.pk]))
+        self.assertEqual(dl.status_code, 200)
+        dl.close()  # release the file handle (Windows cannot delete open files)
 
         exe = SimpleUploadedFile('virus.exe', b'MZ', content_type='application/octet-stream')
         resp = self.client.post(reverse('reimbursement'), {'category': 'TRAVEL', 'amount': '5', 'date': '2026-01-10', 'receipt': exe})
