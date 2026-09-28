@@ -1,39 +1,23 @@
-{% extends "public/auth_base.html" %}
+{% extends "public/split_base.html" %}
 {% block title %}Request a Demo{% endblock %}
-{% block cardsize %}wide{% endblock %}
-{% block hero %}
-<h1>See <span class="grad">EDGEPRO Payroll</span><br>in action.</h1>
-<p>Tell us about your company and team size. Our team will walk you through payroll runs, payslips, compliance and employee self-service.</p>
-{% endblock %}
 {% block content %}
-<h2>Request a Demo</h2>
-<p class="sub">Fill in your details and we'll get in touch shortly.</p>
-
-{% for message in messages %}
-  <div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>
-{% endfor %}
+<h2>Request Your Demo</h2>
+<p class="sub">Fill in your details and our team will reach out to schedule your personalized walkthrough.</p>
+{% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
 {% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
-
 <form method="post" novalidate>
   {% csrf_token %}
   {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   <div class="grid2">
     {% for field in form.visible_fields %}
-      <div class="field"{% if field.widget_type == 'textarea' %} style="grid-column:1/-1"{% endif %}>
-        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+      <div class="field{% if field.widget_type == 'textarea' %} full{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
-        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
         {{ field.errors }}
       </div>
     {% endfor %}
   </div>
-  <button class="btn" type="submit">Submit Request</button>
+  <button class="btn" type="submit">Request My Demo</button>
 </form>
-
-<div class="divider">Already a customer?</div>
-<div class="row2">
-  <a class="btn ghost" href="{% url 'login' %}">Sign in</a>
-  <a class="btn ghost" href="{% url 'company_register' %}">Register your company</a>
-</div>
-<p class="foot"><a href="{% url 'landing' %}">&larr; Back to home</a></p>
+<div class="trust"><span>No cost, no obligation</span><span>Personalized walkthrough</span><span>Quick response</span></div>
 {% endblock %}
