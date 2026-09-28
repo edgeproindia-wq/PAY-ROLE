@@ -1,23 +1,39 @@
-{% extends "public_base.html" %}
+{% extends "public/auth_base.html" %}
 {% block title %}Register your Company{% endblock %}
-{% block boxsize %}wide{% endblock %}
+{% block cardsize %}wide{% endblock %}
+{% block hero %}
+<h1>Start running <span class="grad">payroll</span><br>in minutes.</h1>
+<p>Register your company. Once our team approves it, your owner account is activated and you can add employees and run payroll.</p>
+{% endblock %}
 {% block content %}
-<h1>Register your Company</h1>
-<p class="sub">Step 1: register &rarr; Step 2: verify your email with the code we send &rarr; Step 3: our team approves your company.</p>
-<form method="post" novalidate>
+<h2>Register your Company</h2>
+<p class="sub">Your account is activated after our team approves the registration.</p>
+
+{% for message in messages %}
+  <div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+{% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
-  <div class="form-grid">
-    <div class="field">{{ form.company_name.label_tag }}{{ form.company_name }}{{ form.company_name.errors }}</div>
-    <div class="field">{{ form.owner_full_name.label_tag }}{{ form.owner_full_name }}{{ form.owner_full_name.errors }}</div>
-    <div class="field">{{ form.contact_email.label_tag }}{{ form.contact_email }}{{ form.contact_email.errors }}</div>
-    <div class="field">{{ form.contact_phone.label_tag }}{{ form.contact_phone }}{{ form.contact_phone.errors }}</div>
-    <div class="field">{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
-    <div class="field">{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
-    <div class="field">{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="grid2">
+    {% for field in form.visible_fields %}
+      <div class="field"{% if field.widget_type == 'textarea' %} style="grid-column:1/-1"{% endif %}>
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
   </div>
-  <div class="field">{{ form.address.label_tag }}{{ form.address }}{{ form.address.errors }}</div>
-  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  <button class="btn" type="submit">Register</button>
+  <button class="btn" type="submit">Register Company</button>
 </form>
-<div class="links">Already registered? <a href="{% url 'login' %}">Sign in</a></div>
+
+<div class="divider">Already registered?</div>
+<div class="row2">
+  <a class="btn ghost" href="{% url 'login' %}">Sign in</a>
+  <a class="btn ghost" href="{% url 'request_demo' %}">Request a demo</a>
+</div>
+<p class="foot"><a href="{% url 'landing' %}">&larr; Back to home</a></p>
 {% endblock %}

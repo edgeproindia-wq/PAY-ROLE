@@ -1,28 +1,39 @@
-{% extends "public_base.html" %}
+{% extends "public/auth_base.html" %}
 {% block title %}Request a Demo{% endblock %}
-{% block boxsize %}wide{% endblock %}
+{% block cardsize %}wide{% endblock %}
+{% block hero %}
+<h1>See <span class="grad">EDGEPRO Payroll</span><br>in action.</h1>
+<p>Tell us about your company and team size. Our team will walk you through payroll runs, payslips, compliance and employee self-service.</p>
+{% endblock %}
 {% block content %}
-<h1>Request a Demo</h1>
-<p class="sub">Tell us about your company and pick a time — we'll confirm the demo with you.</p>
-<form method="post" novalidate id="demoForm">
+<h2>Request a Demo</h2>
+<p class="sub">Fill in your details and we'll get in touch shortly.</p>
+
+{% for message in messages %}
+  <div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+{% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
+
+<form method="post" novalidate>
   {% csrf_token %}
-  <div class="form-grid">
-    <div class="field">{{ form.full_name.label_tag }}{{ form.full_name }}{{ form.full_name.errors }}</div>
-    <div class="field">{{ form.company_name.label_tag }}{{ form.company_name }}{{ form.company_name.errors }}</div>
-    <div class="field">{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
-    <div class="field">{{ form.phone.label_tag }}{{ form.phone }}{{ form.phone.errors }}</div>
-    <div class="field">{{ form.team_size.label_tag }}{{ form.team_size }}{{ form.team_size.errors }}</div>
-    <div class="field">{{ form.preferred_datetime.label_tag }}{{ form.preferred_datetime }}{{ form.preferred_datetime.errors }}</div>
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="grid2">
+    {% for field in form.visible_fields %}
+      <div class="field"{% if field.widget_type == 'textarea' %} style="grid-column:1/-1"{% endif %}>
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
   </div>
-  <div class="field">{{ form.message.label_tag }}{{ form.message }}{{ form.message.errors }}</div>
-  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  <button class="btn" type="submit" id="demoSubmit">Submit Request</button>
+  <button class="btn" type="submit">Submit Request</button>
 </form>
-<div class="links"><a href="{% url 'landing' %}">&larr; Back home</a></div>
-<script>
-  // Prevent accidental double submission (the server also rejects duplicates).
-  document.getElementById('demoForm').addEventListener('submit', function () {
-    var b = document.getElementById('demoSubmit'); b.disabled = true; b.textContent = 'Submitting...';
-  });
-</script>
+
+<div class="divider">Already a customer?</div>
+<div class="row2">
+  <a class="btn ghost" href="{% url 'login' %}">Sign in</a>
+  <a class="btn ghost" href="{% url 'company_register' %}">Register your company</a>
+</div>
+<p class="foot"><a href="{% url 'landing' %}">&larr; Back to home</a></p>
 {% endblock %}

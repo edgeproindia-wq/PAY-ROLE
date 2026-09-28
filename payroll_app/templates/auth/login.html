@@ -1,19 +1,43 @@
-{% extends "public_base.html" %}
-{% block title %}Sign in{% endblock %}
+{% extends "public/auth_base.html" %}
+{% block title %}Login{% endblock %}
 {% block content %}
-<h1>Sign in</h1>
-<p class="sub">Access your payroll dashboard with your username or email.</p>
+<h2>Welcome Back</h2>
+<p class="sub">Sign in to access your EDGEPRO payroll workspace</p>
+
+{% for message in messages %}
+  <div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>
+{% endfor %}
+{% for e in form.non_field_errors %}
+  <div class="alert">{{ e }}</div>
+{% endfor %}
+{% if form.errors and not form.non_field_errors %}
+  <div class="alert">Invalid username/email or password.</div>
+{% endif %}
+
 <form method="post" novalidate>
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">
-  <div class="field">{{ form.username.label_tag }}{{ form.username }}</div>
-  <div class="field">{{ form.password.label_tag }}{{ form.password }}</div>
-  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-  <button class="btn" type="submit">Sign in</button>
+  <div class="field">
+    <label for="{{ form.username.id_for_label }}">Username or Email</label>
+    <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
+           value="{{ form.username.value|default_if_none:'' }}" placeholder="Enter your username or email"
+           autocomplete="username" autocapitalize="none" maxlength="254" required autofocus>
+  </div>
+  <div class="field">
+    <div class="field-head">
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      <a href="{% url 'password_reset' %}">Forgot password?</a>
+    </div>
+    <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
+           placeholder="Enter your password" autocomplete="current-password" required>
+  </div>
+  <button class="btn" type="submit">Sign In</button>
 </form>
-<div class="links">
-  <a href="{% url 'password_reset' %}">Forgot password?</a> &middot;
-  <a href="{% url 'company_register' %}">Register your company</a> &middot;
-  <a href="{% url 'request_demo' %}">Request a demo</a>
+
+<div class="divider">New to EDGEPRO?</div>
+<div class="row2">
+  <a class="btn ghost" href="{% url 'company_register' %}">Register your company</a>
+  <a class="btn ghost" href="{% url 'request_demo' %}">Request a demo</a>
 </div>
+<p class="foot"><a href="{% url 'landing' %}">&larr; Back to home</a></p>
 {% endblock %}

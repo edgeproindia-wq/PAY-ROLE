@@ -1,12 +1,174 @@
-{% extends "public_base.html" %}
-{% block title %}EdgePro Payroll — Payroll made simple{% endblock %}
-{% block boxsize %}wide{% endblock %}
-{% block content %}
-<h1>Payroll, attendance and leave — in one place</h1>
-<p class="sub">Multi-company payroll platform for HR and finance teams.</p>
-<div style="display:flex; gap:12px; flex-wrap:wrap;">
-  <a class="btn" style="width:auto;" href="{% url 'request_demo' %}">Request a Demo</a>
-  <a class="btn" style="width:auto; background:#fff; color:var(--accent); border:1px solid var(--accent);" href="{% url 'company_register' %}">Register your Company</a>
-  <a class="btn" style="width:auto; background:#fff; color:var(--ink); border:1px solid var(--line);" href="{% url 'login' %}">Sign in</a>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDGEPRO Payroll &#8211; Payroll, attendance &amp; compliance in one place</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--navy:#0b1437;--navy2:#111c4e;--ink:#0b1020;--body:#475569;--muted:#64748b;--line:#e2e8f0;--blue:#2563eb;--indigo:#4f46e5;--bg:#eef2f9}
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:#fff}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;height:54px;padding:0 28px;border-radius:12px;font-weight:700;font-size:17px;
+    color:#fff;background:linear-gradient(90deg,var(--blue),var(--indigo));box-shadow:0 12px 26px rgba(79,70,229,.3);transition:transform .1s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.light{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);box-shadow:none}
+  .btn.outline{background:#fff;color:var(--ink);border:1.5px solid #d6dce8;box-shadow:none}
+  /* hero */
+  .hero{color:#fff;background:radial-gradient(900px 500px at 80% 0%,rgba(59,91,253,.3),transparent 60%),
+        radial-gradient(700px 500px at 0% 100%,rgba(124,58,237,.2),transparent 60%),linear-gradient(160deg,var(--navy2),var(--navy) 60%)}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0}
+  .brand{display:flex;align-items:center;gap:16px}
+  .logo{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:19px;
+    background:linear-gradient(135deg,#3b5bfd,#7c3aed);box-shadow:0 10px 24px rgba(59,91,253,.45)}
+  .brand b{display:block;font-size:24px;font-weight:800;letter-spacing:.4px}
+  .brand small{display:block;font-size:12px;letter-spacing:3.5px;color:#8b95b8;font-weight:600}
+  .navlinks{display:flex;align-items:center;gap:30px;font-weight:600;color:#c7cdea}
+  .navlinks a:hover{color:#fff}
+  .navlinks .btn{height:46px;padding:0 22px;font-size:15px;color:#fff}
+  .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;align-items:center;padding:70px 0 110px}
+  .pill{display:inline-block;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    color:#c7cdea;font-size:14px;font-weight:600;margin-bottom:24px}
+  h1{font-size:60px;line-height:1.08;font-weight:800;letter-spacing:-1.5px}
+  .grad{background:linear-gradient(90deg,#5b8cff,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{margin-top:24px;font-size:20px;line-height:1.75;color:#9aa4c7;max-width:580px}
+  .cta{margin-top:38px;display:flex;gap:14px;flex-wrap:wrap}
+  .mock{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:28px;backdrop-filter:blur(6px)}
+  .mock h4{font-size:15px;color:#9aa4c7;font-weight:600;margin-bottom:18px}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .kpi{background:rgba(255,255,255,.06);border-radius:14px;padding:18px}
+  .kpi span{display:block;font-size:13px;color:#8b95b8;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .kpi b{display:block;font-size:26px;margin-top:6px}
+  .steps-mini{margin-top:18px;display:grid;gap:10px}
+  .step-mini{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.06);border-radius:12px;padding:14px 18px;font-size:15px}
+  .tag{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px}
+  .t-ok{background:rgba(16,185,129,.18);color:#6ee7b7}.t-wait{background:rgba(245,176,25,.18);color:#fcd34d}.t-blue{background:rgba(91,140,255,.2);color:#a5c0ff}
+  /* sections */
+  section{padding:96px 0}
+  .eyebrow{color:var(--blue);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:14px}
+  h2{font-size:42px;font-weight:800;letter-spacing:-1px;margin-top:10px}
+  .sec-lead{margin-top:14px;font-size:19px;color:var(--muted);max-width:640px;line-height:1.7}
+  .features{margin-top:52px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .feature{border:1px solid var(--line);border-radius:20px;padding:30px;background:#fff;transition:box-shadow .15s,transform .15s}
+  .feature:hover{box-shadow:0 18px 40px rgba(15,23,42,.08);transform:translateY(-2px)}
+  .ico{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:24px;margin-bottom:20px}
+  .feature h3{font-size:20px;font-weight:800}
+  .feature p{margin-top:10px;color:var(--body);line-height:1.7;font-size:16px}
+  .alt{background:var(--bg)}
+  .roles{margin-top:52px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .rolecard{background:#fff;border-radius:20px;padding:32px;box-shadow:0 12px 34px rgba(15,23,42,.05)}
+  .rolecard .dot{width:14px;height:14px;border-radius:50%;margin-bottom:18px}
+  .rolecard h3{font-size:22px;font-weight:800}
+  .rolecard ul{margin-top:14px;list-style:none;color:var(--body);line-height:2;font-size:16px}
+  .rolecard li:before{content:"\2713  ";color:var(--blue);font-weight:800}
+  .band{border-radius:26px;padding:64px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:30px;flex-wrap:wrap;
+    background:radial-gradient(600px 300px at 90% 0%,rgba(124,58,237,.35),transparent 60%),linear-gradient(135deg,var(--navy2),var(--navy))}
+  .band h2{margin:0;color:#fff}
+  .band p{margin-top:12px;color:#9aa4c7;font-size:18px}
+  footer{border-top:1px solid var(--line);padding:30px 0;color:var(--muted);font-size:15px}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  @media (max-width:980px){
+    .hero-grid{grid-template-columns:1fr;padding:40px 0 70px}h1{font-size:42px}
+    .features,.roles{grid-template-columns:1fr}.navlinks a:not(.btn){display:none}
+    h2{font-size:32px}.band{padding:40px 28px}section{padding:64px 0}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="{% url 'landing' %}"><span class="logo">EP</span><span><b>EDGEPRO</b><small>PAYROLL PORTAL</small></span></a>
+      <div class="navlinks">
+        <a href="#features">Features</a>
+        <a href="#roles">Who it's for</a>
+        <a href="{% url 'request_demo' %}">Request Demo</a>
+        {% if user.is_authenticated %}
+          <a class="btn" href="{% url 'post_login_redirect' %}">Go to Dashboard</a>
+        {% else %}
+          <a href="{% url 'login' %}">Login</a>
+          <a class="btn" href="{% url 'company_register' %}">Register</a>
+        {% endif %}
+      </div>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <span class="pill">Payroll &#183; Attendance &#183; Leave &#183; Compliance</span>
+        <h1>Your <span class="grad">Payroll</span>,<br>Simplified.</h1>
+        <p class="lead">Run monthly payroll, generate payslips, track attendance and leave, and stay on top of PF, ESI and TDS, all from one secure, multi-company platform.</p>
+        <div class="cta">
+          <a class="btn" href="{% url 'request_demo' %}">Request a Demo</a>
+          <a class="btn light" href="{% url 'company_register' %}">Register your Company</a>
+          <a class="btn light" href="{% url 'login' %}">Sign In</a>
+        </div>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <h4>This month at a glance</h4>
+        <div class="kpis">
+          <div class="kpi"><span>Employees</span><b>128</b></div>
+          <div class="kpi"><span>Net payout</span><b>&#8377;42.6L</b></div>
+          <div class="kpi"><span>Pending leave</span><b>6</b></div>
+          <div class="kpi"><span>Payslips</span><b>128</b></div>
+        </div>
+        <div class="steps-mini">
+          <div class="step-mini">Payroll validated <span class="tag t-ok">Done</span></div>
+          <div class="step-mini">Owner approval <span class="tag t-wait">Pending</span></div>
+          <div class="step-mini">Bank transfer file <span class="tag t-blue">Ready</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Features</div>
+    <h2>Everything payroll needs, in one place</h2>
+    <p class="sec-lead">Built for Indian payroll with approvals at every step, so nothing is paid until it's checked.</p>
+    <div class="features">
+      <div class="feature"><div class="ico" style="background:#eef2ff">&#128188;</div><h3>Payroll processing</h3><p>Create, validate, approve and release monthly payroll with locking to prevent double payment.</p></div>
+      <div class="feature"><div class="ico" style="background:#ecfdf5">&#129534;</div><h3>Payslips</h3><p>Employees download and receive their own payslips. History is kept for every month.</p></div>
+      <div class="feature"><div class="ico" style="background:#fff7ed">&#128197;</div><h3>Attendance &amp; leave</h3><p>Daily attendance, leave requests with balances, and owner approvals with notifications.</p></div>
+      <div class="feature"><div class="ico" style="background:#fdf2f8">&#127963;&#65039;</div><h3>Statutory compliance</h3><p>PF, ESI and TDS calculations, investment declarations and compliance reports.</p></div>
+      <div class="feature"><div class="ico" style="background:#eff6ff">&#127974;</div><h3>Bank transfers</h3><p>Salary transfer files and payment status tracking for every released payroll.</p></div>
+      <div class="feature"><div class="ico" style="background:#f5f3ff">&#128274;</div><h3>Secure by role</h3><p>Each company sees only its own data, and each employee sees only their own records.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="roles" class="alt">
+  <div class="wrap">
+    <div class="eyebrow">Who it's for</div>
+    <h2>One platform, three roles</h2>
+    <div class="roles">
+      <div class="rolecard"><div class="dot" style="background:#3b82f6"></div><h3>Employee</h3><ul><li>View &amp; download payslips</li><li>Apply for leave</li><li>Submit reimbursements</li><li>Investment declarations</li></ul></div>
+      <div class="rolecard"><div class="dot" style="background:#a78bfa"></div><h3>Company Owner</h3><ul><li>Manage employees &amp; salaries</li><li>Run &amp; approve payroll</li><li>Approve leave &amp; claims</li><li>Reports &amp; bank transfers</li></ul></div>
+      <div class="rolecard"><div class="dot" style="background:#f5b019"></div><h3>Administrator</h3><ul><li>Approve company sign-ups</li><li>Handle demo requests</li><li>Client complaints &amp; requests</li><li>Platform audit log</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="band">
+      <div><h2>Ready to simplify payroll?</h2><p>Book a walkthrough or register your company today.</p></div>
+      <div class="cta" style="margin:0">
+        <a class="btn" href="{% url 'request_demo' %}">Request a Demo</a>
+        <a class="btn light" href="{% url 'company_register' %}">Register</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>&#169; EDGEPRO Payroll</span>
+    <span><a href="{% url 'login' %}">Login</a> &#183; <a href="{% url 'company_register' %}">Register</a> &#183; <a href="{% url 'request_demo' %}">Request Demo</a></span>
+  </div>
+</footer>
+</body>
+</html>
