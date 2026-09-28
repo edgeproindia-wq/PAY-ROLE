@@ -3,11 +3,12 @@
 {% block boxsize %}wide{% endblock %}
 {% block content %}
 <h1>Register your Company</h1>
-<p class="sub">Your account will be activated once our team approves the registration.</p>
+<p class="sub">Step 1: register &rarr; Step 2: verify your email with the code we send &rarr; Step 3: our team approves your company.</p>
 <form method="post" novalidate>
   {% csrf_token %}
   <div class="form-grid">
     <div class="field">{{ form.company_name.label_tag }}{{ form.company_name }}{{ form.company_name.errors }}</div>
+    <div class="field">{{ form.owner_full_name.label_tag }}{{ form.owner_full_name }}{{ form.owner_full_name.errors }}</div>
     <div class="field">{{ form.contact_email.label_tag }}{{ form.contact_email }}{{ form.contact_email.errors }}</div>
     <div class="field">{{ form.contact_phone.label_tag }}{{ form.contact_phone }}{{ form.contact_phone.errors }}</div>
     <div class="field">{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>

@@ -13,6 +13,13 @@
   </div>
 </div>
 
+{% if balance %}
+<div class="kpi-row">
+  {% for key, b in balance.items %}
+  <div class="kpi-card"><div class="label">{{ b.label }} &middot; balance</div><div class="value">{{ b.remaining }} <span class="text-sm text-muted">/ {{ b.entitled }}</span></div><div class="text-sm text-muted">{{ b.taken }} day{{ b.taken|pluralize }} taken this year</div></div>
+  {% endfor %}
+</div>
+{% endif %}
 <div class="card">
   <div class="card-header"><h3>Leave Requests by Type</h3></div>
   <div class="card-body"><div class="chart-box sm"><canvas id="leaveChart"></canvas></div></div>
@@ -33,7 +40,7 @@
   <div class="table-wrap">
     {% if leave_requests %}
     <table id="lvTable">
-      <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
+      <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
       <tbody>
         {% for l in leave_requests %}
         <tr>
@@ -41,6 +48,7 @@
           <td>{{ l.get_leave_type_display }}</td>
           <td>{{ l.from_date }}</td>
           <td>{{ l.to_date }}</td>
+          <td>{{ l.days }}</td>
           <td class="wrap">{{ l.reason|default:"&mdash;" }}</td>
           <td><span class="badge {% if l.status == 'APPROVED' %}badge-success{% elif l.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ l.get_status_display }}</span></td>
           {% if not is_employee_role %}
@@ -77,6 +85,7 @@
     <form method="post" action="{% url 'leave_management' %}">
       {% csrf_token %}
       <div class="modal-body">
+        {% if form.non_field_errors %}<div class="alert alert-error"><span>{% for e in form.non_field_errors %}{{ e }} {% endfor %}</span></div>{% endif %}
         <div class="form-grid">
           {% for field in form %}
           <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>

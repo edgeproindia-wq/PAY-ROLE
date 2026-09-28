@@ -1,6 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Generate Payslip{% endblock %}
+{% block title %}Payslip {{ line.payslip_number }}{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1 class="page-title">Generate Payslip</h1><p class="page-subtitle">Payslips are generated automatically when a payroll run is released — see Payroll Processing.</p></div></div>
-<div class="card"><div class="card-body"><a class="btn btn-primary" href="{% url 'payroll_combined' %}">Go to Payroll Processing</a></div></div>
+<div class="breadcrumb no-print"><a href="{% url 'payslips' %}">Payslips</a> / {{ line.payslip_number }}</div>
+<div class="page-header">
+  <div><h1 class="page-title">Payslip &mdash; {{ line.payroll_run.month }}</h1><p class="page-subtitle">{{ line.payslip_number }} &middot; {{ line.employee.company.name|default:"" }}</p></div>
+  <div class="page-actions no-print">
+    <a href="{% url 'payslip_pdf' line.pk %}" class="btn btn-primary">&#8681; Download PDF</a>
+    <button onclick="window.print()" class="btn btn-outline">&#128424; Print</button>
+  </div>
+</div>
+<div class="card"><div class="card-body">
+  <div class="form-grid">
+    <div><span class="text-sm text-muted">Employee</span><div class="cell-title">{{ line.employee.full_name }} ({{ line.employee.employee_code }})</div></div>
+    <div><span class="text-sm text-muted">Department / Designation</span><div>{{ line.employee.department }} &middot; {{ line.employee.designation }}</div></div>
+    <div><span class="text-sm text-muted">Bank Account</span><div>{% if line.employee.has_bank_details %}{{ line.employee.bank_name|default:"" }} {{ line.employee.masked_account_no }} &middot; {{ line.employee.ifsc_code }}{% else %}<span class="badge badge-danger">Missing Bank Details</span>{% endif %}</div></div>
+    <div><span class="text-sm text-muted">Days in month / LOP days</span><div>{{ line.days_in_month|default:"&mdash;" }} / {{ line.lop_days }}</div></div>
+  </div>
+</div></div>
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>Earnings</h3></div><div class="card-body flush"><div class="table-wrap"><table><tbody>
+    <tr><td>Basic</td><td>&#8377;{{ line.basic }}</td></tr>
+    <tr><td>HRA</td><td>&#8377;{{ line.hra }}</td></tr>
+    <tr><td>Conveyance</td><td>&#8377;{{ line.conveyance }}</td></tr>
+    <tr><td>Special Allowance</td><td>&#8377;{{ line.special_allowance }}</td></tr>
+    <tr><td>Less: Loss of Pay</td><td>-&#8377;{{ line.lop_amount }}</td></tr>
+    <tr><td>Arrears</td><td>&#8377;{{ line.arrears }}</td></tr>
+    <tr><td>Reimbursements</td><td>&#8377;{{ line.reimbursements }}</td></tr>
+    <tr><td class="cell-title">Total Earnings</td><td class="cell-title">&#8377;{{ line.total_earnings }}</td></tr>
+  </tbody></table></div></div></div>
+  <div class="card"><div class="card-header"><h3>Deductions</h3></div><div class="card-body flush"><div class="table-wrap"><table><tbody>
+    <tr><td>Provident Fund</td><td>&#8377;{{ line.pf }}</td></tr>
+    <tr><td>ESI</td><td>&#8377;{{ line.esi }}</td></tr>
+    <tr><td>TDS</td><td>&#8377;{{ line.tds }}</td></tr>
+    <tr><td class="cell-title">Total Deductions</td><td class="cell-title">&#8377;{{ line.total_deductions }}</td></tr>
+  </tbody></table></div></div></div>
+</div>
+<div class="kpi-row"><div class="kpi-card"><div class="label">Net Pay</div><div class="value">&#8377;{{ line.net_pay }}</div></div></div>
 {% endblock %}

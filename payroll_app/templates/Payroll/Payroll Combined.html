@@ -24,11 +24,12 @@
   <div class="table-wrap">
     {% if payroll_runs %}
     <table>
-      <thead><tr><th>Month</th><th>Status</th><th>Employees</th><th>Net Payout</th><th>Locked</th><th>Created</th><th class="no-print">Actions</th></tr></thead>
+      <thead><tr><th>Month</th>{% if company_choices %}<th>Company</th>{% endif %}<th>Status</th><th>Employees</th><th>Net Payout</th><th>Locked</th><th>Created</th><th class="no-print">Actions</th></tr></thead>
       <tbody>
         {% for run in payroll_runs %}
         <tr>
           <td class="cell-title"><a href="{% url 'payroll_run_detail' run.pk %}" style="color:var(--accent);text-decoration:none;">{{ run.month }}</a></td>
+          {% if company_choices %}<td>{{ run.company.name|default:"(legacy)" }}</td>{% endif %}
           <td><span class="badge {% if run.status == 'RELEASED' %}badge-success{% elif run.status == 'APPROVED' %}badge-info{% elif run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ run.get_status_display }}</span></td>
           <td>{{ run.lines.count }} employee{{ run.lines.count|pluralize }}</td>
           <td><a href="{% url 'payroll_run_detail' run.pk %}" class="text-sm" style="color:var(--accent);text-decoration:none;">View breakdown &rarr;</a></td>
@@ -87,10 +88,19 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="create">
       <div class="modal-body">
+        {% if company_choices %}
+        <div class="field">
+          <label>Company</label>
+          <select name="company" required>
+            <option value="">Select company...</option>
+            {% for c in company_choices %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endif %}
         <div class="field">
           <label>{{ form.month.label }}</label>
           {{ form.month }}
-          <div class="helptext">Payroll lines will be generated automatically for all active employees with a salary structure.</div>
+          <div class="helptext">Lines are calculated for all active employees with a salary structure: gross, loss of pay (absent/half-day attendance), arrears, approved reimbursements, PF, ESI and TDS. One run per company per month.</div>
           {{ form.month.errors }}
         </div>
       </div>

@@ -1,4 +1,8 @@
+import logging
+
 from .models import AuditLog
+
+logger = logging.getLogger('payroll_app.audit')
 
 
 def _client_ip(request):
@@ -28,5 +32,6 @@ def log_action(request, action, obj=None, details='', company=None):
             ip_address=_client_ip(request) if request is not None else None,
         )
     except Exception:
-        # Audit logging must never break the primary workflow.
-        pass
+        # Audit logging must never break the primary workflow — but the
+        # failure is recorded, not silently swallowed.
+        logger.exception('Failed to write audit log entry (action=%s, model=%s)', action, model_name)

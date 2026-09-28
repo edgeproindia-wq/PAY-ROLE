@@ -1,5 +1,12 @@
 # EdgePro Payroll — Multi-Tenant SaaS
 
+## Updating an existing install (Windows)
+Copy the new files over your project folder (keep your `db.sqlite3`), then:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\APPLY_UPDATE.ps1
+```
+It backs up the database, installs packages, migrates, repairs missing columns and runs all tests.
+
 ## First-time setup (local)
 ```bash
 python -m venv venv
@@ -20,7 +27,7 @@ Visit `/welcome/` for the public landing page, `/login/` to sign in, `/admin/` f
 ```bash
 python manage.py test payroll_app
 ```
-23 tests cover auth, RBAC, company isolation/IDOR, and the leave/reimbursement/payroll workflows.
+64 tests cover auth/OTP, RBAC, company isolation/IDOR, payroll maths, payslip PDFs, bank transfer, demo alerts and every page for every role.
 
 ## Deploying to Render
 1. Push this repo to GitHub.

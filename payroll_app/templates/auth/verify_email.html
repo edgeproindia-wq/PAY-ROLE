@@ -1,0 +1,17 @@
+{% extends "public_base.html" %}
+{% block title %}Verify your email{% endblock %}
+{% block content %}
+<h1>Verify your email</h1>
+<p class="sub">Enter the 6-digit code we sent to <strong>{{ email }}</strong>. It expires in 10 minutes.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="field">{{ form.code.label_tag }}{{ form.code }}{{ form.code.errors }}</div>
+  <button class="btn" type="submit">Verify</button>
+</form>
+<form method="post" style="margin-top:10px;">
+  {% csrf_token %}
+  <input type="hidden" name="resend" value="1">
+  <button class="btn" type="submit" style="background:#fff;color:var(--accent);border:1px solid var(--line);">Resend code</button>
+</form>
+<div class="links"><a href="{% url 'login' %}">Back to sign in</a></div>
+{% endblock %}

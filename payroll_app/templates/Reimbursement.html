@@ -34,7 +34,7 @@
   <div class="table-wrap">
     {% if reimbursements %}
     <table id="rbTable">
-      <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Date</th><th>Description</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
+      <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Date</th><th>Description</th><th>Receipt</th><th>Status</th>{% if not is_employee_role %}<th>Action</th>{% endif %}</tr></thead>
       <tbody>
         {% for r in reimbursements %}
         <tr>
@@ -43,7 +43,8 @@
           <td style="font-weight:700;color:var(--ink);">&#8377;{{ r.amount }}</td>
           <td>{{ r.date }}</td>
           <td class="wrap">{{ r.description|default:"&mdash;" }}</td>
-          <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span></td>
+          <td>{% if r.receipt %}<a href="{% url 'reimbursement_receipt' r.pk %}" target="_blank" class="btn btn-outline btn-sm">View</a>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span>{% if r.paid_in_run %}<br><span class="text-sm text-muted">Paid in {{ r.paid_in_run.month }}</span>{% endif %}</td>
           {% if not is_employee_role %}
           <td class="row-actions">
             {% if r.status == 'PENDING' %}
@@ -75,9 +76,10 @@
 <div class="modal-overlay" id="addReimbModal">
   <div class="modal-box">
     <div class="modal-head"><h3>New Reimbursement Claim</h3><button class="modal-close" onclick="document.getElementById('addReimbModal').classList.remove('open')">&times;</button></div>
-    <form method="post" action="{% url 'reimbursement' %}">
+    <form method="post" action="{% url 'reimbursement' %}" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="modal-body">
+        {% if form.non_field_errors %}<div class="alert alert-error"><span>{% for e in form.non_field_errors %}{{ e }} {% endfor %}</span></div>{% endif %}
         <div class="form-grid">
           {% for field in form %}
           <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>

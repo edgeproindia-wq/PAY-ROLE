@@ -1,24 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Demo Requests{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1 class="page-title">Demo / Book Requests</h1></div></div>
+<div class="page-header"><div><h1 class="page-title">Demo / Book Requests</h1><p class="page-subtitle">Every public demo request, with email/SMS alert delivery status</p></div></div>
 <div class="card"><div class="card-body flush"><div class="table-wrap"><table>
-<thead><tr><th>Company</th><th>Contact</th><th>Email</th><th>Status</th><th>Received</th><th>Action</th></tr></thead>
+<thead><tr><th>Company</th><th>Contact</th><th>Employees</th><th>Preferred Demo</th><th>Message</th><th>Alerts</th><th>Status</th><th>Received</th><th>Action</th></tr></thead>
 <tbody>
 {% for d in demos %}
 <tr>
-  <td>{{ d.company_name }}</td><td>{{ d.full_name }}</td><td>{{ d.email }}</td>
+  <td class="cell-title">{{ d.company_name }}</td>
+  <td>{{ d.full_name }}<br><span class="text-sm text-muted">{{ d.email }}<br>{{ d.phone|default:"" }}</span></td>
+  <td>{{ d.team_size|default:"&mdash;" }}</td>
+  <td class="text-sm">{{ d.preferred_datetime|date:"d M Y H:i"|default:"&mdash;" }}</td>
+  <td class="wrap text-sm">{{ d.message|default:"&mdash;"|truncatechars:120 }}</td>
+  <td class="text-sm">
+    Email: {% if d.email_notified %}<span class="badge badge-success">sent</span>{% else %}<span class="badge badge-danger">failed</span>{% endif %}<br>
+    SMS: {% if d.sms_notified %}<span class="badge badge-success">sent</span>{% else %}<span class="badge badge-danger">not sent</span>{% endif %}
+    {% if d.notification_error %}<br><span class="text-muted" title="{{ d.notification_error }}">{{ d.notification_error|truncatechars:50 }}</span>{% endif %}
+  </td>
   <td><span class="badge {% if d.status == 'PENDING' %}badge-warn{% elif d.status == 'APPROVED' %}badge-success{% elif d.status == 'REJECTED' %}badge-danger{% else %}badge-info{% endif %}">{{ d.get_status_display }}</span></td>
-  <td class="text-sm text-muted">{{ d.created_at|date:"d M Y" }}</td>
+  <td class="text-sm text-muted">{{ d.created_at|date:"d M Y H:i" }}</td>
   <td>
-    <form method="post" action="{% url 'admin_demo_request_decide' d.pk %}" style="display:flex; gap:4px;">
+    <form method="post" action="{% url 'admin_demo_request_decide' d.pk %}" style="display:flex; gap:4px; flex-wrap:wrap;">
       {% csrf_token %}
+      <input type="text" name="admin_notes" value="{{ d.admin_notes }}" placeholder="Notes" maxlength="500" style="max-width:120px;">
       <button class="btn btn-success btn-sm" name="decision" value="APPROVED">Approve</button>
       <button class="btn btn-outline btn-sm" name="decision" value="CONTACTED">Contacted</button>
       <button class="btn btn-danger btn-sm" name="decision" value="REJECTED">Reject</button>
     </form>
   </td>
 </tr>
-{% empty %}<tr><td colspan="6">No demo requests yet.</td></tr>{% endfor %}
-</tbody></table></div></div></div>
+{% empty %}<tr><td colspan="9"><div class="empty-state"><div class="title">No demo requests yet</div></div></td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="pagination">
+  {% if demos.has_previous %}<a href="?page={{ demos.previous_page_number }}">&laquo; Prev</a>{% endif %}
+  <span class="current">Page {{ demos.number }} of {{ demos.paginator.num_pages }}</span>
+  {% if demos.has_next %}<a href="?page={{ demos.next_page_number }}">Next &raquo;</a>{% endif %}
+</div>
+</div>
 {% endblock %}

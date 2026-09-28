@@ -1,0 +1,51 @@
+[
+{
+  "model": "axes.accesslog",
+  "pk": 1,
+  "fields": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+    "ip_address": "127.0.0.1",
+    "username": "SHANKAR",
+    "http_accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "path_info": "/login/",
+    "attempt_time": "2026-09-22T07:00:03.850Z",
+    "logout_time": null,
+    "session_hash": "cf932955ba0948c85381d1d50d1bc0db5d703ac923e548cbd4a7c96faf879f78"
+  }
+},
+{
+  "model": "payroll_app.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$SiQRv8hhihXwdTHl056Gl7$5K+ots7W3G1bFLDgnPO3vbPG524pT5eEJcjoxAD5Zcs=",
+    "last_login": "2026-09-22T07:00:03.863Z",
+    "is_superuser": true,
+    "username": "SHANKAR",
+    "first_name": "",
+    "last_name": "",
+    "email": "edgeproindia@gmail.com",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-09-22T06:10:29.053Z",
+    "role": "EMPLOYEE",
+    "company": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "payroll_app.auditlog",
+  "pk": 1,
+  "fields": {
+    "actor": [
+      "SHANKAR"
+    ],
+    "action": "LOGIN",
+    "model_name": "",
+    "object_id": "",
+    "company": null,
+    "details": "User logged in",
+    "ip_address": "127.0.0.1",
+    "timestamp": "2026-09-22T07:00:03.902Z"
+  }
+}
+]

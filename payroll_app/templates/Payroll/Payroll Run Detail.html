@@ -20,6 +20,9 @@
 
 <div class="kpi-row">
   <div class="kpi-card"><div class="label">Employees</div><div class="value">{{ lines|length }}</div></div>
+  <div class="kpi-card"><div class="label">Total Gross</div><div class="value">&#8377;{{ totals.gross|default:0|floatformat:2 }}</div></div>
+  <div class="kpi-card"><div class="label">Total Deductions</div><div class="value">&#8377;{{ totals.deductions|default:0|floatformat:2 }}</div></div>
+  <div class="kpi-card"><div class="label">Total Net Pay</div><div class="value">&#8377;{{ totals.net|default:0|floatformat:2 }}</div></div>
   <div class="kpi-card"><div class="label">Created On</div><div class="value" style="font-size:16px;">{{ run.created_at|date:"d M Y" }}</div></div>
 </div>
 
@@ -28,14 +31,19 @@
   <div class="table-wrap">
     {% if lines %}
     <table>
-      <thead><tr><th>Employee Code</th><th>Name</th><th>Basic</th><th>Gross Salary</th><th>Net Pay</th></tr></thead>
+      <thead><tr><th>Employee Code</th><th>Name</th><th>Gross</th><th>LOP</th><th>Arrears</th><th>Reimb.</th><th>PF</th><th>ESI</th><th>TDS</th><th>Net Pay</th></tr></thead>
       <tbody>
         {% for l in lines %}
         <tr>
           <td>{{ l.employee.employee_code }}</td>
           <td class="cell-title">{{ l.employee.full_name }}</td>
-          <td>&#8377;{{ l.basic }}</td>
           <td>&#8377;{{ l.gross_salary }}</td>
+          <td>{% if l.lop_days %}-&#8377;{{ l.lop_amount }} <span class="text-sm text-muted">({{ l.lop_days }}d)</span>{% else %}&mdash;{% endif %}</td>
+          <td>&#8377;{{ l.arrears }}</td>
+          <td>&#8377;{{ l.reimbursements }}</td>
+          <td>&#8377;{{ l.pf }}</td>
+          <td>&#8377;{{ l.esi }}</td>
+          <td>&#8377;{{ l.tds }}</td>
           <td style="font-weight:700;color:var(--ink);">&#8377;{{ l.net_pay }}</td>
         </tr>
         {% endfor %}

@@ -34,7 +34,7 @@ class RegistrationAndDemoWorkflowTests(TestCase):
     def test_demo_request_public_submit(self):
         resp = self.client.post(reverse('request_demo'), {
             'full_name': 'Jane', 'company_name': 'Jane Co', 'email': 'jane@example.com',
-            'phone': '', 'team_size': '10-50', 'message': 'Interested',
+            'phone': '9876543210', 'team_size': '10-50', 'message': 'Interested',
         })
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(DemoRequest.objects.count(), 1)
@@ -42,7 +42,7 @@ class RegistrationAndDemoWorkflowTests(TestCase):
 
     def test_company_self_registration_creates_inactive_owner(self):
         resp = self.client.post(reverse('company_register'), {
-            'company_name': 'NewCo', 'contact_email': 'owner@newco.com', 'contact_phone': '',
+            'company_name': 'NewCo', 'owner_full_name': 'Owner Person', 'contact_email': 'owner@newco.com', 'contact_phone': '9876543210',
             'address': '', 'username': 'newco_owner', 'password1': 'StrongPass123', 'password2': 'StrongPass123',
         })
         self.assertEqual(resp.status_code, 302)
@@ -54,7 +54,7 @@ class RegistrationAndDemoWorkflowTests(TestCase):
 
     def test_unapproved_owner_cannot_login(self):
         self.client.post(reverse('company_register'), {
-            'company_name': 'PendingCo', 'contact_email': 'x@pendingco.com', 'contact_phone': '',
+            'company_name': 'PendingCo', 'owner_full_name': 'Owner Person', 'contact_email': 'x@pendingco.com', 'contact_phone': '9876543210',
             'address': '', 'username': 'pending_owner', 'password1': 'StrongPass123', 'password2': 'StrongPass123',
         })
         logged_in = self.client.login(username='pending_owner', password='StrongPass123')
@@ -62,13 +62,14 @@ class RegistrationAndDemoWorkflowTests(TestCase):
 
     def test_admin_can_approve_company_and_activate_owner(self):
         self.client.post(reverse('company_register'), {
-            'company_name': 'ApproveCo', 'contact_email': 'x@approveco.com', 'contact_phone': '',
+            'company_name': 'ApproveCo', 'owner_full_name': 'Owner Person', 'contact_email': 'x@approveco.com', 'contact_phone': '9876543210',
             'address': '', 'username': 'approve_owner', 'password1': 'StrongPass123', 'password2': 'StrongPass123',
         })
         admin = make_user('platform_admin', 'ADMIN', is_superuser=True)
         self.client.login(username='platform_admin', password='StrongPass123')
         company = Company.objects.get(name='ApproveCo')
-        resp = self.client.post(reverse('admin_company_decide', args=[company.pk]), {'decision': 'APPROVED'})
+        resp = self.client.post(reverse('admin_company_decide', args=[company.pk]),
+                                {'decision': 'APPROVED', 'override_unverified': '1'})
         self.assertEqual(resp.status_code, 302)
         company.refresh_from_db()
         self.assertEqual(company.status, 'APPROVED')
@@ -140,22 +141,16 @@ class RoleBasedAccessControlTests(TestCase):
     def test_employee_filing_leave_is_forced_to_own_record_not_client_supplied(self):
         other_emp = make_employee(self.company_a, code='A003', email='a3@example.com')
         self.client.login(username='emp_a_user', password='StrongPass123')
-        # The employee dropdown is already scoped to the caller's own record, so
-        # submitting a colleague's pk must be rejected as an invalid choice —
-        # this is the first line of defense against IDOR on this form.
+        # The employee field is removed from the form for EMPLOYEE users and the
+        # record is fixed server-side, so a colleague's pk in the POST body is
+        # ignored: the leave is always filed for the caller, never the colleague.
         resp = self.client.post(reverse('leave_management'), {
             'employee': other_emp.pk, 'leave_type': 'CASUAL', 'from_date': '2026-03-01', 'to_date': '2026-03-02', 'reason': 'x',
         })
-        self.assertEqual(resp.status_code, 200)
-        self.assertFalse(LeaveRequest.objects.filter(from_date='2026-03-01').exists(),
-                          "A leave request for another employee's pk must never be saved")
-
-        # Submitting the correct (own) employee pk succeeds normally.
-        resp = self.client.post(reverse('leave_management'), {
-            'employee': self.emp_a.pk, 'leave_type': 'CASUAL', 'from_date': '2026-04-01', 'to_date': '2026-04-02', 'reason': 'x',
-        })
         self.assertEqual(resp.status_code, 302)
-        leave = LeaveRequest.objects.get(from_date='2026-04-01')
+        self.assertFalse(LeaveRequest.objects.filter(employee=other_emp).exists(),
+                         "A leave request must never be saved against another employee")
+        leave = LeaveRequest.objects.get(from_date='2026-03-01')
         self.assertEqual(leave.employee_id, self.emp_a.pk)
 
     def test_owner_can_approve_own_companys_leave(self):
@@ -232,7 +227,7 @@ class PayrollWorkflowTests(TestCase):
 
     def test_released_payroll_cannot_be_reprocessed(self):
         self.client.login(username='pay_owner', password='StrongPass123')
-        run = PayrollRun.objects.create(month='October 2026', status='RELEASED')
+        run = PayrollRun.objects.create(month='October 2026', status='RELEASED', company=self.company)
         PayrollRunLine.objects.create(payroll_run=run, employee=self.emp, basic=20000, gross_salary=31000, net_pay=31000)
         self.client.post(reverse('payroll_combined'), {'action': 'reprocess', 'run_id': run.pk})
         self.assertEqual(PayrollRunLine.objects.filter(payroll_run=run).count(), 1, "Released runs must not be reprocessed")

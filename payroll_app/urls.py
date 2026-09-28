@@ -1,15 +1,17 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .forms import LoginForm
 
 urlpatterns = [
     # ---- Public / auth ----------------------------------------------------
     path('welcome/', views.landing, name='landing'),
     path('request-demo/', views.request_demo, name='request_demo'),
-    path('register/', views.employee_register, name='employee_register'),
-    path('register/send-otp/', views.send_registration_otp, name='send_registration_otp'),
-    path('register-company/', views.company_register, name='company_register'),
-    path('login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
+    path('register/', views.company_register, name='company_register'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='auth/login.html', authentication_form=LoginForm, redirect_authenticated_user=True,
+    ), name='login'),
+    path('verify-email/', views.verify_email, name='verify_email'),
     path('logout/', views.logout_view, name='logout'),
     path('post-login/', views.post_login_redirect, name='post_login_redirect'),
     path('password-reset/', auth_views.PasswordResetView.as_view(
@@ -47,8 +49,7 @@ urlpatterns = [
     path('employee/<int:pk>/create-account/', views.employee_create_account, name='employee_create_account'),
 
     # ---- Core payroll app (existing routes, now access-controlled) --------
-    path('', views.home, name='home'),
-    path('dashboard/', views.dashboard, name='dashboard'),
+    path('', views.dashboard, name='dashboard'),
 
     path('employee_master/', views.employee_master, name='employee_master'),
     path('employee_master/export/csv/', views.employee_master_export_csv, name='employee_master_export_csv'),
@@ -57,12 +58,16 @@ urlpatterns = [
 
     path('salary_structure/', views.salary_structure, name='salary_structure'),
     path('attendance/', views.attendance, name='attendance'),
+    path('attendance/check-<str:action>/', views.attendance_check, name='attendance_check'),
     path('leave_management/', views.leave_management, name='leave_management'),
     path('leave_management/<int:pk>/decide/', views.leave_decision, name='leave_decision'),
     path('reimbursement/', views.reimbursement, name='reimbursement'),
     path('reimbursement/<int:pk>/decide/', views.reimbursement_decision, name='reimbursement_decision'),
+    path('reimbursement/<int:pk>/receipt/', views.reimbursement_receipt, name='reimbursement_receipt'),
 
     path('payslips/', views.payslips, name='payslips'),
+    path('payslips/<int:pk>/', views.payslip_detail, name='payslip_detail'),
+    path('payslips/<int:pk>/pdf/', views.payslip_pdf, name='payslip_pdf'),
     path('payslips/export/csv/', views.payslips_export_csv, name='payslips_export_csv'),
     path('payslips/export/excel/', views.payslips_export_excel, name='payslips_export_excel'),
 
@@ -90,8 +95,8 @@ urlpatterns = [
     path('full_final_settlement/', views.full_final_settlement, name='full_final_settlement'),
 
     path('bank_transfer/', views.bank_transfer, name='bank_transfer'),
+    path('bank_transfer/payment/<int:pk>/update/', views.bank_payment_update, name='bank_payment_update'),
     path('bank_transfer/download_pdf/', views.download_pdf, name='download_pdf'),
-    path('payslip/<int:pk>/pdf/', views.payslip_pdf_download, name='payslip_pdf_download'),
     path('bank_transfer/failed_transaction_report/', views.failed_transaction_report, name='failed_transaction_report'),
     path('bank_transfer/payment_states/', views.payment_states, name='payment_states'),
     path('bank_transfer/salary_transfer_file/', views.salary_transfer_file, name='salary_transfer_file'),

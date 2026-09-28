@@ -228,7 +228,6 @@
     <div class="group-title">Payroll</div>
     {% endif %}
 
-    {% if not user.is_superuser %}
     {% if not is_employee_role %}
     <a href="{% url 'employee_master' %}" class="{% if request.resolver_match.url_name == 'employee_master' %}active{% endif %}">Employee Master</a>
     <a href="{% url 'salary_structure' %}" class="{% if request.resolver_match.url_name == 'salary_structure' %}active{% endif %}">Salary Structure</a>
@@ -264,10 +263,8 @@
         {% endif %}
       </div>
     </div>
-    {% endif %}
   </div>
 
-  {% if not user.is_superuser %}
   <script>
     document.getElementById('moreToggle').addEventListener('click', function (e) {
       e.preventDefault();
@@ -289,7 +286,6 @@
       });
     })();
   </script>
-  {% endif %}
   <div class="content">
     {% if messages %}
       {% for message in messages %}

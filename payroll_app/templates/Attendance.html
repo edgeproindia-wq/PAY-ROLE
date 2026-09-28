@@ -9,7 +9,18 @@
     <p class="page-subtitle">Daily attendance records per employee</p>
   </div>
   <div class="page-actions">
+    {% if is_employee_role %}
+      {% if not today_record.check_in %}
+      <form method="post" action="{% url 'attendance_check' 'in' %}" style="display:inline;">{% csrf_token %}<button class="btn btn-success" type="submit">&#9201; Check In</button></form>
+      {% elif not today_record.check_out %}
+      <span class="text-sm text-muted">Checked in at {{ today_record.check_in|time:"h:i A" }}</span>
+      <form method="post" action="{% url 'attendance_check' 'out' %}" style="display:inline;">{% csrf_token %}<button class="btn btn-dark" type="submit">&#9201; Check Out</button></form>
+      {% else %}
+      <span class="badge badge-success">Today: {{ today_record.check_in|time:"h:i A" }} &ndash; {{ today_record.check_out|time:"h:i A" }}</span>
+      {% endif %}
+    {% else %}
     <button class="btn btn-primary" onclick="document.getElementById('addAttModal').classList.add('open')">+ Mark Attendance</button>
+    {% endif %}
   </div>
 </div>
 
@@ -45,12 +56,15 @@
   <div class="table-wrap">
     {% if records %}
     <table id="attTable">
-      <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Remarks</th></tr></thead>
+      <thead><tr><th>Employee</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th><th>Remarks</th></tr></thead>
       <tbody>
         {% for r in records %}
         <tr>
           <td><span class="cell-main"><span class="avatar-sm">{{ r.employee.first_name|first }}{{ r.employee.last_name|first }}</span><span class="cell-title">{{ r.employee.full_name }}</span></span></td>
           <td>{{ r.date }}</td>
+          <td>{{ r.check_in|time:"h:i A"|default:"&mdash;" }}</td>
+          <td>{{ r.check_out|time:"h:i A"|default:"&mdash;" }}</td>
+          <td>{{ r.hours_worked|default_if_none:"&mdash;" }}</td>
           <td><span class="badge {% if r.status == 'PRESENT' %}badge-success{% elif r.status == 'ABSENT' %}badge-danger{% elif r.status == 'HALF_DAY' %}badge-warn{% else %}badge-info{% endif %}">{{ r.get_status_display }}</span></td>
           <td class="wrap">{{ r.remarks|default:"&mdash;" }}</td>
         </tr>
@@ -79,6 +93,7 @@
     <form method="post" action="{% url 'attendance' %}">
       {% csrf_token %}
       <div class="modal-body">
+        {% if form.non_field_errors %}<div class="alert alert-error"><span>{% for e in form.non_field_errors %}{{ e }} {% endfor %}</span></div>{% endif %}
         <div class="form-grid">
           {% for field in form %}
           <div class="field"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
@@ -107,6 +122,6 @@
     data: { labels: {{ chart_labels|safe }}, datasets: [{ data: {{ chart_values|safe }}, backgroundColor:['#0f9d6a','#dc2626','#b45309','#0369a1'] }] },
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:11}} } } }
   });
-  {% if form.errors %}document.getElementById('addAttModal').classList.add('open');{% endif %}
+  {% if form.errors and not is_employee_role %}document.getElementById('addAttModal').classList.add('open');{% endif %}
 </script>
 {% endblock %}

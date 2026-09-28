@@ -30,7 +30,7 @@
   <div class="table-wrap">
     {% if declarations %}
     <table id="invTable">
-      <thead><tr><th>Employee</th><th>FY</th><th>Section</th><th>Investment Type</th><th>Declared Amount</th><th>Proof</th><th>Verified</th></tr></thead>
+      <thead><tr><th>Employee</th><th>FY</th><th>Section</th><th>Investment Type</th><th>Declared Amount</th><th>Verified</th></tr></thead>
       <tbody>
         {% for d in declarations %}
         <tr>
@@ -39,7 +39,6 @@
           <td>{{ d.get_section_display }}</td>
           <td>{{ d.investment_type }}</td>
           <td>&#8377;{{ d.declared_amount }}</td>
-          <td>{% if d.proof_document %}<a href="{{ d.proof_document.url }}" target="_blank">View file</a>{% else %}&mdash;{% endif %}</td>
           <td>{% if d.is_verified %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-warn">Pending</span>{% endif %}</td>
         </tr>
         {% endfor %}
@@ -54,9 +53,10 @@
 <div class="modal-overlay" id="addInvModal">
   <div class="modal-box">
     <div class="modal-head"><h3>New Investment Declaration</h3><button class="modal-close" onclick="document.getElementById('addInvModal').classList.remove('open')">&times;</button></div>
-    <form method="post" action="{% url 'investment_declaration' %}" enctype="multipart/form-data">
+    <form method="post" action="{% url 'investment_declaration' %}">
       {% csrf_token %}
       <div class="modal-body">
+        {% if form.non_field_errors %}<div class="alert alert-error"><span>{% for e in form.non_field_errors %}{{ e }} {% endfor %}</span></div>{% endif %}
         <div class="form-grid">
           {% for field in form %}
           <div class="field"><label>{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>

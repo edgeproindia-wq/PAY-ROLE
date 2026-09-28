@@ -5,9 +5,11 @@ never treated as sufficient protection on its own.
 """
 from functools import wraps
 
+from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 
 
 def role_required(*allowed_roles):
@@ -21,6 +23,14 @@ def role_required(*allowed_roles):
             user = request.user
             if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
                 return view_func(request, *args, **kwargs)
+            # A company suspended/rejected while its users are logged in must
+            # lose access immediately, not at their next login.
+            if user.company_id is None or user.company.status != 'APPROVED':
+                logout(request)
+                messages.error(request, 'Your company account is not active. Please contact support.')
+                return redirect('login')
+            if user.role == 'EMPLOYEE' and not hasattr(user, 'employee_profile'):
+                raise PermissionDenied("Your login is not linked to an employee record. Contact your HR admin.")
             if getattr(user, 'role', None) in allowed_roles:
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied("You do not have permission to access this page.")

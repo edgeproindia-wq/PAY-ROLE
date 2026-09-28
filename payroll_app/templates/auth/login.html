@@ -1,24 +1,19 @@
-{% extends "public/marketing_base.html" %}
-{% block title %}Sign In - EDGEPRO Payroll{% endblock %}
-{% block left %}
-  <h1>Your Payroll,<br><span class="accent">Simplified.</span></h1>
-  <p class="desc">A unified platform for employees, HR managers, and administrators to manage attendance, leave, payroll runs, and payslips.</p>
-  <div class="roles">
-    <div class="role-card"><div class="dot" style="background:var(--dot-blue);"></div><div><b>Employee</b><span>Attendance, leave requests, reimbursements &amp; payslips</span></div></div>
-    <div class="role-card"><div class="dot" style="background:var(--dot-purple);"></div><div><b>HR Manager</b><span>Approvals, payroll processing &amp; reports</span></div></div>
-    <div class="role-card"><div class="dot" style="background:var(--dot-yellow);"></div><div><b>Administrator</b><span>Complete system access and configuration</span></div></div>
-  </div>
-  <div class="footer-note">EDGEPRO &copy; {% now "Y" %} — Payroll &amp; HR Management</div>
-{% endblock %}
-{% block right %}
-  <h2>Welcome back</h2>
-  <p class="sub">Sign in to your EDGEPRO Payroll workspace</p>
-  {% if form.errors %}<ul class="errorlist"><li>Invalid username or password, or your account is not yet active.</li></ul>{% endif %}
-  <form method="post" novalidate>
-    {% csrf_token %}
-    <div class="field"><label>Username</label>{{ form.username }}</div>
-    <div class="field"><label>Password <a href="{% url 'password_reset' %}">Forgot password?</a></label>{{ form.password }}</div>
-    <button class="btn btn-fill btn-block" type="submit">Sign In</button>
-  </form>
-  <div class="links">New employee? <a href="{% url 'employee_register' %}">Create an account</a></div>
+{% extends "public_base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1>Sign in</h1>
+<p class="sub">Access your payroll dashboard with your username or email.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="field">{{ form.username.label_tag }}{{ form.username }}</div>
+  <div class="field">{{ form.password.label_tag }}{{ form.password }}</div>
+  {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <button class="btn" type="submit">Sign in</button>
+</form>
+<div class="links">
+  <a href="{% url 'password_reset' %}">Forgot password?</a> &middot;
+  <a href="{% url 'company_register' %}">Register your company</a> &middot;
+  <a href="{% url 'request_demo' %}">Request a demo</a>
+</div>
 {% endblock %}

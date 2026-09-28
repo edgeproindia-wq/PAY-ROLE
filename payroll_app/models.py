@@ -1,18 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
-from django.core.exceptions import ValidationError
-
-ALLOWED_PROOF_EXTENSIONS = ('.pdf', '.jpg', '.jpeg', '.png')
-MAX_PROOF_UPLOAD_MB = 5
-
-
-def validate_proof_document(f):
-    ext = ('.' + f.name.rsplit('.', 1)[-1].lower()) if '.' in f.name else ''
-    if ext not in ALLOWED_PROOF_EXTENSIONS:
-        raise ValidationError(f'Unsupported file type "{ext}". Allowed: {", ".join(ALLOWED_PROOF_EXTENSIONS)}.')
-    if f.size > MAX_PROOF_UPLOAD_MB * 1024 * 1024:
-        raise ValidationError(f'File too large ({f.size / (1024*1024):.1f} MB). Max {MAX_PROOF_UPLOAD_MB} MB.')
 
 
 # ---------------------------------------------------------------------------
@@ -69,9 +57,23 @@ class User(AbstractUser):
     company = models.ForeignKey(
         Company, on_delete=models.CASCADE, null=True, blank=True, related_name='users'
     )
+    # Existing accounts default to verified so nobody is locked out by this
+    # migration; self-registration explicitly sets it to False until the OTP
+    # is confirmed.
+    email_verified = models.BooleanField(default=True)
 
     class Meta:
         pass
+
+    def save(self, *args, **kwargs):
+        # `createsuperuser` never sets `role`, which previously left every
+        # superuser with role=EMPLOYEE (no admin notifications, blocked from
+        # creating employees). A superuser is always a platform ADMIN.
+        if self.is_superuser and self.role != 'ADMIN':
+            self.role = 'ADMIN'
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
@@ -110,7 +112,7 @@ class Employee(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employee_profile', help_text='Login account for this employee (ESS access).'
     )
-    employee_code = models.CharField(max_length=20, help_text='e.g. EMP0001')
+    employee_code = models.CharField(max_length=20, unique=True, help_text='e.g. EMP0001')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(unique=True)
@@ -123,16 +125,40 @@ class Employee(models.Model):
     employment_status = models.CharField(max_length=20, choices=EMPLOYMENT_STATUS_CHOICES, default='ACTIVE')
     pan_number = models.CharField(max_length=10, blank=True)
     aadhar_number = models.CharField(max_length=12, blank=True)
+    ACCOUNT_TYPE_CHOICES = [
+        ('SAVINGS', 'Savings'),
+        ('CURRENT', 'Current'),
+        ('SALARY', 'Salary'),
+    ]
+    BANK_STATUS_CHOICES = [
+        ('UNVERIFIED', 'Unverified'),
+        ('VERIFIED', 'Verified'),
+        ('INACTIVE', 'Inactive'),
+    ]
+
+    bank_name = models.CharField(max_length=120, blank=True)
+    account_holder_name = models.CharField(max_length=150, blank=True)
     bank_account_no = models.CharField(max_length=30, blank=True)
     ifsc_code = models.CharField(max_length=11, blank=True)
+    bank_branch = models.CharField(max_length=150, blank=True)
+    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPE_CHOICES, blank=True)
+    bank_status = models.CharField(max_length=10, choices=BANK_STATUS_CHOICES, default='UNVERIFIED')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['employee_code']
-        constraints = [
-            models.UniqueConstraint(fields=['company', 'employee_code'], name='unique_employee_code_per_company'),
-        ]
+
+    @property
+    def has_bank_details(self):
+        """Minimum data needed to pay someone: account number + IFSC, and
+        the account not marked inactive."""
+        return bool(self.bank_account_no and self.ifsc_code and self.bank_status != 'INACTIVE')
+
+    @property
+    def masked_account_no(self):
+        acc = self.bank_account_no or ''
+        return ('X' * max(len(acc) - 4, 0)) + acc[-4:] if acc else ''
 
     @property
     def full_name(self):
@@ -168,11 +194,21 @@ class Attendance(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_records')
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PRESENT')
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ['-date']
         unique_together = ('employee', 'date')
+
+    @property
+    def hours_worked(self):
+        if self.check_in and self.check_out:
+            import datetime as _dt
+            delta = _dt.datetime.combine(self.date, self.check_out) - _dt.datetime.combine(self.date, self.check_in)
+            return round(delta.total_seconds() / 3600, 2) if delta.total_seconds() > 0 else 0
+        return None
 
     def __str__(self):
         return f"{self.employee} - {self.date} - {self.status}"
@@ -196,9 +232,17 @@ class LeaveRequest(models.Model):
     to_date = models.DateField()
     reason = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='leave_decisions'
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-from_date']
+
+    @property
+    def days(self):
+        return (self.to_date - self.from_date).days + 1
 
     def __str__(self):
         return f"{self.employee} - {self.leave_type} - {self.status}"
@@ -222,7 +266,17 @@ class Reimbursement(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
     description = models.CharField(max_length=255, blank=True)
+    receipt = models.FileField(upload_to='reimbursement_receipts/%Y/%m/', null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursement_decisions'
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    # Set when an approved claim is included in a payroll run, so the same
+    # claim can never be paid twice.
+    paid_in_run = models.ForeignKey(
+        'PayrollRun', on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursements_paid'
+    )
 
     class Meta:
         ordering = ['-date']
@@ -239,9 +293,16 @@ class PayrollRun(models.Model):
         ('RELEASED', 'Released'),
     ]
 
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, null=True, blank=True, related_name='payroll_runs',
+        help_text='Tenant that owns this run. Legacy runs are back-filled from their lines.'
+    )
     month = models.CharField(max_length=20, help_text='e.g. August 2026')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
     is_locked = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='payroll_runs_created'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -252,21 +313,25 @@ class PayrollRun(models.Model):
 
 
 class PayrollRunLine(models.Model):
-    PAYMENT_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('SUCCESS', 'Success'),
-        ('FAILED', 'Failed'),
-    ]
-
     payroll_run = models.ForeignKey(PayrollRun, on_delete=models.CASCADE, related_name='lines')
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    payslip_number = models.CharField(max_length=40, blank=True, db_index=True)
     basic = models.DecimalField(max_digits=10, decimal_places=2)
+    hra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    conveyance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    special_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     gross_salary = models.DecimalField(max_digits=10, decimal_places=2)
+    days_in_month = models.PositiveSmallIntegerField(default=0)
+    lop_days = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    lop_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    arrears = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    reimbursements = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    pf = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    esi = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tds = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     net_pay = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
-    payment_reference = models.CharField(max_length=50, blank=True)
-    payment_attempted_at = models.DateTimeField(null=True, blank=True)
-    failure_reason = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f"{self.payroll_run} - {self.employee}"
@@ -297,6 +362,9 @@ class ArrearsRecord(models.Model):
     old_basic = models.DecimalField(max_digits=10, decimal_places=2)
     new_basic = models.DecimalField(max_digits=10, decimal_places=2)
     months = models.IntegerField(default=1)
+    paid_in_run = models.ForeignKey(
+        'PayrollRun', on_delete=models.SET_NULL, null=True, blank=True, related_name='arrears_paid'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -359,9 +427,7 @@ class InvestmentDeclaration(models.Model):
     section = models.CharField(max_length=10, choices=SECTION_CHOICES)
     investment_type = models.CharField(max_length=100)
     declared_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    proof_document = models.FileField(
-        upload_to='investment_proofs/%Y/%m/', blank=True, null=True, validators=[validate_proof_document],
-    )
+    proof_document = models.CharField(max_length=255, blank=True)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -388,9 +454,13 @@ class DemoRequest(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=15, blank=True)
     team_size = models.CharField(max_length=50, blank=True)
+    preferred_datetime = models.DateTimeField(null=True, blank=True)
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     admin_notes = models.CharField(max_length=500, blank=True)
+    email_notified = models.BooleanField(default=False)
+    sms_notified = models.BooleanField(default=False)
+    notification_error = models.CharField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
 
@@ -487,7 +557,6 @@ class AuditLog(models.Model):
         ('DELETE', 'Delete'),
         ('PROCESS_PAYROLL', 'Payroll Processing'),
         ('PAYMENT_STATUS_CHANGE', 'Payment Status Change'),
-        ('EXPORT', 'Export'),
         ('OTHER', 'Other'),
     ]
 
@@ -509,3 +578,82 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp:%Y-%m-%d %H:%M}] {self.actor} {self.action} {self.model_name}#{self.object_id}"
+
+
+# ---------------------------------------------------------------------------
+# Email verification (registration OTP)
+# ---------------------------------------------------------------------------
+
+class EmailOTP(models.Model):
+    """One-time code emailed at registration. Only a hash of the code is
+    stored; codes expire and are locked after too many wrong attempts."""
+
+    PURPOSE_CHOICES = [('REGISTRATION', 'Registration')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='email_otps')
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='REGISTRATION')
+    code_hash = models.CharField(max_length=128)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"OTP for {self.user} ({'used' if self.is_used else 'active'})"
+
+
+# ---------------------------------------------------------------------------
+# Bank transfer / salary payment tracking
+# ---------------------------------------------------------------------------
+
+class BankPayment(models.Model):
+    """One payment instruction per released payslip line. The OneToOne makes
+    a duplicate payment for the same payslip impossible at the DB level.
+
+    A payment is only ever marked PAID when a bank reference/UTR number is
+    recorded by an authorised user — nothing is auto-marked as completed."""
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('INITIATED', 'Initiated'),
+        ('PAID', 'Paid'),
+        ('FAILED', 'Failed'),
+    ]
+    MODE_CHOICES = [('NEFT', 'NEFT'), ('IMPS', 'IMPS'), ('RTGS', 'RTGS'), ('OTHER', 'Other')]
+
+    payroll_line = models.OneToOneField(PayrollRunLine, on_delete=models.PROTECT, related_name='bank_payment')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True, related_name='bank_payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    # Snapshot of bank details at the time the payment was prepared, so later
+    # edits to the employee record cannot silently change where money went.
+    bank_name = models.CharField(max_length=120, blank=True)
+    account_holder_name = models.CharField(max_length=150, blank=True)
+    account_no = models.CharField(max_length=30)
+    ifsc_code = models.CharField(max_length=11)
+    mode = models.CharField(max_length=5, choices=MODE_CHOICES, default='NEFT')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    reference_number = models.CharField(max_length=60, blank=True, help_text='Bank UTR / transaction reference')
+    failure_reason = models.CharField(max_length=255, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    initiated_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments_verified'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['reference_number'], condition=~models.Q(reference_number=''),
+                name='unique_bank_payment_reference',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.payroll_line.employee} - {self.amount} - {self.status}"

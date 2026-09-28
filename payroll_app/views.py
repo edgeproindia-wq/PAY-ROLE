@@ -1,21 +1,22 @@
 import csv
 import json
-import random
+import logging
+import secrets
 from decimal import Decimal
 
-from django.conf import settings as dj_settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import PermissionDenied
-from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Sum, F, Q
-from django.http import HttpResponse, Http404, JsonResponse
+from django.http import FileResponse, HttpResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .audit import log_action
 from .forms import (
@@ -23,13 +24,17 @@ from .forms import (
     ReimbursementForm, PayrollRunForm, InvestmentDeclarationForm, ArrearsForm,
     FullFinalSettlementForm, UserRoleAssignmentForm, CompanySettingsForm,
     DemoRequestForm, CompanyRegistrationForm, ClientComplaintForm, ClientRequestForm,
-    EmployeeAccountForm, EmployeeSelfRegisterForm,
+    EmployeeAccountForm, OTPVerifyForm, BankPaymentUpdateForm,
 )
+from .leave import leave_balance
 from .models import (
     Employee, SalaryStructure, Attendance, LeaveRequest, Reimbursement,
     PayrollRun, PayrollRunLine, InvestmentDeclaration, Company, User,
     DemoRequest, ClientComplaint, ClientRequest, Notification, CompanySettings, AuditLog,
+    EmailOTP, BankPayment,
 )
+from .notifications import notify_demo_request, send_email_safe
+from .payroll_engine import build_run_lines, release_claims
 from .permissions import (
     role_required, admin_required, company_owner_required, owner_or_admin_required,
     any_authenticated_required, scope_employees, scope_by_employee_fk, get_user_company,
@@ -37,6 +42,9 @@ from .permissions import (
 )
 
 PAGE_SIZE = 10
+logger = logging.getLogger('payroll_app.views')
+OTP_TTL_MINUTES = 10
+OTP_MAX_ATTEMPTS = 5
 
 # Explicit whitelist for the legacy generic template loader — prevents path
 # traversal / arbitrary template disclosure via the URL.
@@ -55,118 +63,8 @@ def generic_page(request, template_path):
     return render(request, f'{template_path}.html')
 
 
-def home(request):
-    """Public marketing page at '/'. Signed-in users are sent to their workspace."""
-    if request.user.is_authenticated:
-        return redirect('post_login_redirect')
-    return render(request, 'public/landing.html')
-
-
 def landing(request):
     return render(request, 'public/landing.html')
-
-
-def send_registration_otp(request):
-    """AJAX endpoint: step 1 of employee self-registration.
-
-    Any email can register (no pre-existing Employee Master record needed) as
-    long as it isn't already tied to a login account.
-    """
-    if request.method != 'POST':
-        return JsonResponse({'ok': False, 'error': 'Invalid request method.'}, status=405)
-
-    email = request.POST.get('email', '').strip().lower()
-    if not email or '@' not in email:
-        return JsonResponse({'ok': False, 'error': 'Enter a valid email address.'})
-
-    if User.objects.filter(email__iexact=email).exists() or Employee.objects.filter(email__iexact=email, user__isnull=False).exists():
-        return JsonResponse({'ok': False, 'error': 'An account already exists for this email. Try signing in instead.'})
-
-    otp = f'{random.randint(0, 999999):06d}'
-    request.session['reg_otp'] = otp
-    request.session['reg_otp_email'] = email
-    request.session['reg_otp_sent_at'] = timezone.now().isoformat()
-
-    send_mail(
-        subject='Your EDGEPRO Payroll verification code',
-        message=f'Your one-time verification code is {otp}. It is valid for 10 minutes.',
-        from_email=getattr(dj_settings, 'DEFAULT_FROM_EMAIL', 'no-reply@edgepro-payroll.local'),
-        recipient_list=[email],
-        fail_silently=True,
-    )
-    return JsonResponse({'ok': True, 'message': f'A verification code has been sent to {email}.'})
-
-
-def _next_employee_code():
-    """Generate a unique EMPnnnn code, tolerant of gaps/races."""
-    n = Employee.objects.count() + 1
-    while True:
-        code = f'EMP{n:04d}'
-        if not Employee.objects.filter(employee_code=code).exists():
-            return code
-        n += 1
-
-
-def employee_register(request):
-    """Step 2+3 of employee self-registration: OTP-verified signup, pending admin approval.
-
-    Creates a new Employee (unassigned to any company yet) + a login account
-    together — no pre-existing Employee Master record is required. An admin
-    assigns the employee to a company and approves the account afterwards.
-    """
-    otp_verified_email = request.session.get('reg_otp_email') or ''
-
-    if request.method == 'POST':
-        email = request.POST.get('email', '').strip().lower()
-        otp_entered = request.POST.get('otp', '').strip()
-        session_otp = request.session.get('reg_otp')
-        session_email = request.session.get('reg_otp_email')
-
-        if not session_otp or not email or email != session_email or otp_entered != session_otp:
-            messages.error(request, 'OTP verification failed. Request a new code and try again.')
-            form = EmployeeSelfRegisterForm(request.POST)
-            return render(request, 'public/employee_register.html', {'form': form, 'email': email})
-
-        form = EmployeeSelfRegisterForm(request.POST)
-        if User.objects.filter(email__iexact=email).exists():
-            messages.error(request, 'An account already exists for this email. Try signing in instead.')
-        elif form.is_valid():
-            name_parts = form.cleaned_data['full_name'].strip().split(' ', 1)
-            first_name = name_parts[0]
-            last_name = name_parts[1] if len(name_parts) > 1 else ''
-            with transaction.atomic():
-                user = User.objects.create_user(
-                    username=form.cleaned_data['username'],
-                    password=form.cleaned_data['password1'],
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    role='EMPLOYEE',
-                    is_active=False,  # cannot sign in until an admin approves
-                )
-                employee = Employee.objects.create(
-                    employee_code=_next_employee_code(),
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    phone=form.cleaned_data['mobile_number'],
-                    date_of_joining=timezone.now().date(),
-                    department='Unassigned',
-                    designation='Unassigned',
-                    company=None,
-                    user=user,
-                )
-                log_action(request, 'CREATE', employee, details='Employee self-registered via OTP, pending admin approval')
-
-            request.session.pop('reg_otp', None)
-            request.session.pop('reg_otp_email', None)
-            request.session.pop('reg_otp_sent_at', None)
-            messages.success(request, 'Account created. An admin will approve it shortly — you can sign in once approved.')
-            return redirect('login')
-        return render(request, 'public/employee_register.html', {'form': form, 'email': email})
-
-    form = EmployeeSelfRegisterForm()
-    return render(request, 'public/employee_register.html', {'form': form, 'email': otp_verified_email})
 
 
 def request_demo(request):
@@ -175,7 +73,10 @@ def request_demo(request):
         if form.is_valid():
             demo = form.save()
             log_action(request, 'CREATE', demo, details='Public demo request submitted')
-            messages.success(request, "Thanks! Your demo request has been received — our team will reach out shortly.")
+            # External email/SMS failures are logged and stored on the request;
+            # they never block the submission itself.
+            notify_demo_request(demo)
+            messages.success(request, "Thank you! Your demo request has been received. Our team will contact you shortly to confirm the demo.")
             return redirect('request_demo')
     else:
         form = DemoRequestForm()
@@ -195,38 +96,102 @@ def company_register(request):
                     address=data['address'],
                     status='PENDING_APPROVAL',
                 )
+                name_parts = data['owner_full_name'].strip().split(' ', 1)
                 owner = User.objects.create_user(
                     username=data['username'],
                     email=data['contact_email'],
                     password=data['password1'],
+                    first_name=name_parts[0],
+                    last_name=name_parts[1] if len(name_parts) > 1 else '',
                     role='COMPANY_OWNER',
                     company=company,
-                    is_active=False,  # cannot log in until the company is approved
+                    is_active=False,       # cannot log in until the company is approved
+                    email_verified=False,  # must confirm the emailed OTP first
                 )
                 log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
-            messages.success(
-                request,
-                "Registration submitted. Your account will be activated once our team approves your company."
-            )
-            return redirect('login')
+            _issue_registration_otp(owner)
+            request.session['otp_user_id'] = owner.pk
+            messages.success(request, f"We've emailed a 6-digit verification code to {owner.email}.")
+            return redirect('verify_email')
     else:
         form = CompanyRegistrationForm()
     return render(request, 'public/company_register.html', {'form': form})
 
 
+def _issue_registration_otp(user):
+    """Create a fresh OTP (hash only stored) and email it. Returns True if
+    the email was handed to the mail backend."""
+    EmailOTP.objects.filter(user=user, purpose='REGISTRATION', is_used=False).update(is_used=True)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    EmailOTP.objects.create(
+        user=user, purpose='REGISTRATION', code_hash=make_password(code),
+        expires_at=timezone.now() + timezone.timedelta(minutes=OTP_TTL_MINUTES),
+    )
+    ok, err = send_email_safe(
+        'Your EdgePro Payroll verification code',
+        f"Hello {user.get_full_name() or user.username},\n\n"
+        f"Your verification code is {code}. It expires in {OTP_TTL_MINUTES} minutes.\n\n"
+        "If you did not register, please ignore this email.",
+        [user.email],
+    )
+    if not ok:
+        logger.warning('Registration OTP email to user #%s failed: %s', user.pk, err)
+    return ok
+
+
+def verify_email(request):
+    user_id = request.session.get('otp_user_id')
+    user = User.objects.filter(pk=user_id, email_verified=False).first() if user_id else None
+    if user is None:
+        messages.info(request, 'There is no pending email verification. Please sign in.')
+        return redirect('login')
+
+    if request.method == 'POST' and request.POST.get('resend'):
+        last = EmailOTP.objects.filter(user=user, purpose='REGISTRATION').first()
+        if last and (timezone.now() - last.created_at).total_seconds() < 60:
+            messages.error(request, 'Please wait a minute before requesting another code.')
+        elif _issue_registration_otp(user):
+            messages.success(request, 'A new code has been sent.')
+        else:
+            messages.error(request, 'We could not send the email right now. Please try again shortly.')
+        return redirect('verify_email')
+
+    form = OTPVerifyForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        otp = EmailOTP.objects.filter(user=user, purpose='REGISTRATION', is_used=False).first()
+        if otp is None or otp.expires_at < timezone.now():
+            form.add_error('code', 'This code has expired. Request a new one.')
+        elif otp.attempts >= OTP_MAX_ATTEMPTS:
+            form.add_error('code', 'Too many wrong attempts. Request a new code.')
+        elif not check_password(form.cleaned_data['code'], otp.code_hash):
+            otp.attempts += 1
+            otp.save(update_fields=['attempts'])
+            form.add_error('code', 'Incorrect code.')
+        else:
+            otp.is_used = True
+            otp.save(update_fields=['is_used'])
+            user.email_verified = True
+            user.save(update_fields=['email_verified'])
+            request.session.pop('otp_user_id', None)
+            log_action(request, 'UPDATE', user, details='Email verified via OTP', company=user.company)
+            messages.success(request, 'Email verified. Your registration is now pending admin approval — '
+                                      'you will be able to sign in once it is approved.')
+            return redirect('login')
+    return render(request, 'auth/verify_email.html', {'form': form, 'email': user.email})
+
+
 @login_required
 def post_login_redirect(request):
     user = request.user
-    log_action(request, 'LOGIN', details='User logged in')
     if user.is_superuser or user.role == 'ADMIN':
         return redirect('admin_dashboard')
     return redirect('dashboard')
 
 
+@require_POST
 def logout_view(request):
-    if request.user.is_authenticated:
-        log_action(request, 'LOGOUT', details='User logged out')
-    logout(request)
+    logout(request)  # the user_logged_out signal writes the audit entry
+    messages.success(request, 'You have been signed out.')
     return redirect('login')
 
 
@@ -236,15 +201,28 @@ def logout_view(request):
 
 @admin_required
 def admin_dashboard(request):
+    released = PayrollRunLine.objects.filter(payroll_run__status='RELEASED')
     context = {
+        'total_clients': Company.objects.count(),
+        'active_clients': Company.objects.filter(status='APPROVED').count(),
+        'pending_clients': Company.objects.filter(status='PENDING_APPROVAL').count(),
+        'suspended_clients': Company.objects.filter(status__in=['SUSPENDED', 'REJECTED']).count(),
         'pending_demo_requests': DemoRequest.objects.filter(status='PENDING').count(),
         'pending_company_approvals': Company.objects.filter(status='PENDING_APPROVAL').count(),
         'open_complaints': ClientComplaint.objects.filter(status__in=['OPEN', 'IN_PROGRESS']).count(),
         'pending_client_requests': ClientRequest.objects.filter(status='PENDING').count(),
         'total_companies': Company.objects.filter(status='APPROVED').count(),
         'total_employees': Employee.objects.count(),
+        'active_employees': Employee.objects.filter(employment_status='ACTIVE').count(),
+        'total_payroll_runs': PayrollRun.objects.count(),
+        'runs_awaiting_approval': PayrollRun.objects.filter(status='VALIDATED').count(),
+        'total_net_released': released.aggregate(t=Sum('net_pay'))['t'] or 0,
+        'payments_pending': BankPayment.objects.exclude(status='PAID').count(),
+        'payments_failed': BankPayment.objects.filter(status='FAILED').count(),
         'recent_demo_requests': DemoRequest.objects.all()[:5],
-        'recent_companies': Company.objects.all()[:5],
+        'recent_companies': Company.objects.prefetch_related('users').all()[:5],
+        'recent_notifications': Notification.objects.filter(recipient=request.user)[:6],
+        'recent_activity': AuditLog.objects.select_related('actor', 'company')[:8],
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
@@ -263,7 +241,6 @@ def admin_demo_request_decide(request, pk):
     if request.method == 'POST':
         decision = request.POST.get('decision')
         if decision in ('APPROVED', 'REJECTED', 'CONTACTED'):
-            from django.utils import timezone
             demo.status = decision
             demo.admin_notes = request.POST.get('admin_notes', '')[:500]
             demo.reviewed_at = timezone.now()
@@ -276,38 +253,74 @@ def admin_demo_request_decide(request, pk):
 
 @admin_required
 def admin_company_approvals(request):
-    companies = Company.objects.filter(status='PENDING_APPROVAL')
+    companies = Company.objects.filter(status='PENDING_APPROVAL').prefetch_related('users')
     return render(request, 'admin_panel/company_approvals.html', {'companies': companies})
 
 
 @admin_required
 def admin_company_decide(request, pk):
     company = get_object_or_404(Company, pk=pk)
-    if request.method == 'POST':
-        decision = request.POST.get('decision')
-        if decision == 'APPROVED':
-            from django.utils import timezone
-            company.status = 'APPROVED'
-            company.approved_at = timezone.now()
-            company.save()
-            User.objects.filter(company=company, role='COMPANY_OWNER').update(is_active=True)
-            log_action(request, 'APPROVE', company, details='Company registration approved')
-            messages.success(request, f"{company.name} approved. The owner's account is now active.")
-        elif decision == 'REJECTED':
-            company.status = 'REJECTED'
-            company.rejection_reason = request.POST.get('reason', '')[:500]
-            company.save()
-            log_action(request, 'REJECT', company, details='Company registration rejected')
-            messages.success(request, f"{company.name} rejected.")
-    return redirect('admin_company_approvals')
+    next_url = request.POST.get('next') or 'admin_company_approvals'
+    if next_url not in ('admin_company_approvals', 'admin_company_list'):
+        next_url = 'admin_company_approvals'
+    if request.method != 'POST':
+        return redirect(next_url)
+    decision = request.POST.get('decision')
+    owners = User.objects.filter(company=company, role='COMPANY_OWNER')
+    if decision == 'APPROVED' and company.status in ('PENDING_APPROVAL', 'REJECTED'):
+        unverified = owners.filter(email_verified=False).exists()
+        if unverified and not request.POST.get('override_unverified'):
+            messages.error(request, f"{company.name}: the owner has not verified their email yet. "
+                                    "Tick 'approve anyway' if you have confirmed them another way.")
+            return redirect(next_url)
+        company.status = 'APPROVED'
+        company.approved_at = timezone.now()
+        company.rejection_reason = ''
+        company.save()
+        owners.update(is_active=True, email_verified=True)
+        log_action(request, 'APPROVE', company,
+                   details='Company registration approved' + (' (email unverified - admin override)' if unverified else ''))
+        for owner in owners:
+            Notification.objects.create(recipient=owner, message='Your company registration has been approved.', link='/')
+            send_email_safe('Your EdgePro Payroll account is approved',
+                            f"Hello {owner.get_full_name() or owner.username},\n\n{company.name} has been approved. "
+                            "You can now sign in with your username or email.", [owner.email])
+        messages.success(request, f"{company.name} approved. The owner's account is now active.")
+    elif decision == 'REJECTED' and company.status == 'PENDING_APPROVAL':
+        company.status = 'REJECTED'
+        company.rejection_reason = request.POST.get('reason', '')[:500]
+        company.save()
+        log_action(request, 'REJECT', company, details='Company registration rejected')
+        messages.success(request, f"{company.name} rejected.")
+    elif decision == 'SUSPENDED' and company.status == 'APPROVED':
+        company.status = 'SUSPENDED'
+        company.save(update_fields=['status'])
+        log_action(request, 'UPDATE', company, details='Company suspended (all its users blocked from login)')
+        messages.success(request, f"{company.name} suspended. Its users can no longer sign in; no data was deleted.")
+    elif decision == 'REACTIVATE' and company.status == 'SUSPENDED':
+        company.status = 'APPROVED'
+        company.save(update_fields=['status'])
+        log_action(request, 'UPDATE', company, details='Company reactivated')
+        messages.success(request, f"{company.name} reactivated.")
+    else:
+        messages.error(request, 'That action is not allowed for the current status.')
+    return redirect(next_url)
 
 
 @admin_required
 def admin_company_list(request):
-    companies = Company.objects.all()
+    companies = Company.objects.prefetch_related('users').annotate(employee_count=Count('employees')).order_by('-created_at')
+    q_text = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+    if q_text:
+        companies = companies.filter(Q(name__icontains=q_text) | Q(contact_email__icontains=q_text) | Q(contact_phone__icontains=q_text))
+    if status in dict(Company.STATUS_CHOICES):
+        companies = companies.filter(status=status)
     paginator = Paginator(companies, PAGE_SIZE)
     page = paginator.get_page(request.GET.get('page'))
-    return render(request, 'admin_panel/company_list.html', {'companies': page})
+    return render(request, 'admin_panel/company_list.html', {
+        'companies': page, 'q': q_text, 'status': status, 'status_choices': Company.STATUS_CHOICES,
+    })
 
 
 @admin_required
@@ -322,7 +335,6 @@ def admin_client_complaints(request):
 def admin_complaint_respond(request, pk):
     complaint = get_object_or_404(ClientComplaint, pk=pk)
     if request.method == 'POST':
-        from django.utils import timezone
         complaint.admin_response = request.POST.get('admin_response', '')[:2000]
         new_status = request.POST.get('status')
         if new_status in dict(ClientComplaint.STATUS_CHOICES):
@@ -448,9 +460,10 @@ def dashboard(request):
     status_labels = json.dumps([status_map.get(s['employment_status'], s['employment_status']) for s in status_data])
     status_values = json.dumps([s['c'] for s in status_data])
 
-    runs = PayrollRun.objects.all()
-    if request.user.role != 'ADMIN' and not request.user.is_superuser:
-        runs = runs.filter(lines__employee__in=employees).distinct()
+    if request.user.role == 'EMPLOYEE':
+        runs = PayrollRun.objects.filter(lines__employee__in=employees, status='RELEASED').distinct()
+    else:
+        runs = scope_runs(request)
     run_status_data = runs.values('status').annotate(c=Count('id'))
     run_status_map = {'DRAFT': 'Draft', 'VALIDATED': 'Validated', 'APPROVED': 'Approved', 'RELEASED': 'Released'}
     run_labels = json.dumps([run_status_map.get(r['status'], r['status']) for r in run_status_data])
@@ -518,26 +531,25 @@ def employee_master(request):
             next_number = int(digits) + 1
     number_options = [str(n).zfill(3) for n in range(next_number, next_number + 20)]
 
+    is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
+    company_qs = Company.objects.filter(status='APPROVED') if is_admin else None
     if request.method == 'POST':
-        if request.user.role == 'ADMIN' and not company:
-            messages.error(request, "An admin cannot create employees without selecting a company context.")
-            return redirect('employee_master')
         post_data = request.POST.copy()
-        prefix = post_data.get('code_prefix', 'EPRO')
+        prefix = (post_data.get('code_prefix') or 'EPRO').strip().upper()
         number = post_data.get('employee_code', '')
         post_data['employee_code'] = f'{prefix}{number}'
-        form = EmployeeForm(post_data)
+        form = EmployeeForm(post_data, company_queryset=company_qs)
         if form.is_valid():
-            if Employee.objects.filter(company=company, employee_code=post_data['employee_code']).exists():
-                form.add_error(None, f"Employee code {post_data['employee_code']} is already used in this company.")
-            else:
-                employee = form.save(commit=False)
-                employee.company = company
-                employee.save()
-                log_action(request, 'CREATE', employee, details='Employee created')
-                return redirect('employee_master')
+            employee = form.save(commit=False)
+            # Owners: always their own company (never trusted from the form).
+            employee.company = form.cleaned_data['company'] if is_admin else company
+            employee.save()
+            log_action(request, 'CREATE', employee, details='Employee created')
+            messages.success(request, f"Employee {employee.full_name} ({employee.employee_code}) added.")
+            return redirect('employee_master')
+        messages.error(request, 'Please correct the highlighted fields.')
     else:
-        form = EmployeeForm()
+        form = EmployeeForm(company_queryset=company_qs)
 
     all_employees = base_qs
     existing_codes = base_qs.values_list('employee_code', flat=True).order_by('employee_code')
@@ -551,16 +563,27 @@ def employee_master(request):
 @owner_or_admin_required
 def employee_edit(request, pk):
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
+    is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
+    company_qs = Company.objects.all() if is_admin else None
     if request.method == 'POST':
-        form = EmployeeForm(request.POST, instance=employee)
+        form = EmployeeForm(request.POST, instance=employee, company_queryset=company_qs)
         if form.is_valid():
-            form.save()
-            log_action(request, 'UPDATE', employee, details='Employee updated')
+            changed = ', '.join(form.changed_data)[:300]
+            employee = form.save(commit=False)
+            if is_admin:
+                employee.company = form.cleaned_data['company']
+            employee.save()
+            # Keep the linked login's email in step with the employee record.
+            if employee.user_id and 'email' in form.changed_data:
+                User.objects.filter(pk=employee.user_id).update(email=employee.email)
+            log_action(request, 'UPDATE', employee, details=f'Employee updated: {changed}')
+            messages.success(request, f"{employee.full_name} updated.")
             return redirect('employee_master')
     else:
-        form = EmployeeForm(instance=employee)
+        form = EmployeeForm(instance=employee, company_queryset=company_qs)
+    paginator = Paginator(scope_employees(request, Employee.objects.all()), PAGE_SIZE)
     return render(request, 'Employee Master.html', {
-        'employees': scope_employees(request, Employee.objects.all()), 'form': form, 'edit_employee': employee,
+        'employees': paginator.get_page(request.GET.get('page')), 'form': form, 'edit_employee': employee,
     })
 
 
@@ -612,9 +635,15 @@ def attendance(request):
     employees = scope_employees(request, Employee.objects.all())
     records_qs = scope_by_employee_fk(request, Attendance.objects.select_related('employee'))
 
+    today_record = None
+    if request.user.role == 'EMPLOYEE':
+        today_record = Attendance.objects.filter(
+            employee=getattr(request.user, 'employee_profile', None), date=timezone.localdate()
+        ).first()
+
     if request.method == 'POST':
         if request.user.role == 'EMPLOYEE':
-            messages.error(request, "Employees cannot mark their own attendance manually.")
+            messages.error(request, "Use the Check In / Check Out buttons to record your own attendance.")
             return redirect('attendance')
         form = AttendanceForm(request.POST, employee_queryset=employees)
         if form.is_valid():
@@ -632,7 +661,44 @@ def attendance(request):
     chart_values = json.dumps([s['c'] for s in status_counts])
     return render(request, 'Attendance.html', {
         'form': form, 'records': records, 'chart_labels': chart_labels, 'chart_values': chart_values,
+        'today_record': today_record,
     })
+
+
+@require_POST
+@role_required('EMPLOYEE')
+def attendance_check(request, action):
+    """Employee self check-in / check-out for *today only*. The employee is
+    always taken from the session, never from the request body."""
+    employee = getattr(request.user, 'employee_profile', None)
+    if employee is None:
+        raise PermissionDenied("No employee profile linked to this account.")
+    now = timezone.localtime()
+    record, created = Attendance.objects.get_or_create(
+        employee=employee, date=now.date(), defaults={'status': 'PRESENT'}
+    )
+    if action == 'in':
+        if record.check_in:
+            messages.info(request, f"You already checked in at {record.check_in:%I:%M %p}.")
+        else:
+            record.check_in = now.time().replace(microsecond=0)
+            record.status = 'PRESENT'
+            record.save(update_fields=['check_in', 'status'])
+            log_action(request, 'CREATE', record, details='Self check-in', company=employee.company)
+            messages.success(request, f"Checked in at {record.check_in:%I:%M %p}.")
+    elif action == 'out':
+        if not record.check_in:
+            messages.error(request, "Please check in before checking out.")
+        elif record.check_out:
+            messages.info(request, f"You already checked out at {record.check_out:%I:%M %p}.")
+        else:
+            record.check_out = now.time().replace(microsecond=0)
+            record.save(update_fields=['check_out'])
+            log_action(request, 'UPDATE', record, details='Self check-out', company=employee.company)
+            messages.success(request, f"Checked out at {record.check_out:%I:%M %p}.")
+    else:
+        raise Http404
+    return redirect('attendance')
 
 
 # ---------------------------------------------------------------------------
@@ -644,8 +710,9 @@ def leave_management(request):
     employees = scope_employees(request, Employee.objects.all())
     leave_qs = scope_by_employee_fk(request, LeaveRequest.objects.select_related('employee'))
 
+    own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
     if request.method == 'POST':
-        form = LeaveRequestForm(request.POST, employee_queryset=employees)
+        form = LeaveRequestForm(request.POST, employee_queryset=employees, forced_employee=own_employee)
         if form.is_valid():
             leave = form.save(commit=False)
             if request.user.role == 'EMPLOYEE':
@@ -656,9 +723,10 @@ def leave_management(request):
                 leave.employee = own_employee
             leave.save()
             log_action(request, 'CREATE', leave, details='Leave request submitted')
+            messages.success(request, 'Leave request submitted for approval.')
             return redirect('leave_management')
     else:
-        form = LeaveRequestForm(employee_queryset=employees)
+        form = LeaveRequestForm(employee_queryset=employees, forced_employee=own_employee)
 
     paginator = Paginator(leave_qs, PAGE_SIZE)
     leave_requests = paginator.get_page(request.GET.get('page'))
@@ -669,6 +737,7 @@ def leave_management(request):
     return render(request, 'Leave Management.html', {
         'form': form, 'leave_requests': leave_requests, 'chart_labels': chart_labels, 'chart_values': chart_values,
         'decision_form': LeaveDecisionForm(),
+        'balance': leave_balance(own_employee, timezone.localdate().year) if own_employee else None,
     })
 
 
@@ -677,9 +746,19 @@ def leave_decision(request, pk):
     leave = get_object_scoped(request, LeaveRequest, employee_field='employee', pk=pk)
     if request.method == 'POST':
         form = LeaveDecisionForm(request.POST)
-        if form.is_valid():
+        if leave.status != 'PENDING':
+            messages.error(request, f"This leave request was already {leave.status.lower()}.")
+        elif leave.employee.user_id and leave.employee.user_id == request.user.pk:
+            raise PermissionDenied("You cannot approve your own leave.")
+        elif form.is_valid():
             leave.status = form.cleaned_data['decision']
+            leave.decided_by = request.user
+            leave.decided_at = timezone.now()
             leave.save()
+            if leave.employee.user_id:
+                Notification.objects.create(recipient_id=leave.employee.user_id,
+                                            message=f"Your {leave.get_leave_type_display()} request was {leave.status.lower()}.",
+                                            link='/leave_management/')
             log_action(request, 'APPROVE' if leave.status == 'APPROVED' else 'REJECT', leave,
                        details=f'Leave request {leave.status}')
             messages.success(request, f"Leave request {leave.status.lower()}.")
@@ -695,8 +774,9 @@ def reimbursement(request):
     employees = scope_employees(request, Employee.objects.all())
     reimb_qs = scope_by_employee_fk(request, Reimbursement.objects.select_related('employee'))
 
+    own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
     if request.method == 'POST':
-        form = ReimbursementForm(request.POST, employee_queryset=employees)
+        form = ReimbursementForm(request.POST, request.FILES, employee_queryset=employees, forced_employee=own_employee)
         if form.is_valid():
             reimb = form.save(commit=False)
             if request.user.role == 'EMPLOYEE':
@@ -706,9 +786,10 @@ def reimbursement(request):
                 reimb.employee = own_employee
             reimb.save()
             log_action(request, 'CREATE', reimb, details='Reimbursement claim submitted')
+            messages.success(request, 'Claim submitted for approval.')
             return redirect('reimbursement')
     else:
-        form = ReimbursementForm(employee_queryset=employees)
+        form = ReimbursementForm(employee_queryset=employees, forced_employee=own_employee)
 
     paginator = Paginator(reimb_qs, PAGE_SIZE)
     reimbursements = paginator.get_page(request.GET.get('page'))
@@ -722,13 +803,36 @@ def reimbursement_decision(request, pk):
     reimb = get_object_scoped(request, Reimbursement, employee_field='employee', pk=pk)
     if request.method == 'POST':
         form = LeaveDecisionForm(request.POST)
-        if form.is_valid():
+        if reimb.status != 'PENDING':
+            messages.error(request, f"This claim was already {reimb.status.lower()}.")
+        elif reimb.employee.user_id and reimb.employee.user_id == request.user.pk:
+            raise PermissionDenied("You cannot approve your own claim.")
+        elif form.is_valid():
             reimb.status = form.cleaned_data['decision']
+            reimb.decided_by = request.user
+            reimb.decided_at = timezone.now()
             reimb.save()
+            if reimb.employee.user_id:
+                Notification.objects.create(recipient_id=reimb.employee.user_id,
+                                            message=f"Your {reimb.get_category_display()} claim of {reimb.amount} was {reimb.status.lower()}.",
+                                            link='/reimbursement/')
             log_action(request, 'APPROVE' if reimb.status == 'APPROVED' else 'REJECT', reimb,
                        details=f'Reimbursement {reimb.status}')
             messages.success(request, f"Reimbursement claim {reimb.status.lower()}.")
     return redirect('reimbursement')
+
+
+@any_authenticated_required
+def reimbursement_receipt(request, pk):
+    """Receipts are served through this permission-checked view — never as
+    public /media/ URLs — so one employee can't fetch another's document."""
+    reimb = get_object_scoped(request, Reimbursement, employee_field='employee', pk=pk)
+    if not reimb.receipt:
+        raise Http404("No receipt uploaded.")
+    try:
+        return FileResponse(reimb.receipt.open('rb'), as_attachment=False, filename=reimb.receipt.name.rsplit('/', 1)[-1])
+    except FileNotFoundError:
+        raise Http404("Receipt file is missing on the server.")
 
 
 # ---------------------------------------------------------------------------
@@ -752,8 +856,9 @@ def statutory_compliance(request):
 @any_authenticated_required
 def investment_declaration(request):
     employees = scope_employees(request, Employee.objects.all())
+    own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
     if request.method == 'POST':
-        form = InvestmentDeclarationForm(request.POST, request.FILES, employee_queryset=employees)
+        form = InvestmentDeclarationForm(request.POST, employee_queryset=employees, forced_employee=own_employee)
         if form.is_valid():
             decl = form.save(commit=False)
             if request.user.role == 'EMPLOYEE':
@@ -765,7 +870,7 @@ def investment_declaration(request):
             log_action(request, 'CREATE', decl, details='Investment declaration submitted')
             return redirect('investment_declaration')
     else:
-        form = InvestmentDeclarationForm(employee_queryset=employees)
+        form = InvestmentDeclarationForm(employee_queryset=employees, forced_employee=own_employee)
     declarations = scope_by_employee_fk(request, InvestmentDeclaration.objects.select_related('employee'))
     return render(request, 'Income Tax Management/Investment declartion.html', {'form': form, 'declarations': declarations})
 
@@ -853,9 +958,7 @@ def payroll_cost_report(request):
 @owner_or_admin_required
 def pending_payroll_report(request):
     employees = scope_employees(request, Employee.objects.all())
-    pending_runs = PayrollRun.objects.exclude(status='RELEASED').filter(
-        Q(lines__employee__in=employees) | Q(lines__isnull=True)
-    ).distinct().prefetch_related('lines')
+    pending_runs = scope_runs(request).exclude(status='RELEASED').prefetch_related('lines')
     return render(request, 'Payroll/Pending Payroll.html', {'pending_runs': pending_runs})
 
 
@@ -872,32 +975,53 @@ def employees_on_leave_report(request):
 # Payroll processing
 # ---------------------------------------------------------------------------
 
+def scope_runs(request, queryset=None):
+    """Payroll runs visible to the caller. Runs are owned by a company."""
+    qs = queryset if queryset is not None else PayrollRun.objects.all()
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return qs
+    if user.role == 'COMPANY_OWNER':
+        return qs.filter(company=user.company)
+    return qs.none()
+
+
+def _get_run_scoped(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk)
+    if not scope_runs(request, PayrollRun.objects.filter(pk=run.pk)).exists():
+        raise PermissionDenied("This payroll run does not belong to your company.")
+    return run
+
+
+def _assert_run_in_scope(request, run, employees_qs=None):
+    """Kept for backwards compatibility with existing callers/tests."""
+    if not scope_runs(request, PayrollRun.objects.filter(pk=run.pk)).exists():
+        raise PermissionDenied("This payroll run does not belong to your company.")
+
+
 @owner_or_admin_required
 def payroll_run_download_docx(request, pk):
     from docx import Document
-    run = get_object_or_404(PayrollRun, pk=pk)
-    employees = scope_employees(request, Employee.objects.all())
-    lines = run.lines.filter(employee__in=employees).select_related('employee')
-    if not lines.exists() and run.lines.exists():
-        raise PermissionDenied("This payroll run does not belong to your company.")
+    run = _get_run_scoped(request, pk)
+    lines = run.lines.select_related('employee')
     doc = Document()
     doc.add_heading(f'Payroll Report - {run.month}', level=1)
+    doc.add_paragraph(f'Company: {run.company.name if run.company else "-"}')
     doc.add_paragraph(f'Status: {run.get_status_display()}')
     doc.add_paragraph(f'Created: {run.created_at.strftime("%d %b %Y")}')
-    table = doc.add_table(rows=1, cols=5)
+    headers = ['Employee Code', 'Name', 'Gross', 'LOP', 'Arrears', 'Reimb.', 'Deductions', 'Net Pay']
+    table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Light Grid Accent 1'
-    hdr_cells = table.rows[0].cells
-    for i, text in enumerate(['Employee Code', 'Name', 'Basic', 'Gross Salary', 'Net Pay']):
-        hdr_cells[i].text = text
+    for i, text in enumerate(headers):
+        table.rows[0].cells[i].text = text
     for line in lines:
-        row_cells = table.add_row().cells
-        row_cells[0].text = line.employee.employee_code
-        row_cells[1].text = line.employee.full_name
-        row_cells[2].text = str(line.basic)
-        row_cells[3].text = str(line.gross_salary)
-        row_cells[4].text = str(line.net_pay)
+        cells = table.add_row().cells
+        values = [line.employee.employee_code, line.employee.full_name, line.gross_salary, line.lop_amount,
+                  line.arrears, line.reimbursements, line.total_deductions, line.net_pay]
+        for i, v in enumerate(values):
+            cells[i].text = str(v)
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename="Payroll_{run.month}.docx"'
+    response['Content-Disposition'] = f'attachment; filename="Payroll_{run.month.replace(" ", "_")}.docx"'
     doc.save(response)
     log_action(request, 'OTHER', run, details='Downloaded payroll run as DOCX')
     return response
@@ -905,86 +1029,114 @@ def payroll_run_download_docx(request, pk):
 
 @owner_or_admin_required
 def payroll_run_detail(request, pk):
-    run = get_object_or_404(PayrollRun, pk=pk)
-    employees = scope_employees(request, Employee.objects.all())
-    lines = run.lines.filter(employee__in=employees).select_related('employee')
-    if not lines.exists() and run.lines.exists():
-        raise PermissionDenied("This payroll run does not belong to your company.")
-    return render(request, 'Payroll/Payroll Run Detail.html', {'run': run, 'lines': lines})
+    run = _get_run_scoped(request, pk)
+    lines = run.lines.select_related('employee')
+    totals = lines.aggregate(gross=Sum('gross_salary'), deductions=Sum('total_deductions'), net=Sum('net_pay'))
+    return render(request, 'Payroll/Payroll Run Detail.html', {'run': run, 'lines': lines, 'totals': totals})
+
+
+# Allowed status transitions — a run can only move one step at a time.
+RUN_TRANSITIONS = {
+    'validate': ('DRAFT', 'VALIDATED'),
+    'approve': ('VALIDATED', 'APPROVED'),
+    'release': ('APPROVED', 'RELEASED'),
+}
 
 
 @owner_or_admin_required
 def payroll_combined(request):
-    employees_qs = scope_employees(request, Employee.objects.filter(employment_status='ACTIVE'))
+    is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
+    company_qs = Company.objects.filter(status='APPROVED') if is_admin else None
 
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'create':
             form = PayrollRunForm(request.POST)
-            if form.is_valid():
-                payroll_run = form.save()
-                for emp in employees_qs:
-                    try:
-                        ss = emp.salary_structure
-                        PayrollRunLine.objects.create(
-                            payroll_run=payroll_run, employee=emp,
-                            basic=ss.basic, gross_salary=ss.gross_salary, net_pay=ss.gross_salary,
-                        )
-                    except SalaryStructure.DoesNotExist:
-                        pass
-                log_action(request, 'PROCESS_PAYROLL', payroll_run, details='Payroll run created')
-        elif action in ('validate', 'approve', 'release'):
-            run_id = request.POST.get('run_id')
-            run = get_object_or_404(PayrollRun, pk=run_id)
-            _assert_run_in_scope(request, run, employees_qs)
-            next_status = {'validate': 'VALIDATED', 'approve': 'APPROVED', 'release': 'RELEASED'}
-            run.status = next_status[action]
-            run.save()
-            log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run status -> {run.status}')
-        elif action == 'lock':
-            run = get_object_or_404(PayrollRun, pk=request.POST.get('run_id'))
-            _assert_run_in_scope(request, run, employees_qs)
-            run.is_locked = True
-            run.save()
-        elif action == 'unlock':
-            run = get_object_or_404(PayrollRun, pk=request.POST.get('run_id'))
-            _assert_run_in_scope(request, run, employees_qs)
-            run.is_locked = False
-            run.save()
+            if is_admin:
+                company = Company.objects.filter(pk=request.POST.get('company'), status='APPROVED').first()
+            else:
+                company = request.user.company
+            if company is None:
+                messages.error(request, 'Select the company to run payroll for.')
+            elif form.is_valid():
+                month = form.cleaned_data['month']
+                if PayrollRun.objects.filter(company=company, month__iexact=month).exists():
+                    messages.error(request, f"A payroll run for {month} already exists for {company.name}. "
+                                            "Reprocess the existing run instead of creating a duplicate.")
+                else:
+                    with transaction.atomic():
+                        payroll_run = form.save(commit=False)
+                        payroll_run.company = company
+                        payroll_run.created_by = request.user
+                        payroll_run.save()
+                        emps = Employee.objects.filter(company=company, employment_status='ACTIVE')
+                        created, skipped = build_run_lines(payroll_run, emps)
+                    log_action(request, 'PROCESS_PAYROLL', payroll_run,
+                               details=f'Payroll run created: {created} lines, {len(skipped)} skipped (no salary structure)')
+                    messages.success(request, f"Payroll for {month} created with {created} employee(s).")
+                    if skipped:
+                        messages.warning(request, "Skipped (no salary structure): " +
+                                         ', '.join(e.employee_code for e in skipped[:15]))
+            else:
+                messages.error(request, '; '.join(form.errors.get('month', ['Invalid payroll month.'])))
+            return redirect('payroll_combined')
+
+        run = _get_run_scoped(request, request.POST.get('run_id'))
+        if action in RUN_TRANSITIONS:
+            required, target = RUN_TRANSITIONS[action]
+            if run.is_locked:
+                messages.error(request, f"'{run.month}' is locked. Unlock it first.")
+            elif run.status != required:
+                messages.error(request, f"Cannot {action} '{run.month}': it is {run.get_status_display()}, "
+                                        f"expected {dict(PayrollRun.STATUS_CHOICES)[required]}.")
+            elif not run.lines.exists():
+                messages.error(request, f"'{run.month}' has no payslip lines. Add salary structures and reprocess.")
+            else:
+                run.status = target
+                run.save(update_fields=['status'])
+                log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run status -> {target}')
+                if target == 'RELEASED':
+                    for line in run.lines.select_related('employee').exclude(employee__user__isnull=True):
+                        Notification.objects.create(recipient_id=line.employee.user_id,
+                                                    message=f"Your payslip for {run.month} is available.",
+                                                    link=reverse('payslip_detail', args=[line.pk]))
+                messages.success(request, f"'{run.month}' is now {run.get_status_display()}.")
+        elif action in ('lock', 'unlock'):
+            run.is_locked = action == 'lock'
+            run.save(update_fields=['is_locked'])
+            log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run {action}ed')
         elif action == 'reject':
-            run = get_object_or_404(PayrollRun, pk=request.POST.get('run_id'))
-            _assert_run_in_scope(request, run, employees_qs)
-            run.status = 'DRAFT'
-            run.save()
-            log_action(request, 'PROCESS_PAYROLL', run, details='Payroll run rejected back to draft')
+            if run.status == 'RELEASED':
+                messages.error(request, 'A released payroll cannot be sent back to draft.')
+            elif run.is_locked:
+                messages.error(request, f"'{run.month}' is locked. Unlock it first.")
+            else:
+                run.status = 'DRAFT'
+                run.save(update_fields=['status'])
+                log_action(request, 'PROCESS_PAYROLL', run, details='Payroll run rejected back to draft')
         elif action == 'reprocess':
-            run = get_object_or_404(PayrollRun, pk=request.POST.get('run_id'))
-            _assert_run_in_scope(request, run, employees_qs)
             if run.status == 'RELEASED':
                 messages.error(request, f"Cannot reprocess '{run.month}' - it has already been released.")
             elif run.is_locked:
                 messages.error(request, f"Cannot reprocess '{run.month}' - it is locked. Unlock it first.")
             else:
-                run.lines.filter(employee__in=employees_qs).delete()
-                for emp in employees_qs:
-                    try:
-                        ss = emp.salary_structure
-                        PayrollRunLine.objects.create(
-                            payroll_run=run, employee=emp,
-                            basic=ss.basic, gross_salary=ss.gross_salary, net_pay=ss.gross_salary,
-                        )
-                    except SalaryStructure.DoesNotExist:
-                        pass
-                log_action(request, 'PROCESS_PAYROLL', run, details='Payroll run reprocessed')
+                emps = Employee.objects.filter(company=run.company, employment_status='ACTIVE') if run.company \
+                    else Employee.objects.filter(pk__in=run.lines.values('employee'))
+                with transaction.atomic():
+                    release_claims(run, Employee.objects.filter(pk__in=run.lines.values('employee')))
+                    run.lines.all().delete()
+                    created, skipped = build_run_lines(run, emps)
+                    run.status = 'DRAFT'
+                    run.save(update_fields=['status'])
+                log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run reprocessed ({created} lines)')
                 messages.success(request, f"'{run.month}' reprocessed successfully.")
+        else:
+            messages.error(request, 'Unknown action.')
         return redirect('payroll_combined')
-    else:
-        form = PayrollRunForm()
 
-    all_runs = PayrollRun.objects.filter(
-        Q(lines__employee__in=employees_qs) | Q(lines__isnull=True)
-    ).distinct().prefetch_related('lines__employee')
-    released_lines = PayrollRunLine.objects.filter(payroll_run__status='RELEASED', employee__in=employees_qs)
+    form = PayrollRunForm()
+    all_runs = scope_runs(request).select_related('company').prefetch_related('lines__employee')
+    released_lines = PayrollRunLine.objects.filter(payroll_run__in=scope_runs(request), payroll_run__status='RELEASED')
     summary = {
         'total_runs': all_runs.count(),
         'total_employees_paid': released_lines.count(),
@@ -993,17 +1145,9 @@ def payroll_combined(request):
     }
     paginator = Paginator(all_runs, PAGE_SIZE)
     payroll_runs = paginator.get_page(request.GET.get('page'))
-    return render(request, 'Payroll/Payroll Combined.html', {'form': form, 'payroll_runs': payroll_runs, 'summary': summary})
-
-
-def _assert_run_in_scope(request, run, employees_qs):
-    """A payroll run with lines belongs to whichever company those employees
-    belong to. Prevent a company owner from approving/releasing another
-    company's payroll by guessing a run_id."""
-    if request.user.role == 'ADMIN' or request.user.is_superuser:
-        return
-    if run.lines.exists() and not run.lines.filter(employee__in=employees_qs).exists():
-        raise PermissionDenied("This payroll run does not belong to your company.")
+    return render(request, 'Payroll/Payroll Combined.html', {
+        'form': form, 'payroll_runs': payroll_runs, 'summary': summary, 'company_choices': company_qs,
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -1054,43 +1198,126 @@ def payslips(request):
     return render(request, 'Payslips.html', {'lines': lines})
 
 
+def _scope_payments(request):
+    qs = BankPayment.objects.select_related('payroll_line__employee', 'payroll_line__payroll_run', 'verified_by')
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return qs
+    if user.role == 'COMPANY_OWNER':
+        return qs.filter(company=user.company)
+    return qs.none()
+
+
 @owner_or_admin_required
 def bank_transfer(request):
     employees = scope_employees(request, Employee.objects.all())
-    lines = PayrollRunLine.objects.filter(employee__in=employees, payroll_run__status='RELEASED').select_related('employee', 'payroll_run')
+    lines = (PayrollRunLine.objects
+             .filter(employee__in=employees, payroll_run__status='RELEASED')
+             .select_related('employee', 'payroll_run', 'bank_payment')
+             .order_by('-payroll_run__created_at', 'employee__employee_code'))
 
-    if request.method == 'POST':
-        target_ids = request.POST.getlist('line_id') or [request.POST.get('line_id')]
-        target_ids = [i for i in target_ids if i]
-        processed, skipped = 0, 0
-        for line in lines.filter(pk__in=target_ids):
-            if line.payment_status == 'SUCCESS':
-                skipped += 1  # duplicate-payment prevention: never re-pay an already-successful line
-                continue
-            if not line.employee.bank_account_no or not line.employee.ifsc_code:
-                line.payment_status = 'FAILED'
-                line.failure_reason = 'Missing bank account number or IFSC code on employee record.'
-            else:
-                line.payment_status = 'SUCCESS'
-                line.payment_reference = f"NEFT{line.payroll_run_id:04d}{line.pk:06d}"
-                line.failure_reason = ''
-            line.payment_attempted_at = timezone.now()
-            line.save(update_fields=['payment_status', 'payment_reference', 'payment_attempted_at', 'failure_reason'])
-            log_action(request, 'UPDATE', line, details=f'Bank transfer {line.payment_status} for {line.employee}')
-            processed += 1
-        if processed:
-            messages.success(request, f'Processed {processed} transfer(s).' + (f' Skipped {skipped} already-paid line(s).' if skipped else ''))
-        elif skipped:
-            messages.info(request, 'Selected line(s) were already marked Success — not re-processed.')
+    if request.method == 'POST' and request.POST.get('action') == 'prepare':
+        created, missing = 0, 0
+        with transaction.atomic():
+            for line in lines.filter(bank_payment__isnull=True):
+                emp = line.employee
+                if not emp.has_bank_details:
+                    missing += 1
+                    continue
+                payment = BankPayment.objects.create(
+                    payroll_line=line, company=emp.company, amount=line.net_pay,
+                    bank_name=emp.bank_name, account_holder_name=emp.account_holder_name or emp.full_name,
+                    account_no=emp.bank_account_no, ifsc_code=emp.ifsc_code,
+                )
+                log_action(request, 'PAYMENT_STATUS_CHANGE', payment, company=emp.company,
+                           details=f'Payment prepared for {line.payslip_number}: {line.net_pay}')
+                created += 1
+        if created:
+            messages.success(request, f"{created} payment instruction(s) prepared. Download the transfer file, "
+                                      "upload it to your bank, then record each UTR to mark it paid.")
+        if missing:
+            messages.warning(request, f"{missing} employee(s) skipped: Missing Bank Details.")
+        if not created and not missing:
+            messages.info(request, 'All released payslips already have payment instructions.')
         return redirect('bank_transfer')
 
-    return render(request, 'Bank Transfer.html', {'lines': lines})
+    rows = []
+    for line in lines:
+        payment = getattr(line, 'bank_payment', None)
+        if payment:
+            state = payment.get_status_display()
+        elif not line.employee.has_bank_details:
+            state = 'Missing Bank Details'
+        else:
+            state = 'Not prepared'
+        rows.append({'line': line, 'payment': payment, 'state': state})
+    payments = _scope_payments(request)
+    return render(request, 'Bank Transfer.html', {
+        'rows': rows, 'tab': 'overview',
+        'kpi': {
+            'to_pay': sum(1 for r in rows if not r['payment'] or r['payment'].status != 'PAID'),
+            'missing': sum(1 for r in rows if r['state'] == 'Missing Bank Details'),
+            'paid': payments.filter(status='PAID').count(),
+            'failed': payments.filter(status='FAILED').count(),
+        },
+        'update_form': BankPaymentUpdateForm(),
+    })
+
+
+@owner_or_admin_required
+@require_POST
+def bank_payment_update(request, pk):
+    payment = get_object_or_404(BankPayment, pk=pk)
+    if not _scope_payments(request).filter(pk=pk).exists():
+        raise PermissionDenied("This payment does not belong to your company.")
+    form = BankPaymentUpdateForm(request.POST)
+    back = request.POST.get('next') if request.POST.get('next') in ('bank_transfer', 'payment_states', 'failed_transaction_report') else 'payment_states'
+    if not form.is_valid():
+        messages.error(request, ' '.join(form.non_field_errors()) or 'Invalid payment update.')
+        return redirect(back)
+    action = form.cleaned_data['action']
+    old = payment.status
+    if payment.status == 'PAID':
+        messages.error(request, 'This payment is already marked paid and cannot be changed.')
+        return redirect(back)
+    if action == 'INITIATE' and payment.status == 'PENDING':
+        payment.status, payment.initiated_at = 'INITIATED', timezone.now()
+    elif action == 'PAID' and payment.status in ('PENDING', 'INITIATED'):
+        ref = form.cleaned_data['reference_number']
+        if BankPayment.objects.filter(reference_number=ref).exclude(pk=payment.pk).exists():
+            messages.error(request, f"Reference {ref} is already recorded against another payment.")
+            return redirect(back)
+        payment.status, payment.reference_number = 'PAID', ref
+        payment.paid_at, payment.verified_by = timezone.now(), request.user
+        payment.failure_reason = ''
+    elif action == 'FAILED' and payment.status in ('PENDING', 'INITIATED'):
+        payment.status, payment.failure_reason = 'FAILED', form.cleaned_data['failure_reason'][:255]
+    elif action == 'RETRY' and payment.status == 'FAILED':
+        emp = payment.payroll_line.employee
+        if not emp.has_bank_details:
+            messages.error(request, f"{emp.full_name}: Missing Bank Details — update the employee record first.")
+            return redirect(back)
+        payment.status, payment.attempts = 'PENDING', payment.attempts + 1
+        payment.account_no, payment.ifsc_code = emp.bank_account_no, emp.ifsc_code
+        payment.bank_name, payment.account_holder_name = emp.bank_name, emp.account_holder_name or emp.full_name
+    else:
+        messages.error(request, f"Cannot {action.lower()} a payment that is {payment.get_status_display().lower()}.")
+        return redirect(back)
+    payment.save()
+    log_action(request, 'PAYMENT_STATUS_CHANGE', payment, company=payment.company,
+               details=f'{payment.payroll_line.payslip_number}: {old} -> {payment.status}'
+                       + (f' ref={payment.reference_number}' if payment.status == 'PAID' else ''))
+    messages.success(request, f"Payment for {payment.payroll_line.employee.full_name} is now {payment.get_status_display()}.")
+    return redirect(back)
 
 
 @any_authenticated_required
 def reports_analytics(request):
     employees = scope_employees(request, Employee.objects.all())
-    runs = PayrollRun.objects.filter(Q(lines__employee__in=employees) | Q(lines__isnull=True)).distinct()
+    if request.user.role == 'EMPLOYEE':
+        runs = PayrollRun.objects.filter(lines__employee__in=employees, status='RELEASED').distinct()
+    else:
+        runs = scope_runs(request)
     leaves = scope_by_employee_fk(request, LeaveRequest.objects.all())
     context = {
         'total_employees': employees.count(),
@@ -1128,7 +1355,7 @@ def notifications(request):
             notices.append({'type': 'Leave', 'message': f'{leave.employee.full_name} requested {leave.get_leave_type_display()}', 'date': leave.from_date})
         for reimb in scope_by_employee_fk(request, Reimbursement.objects.filter(status='PENDING').select_related('employee'))[:10]:
             notices.append({'type': 'Reimbursement', 'message': f'{reimb.employee.full_name} submitted a {reimb.get_category_display()} claim of {reimb.amount}', 'date': reimb.date})
-        run_qs = PayrollRun.objects.filter(status='VALIDATED', lines__employee__in=employees).distinct()[:10]
+        run_qs = scope_runs(request).filter(status='VALIDATED')[:10]
         for run in run_qs:
             notices.append({'type': 'Payroll', 'message': f'{run.month} payroll is validated and awaiting approval', 'date': run.created_at.date()})
     notices.sort(key=lambda n: n['date'], reverse=True)
@@ -1190,120 +1417,111 @@ def payslip_history(request):
     return render(request, 'payslip management/payslip History.html', {'lines': lines_page})
 
 
+def _scoped_released_lines(request):
+    return scope_by_employee_fk(
+        request, PayrollRunLine.objects.select_related('employee', 'employee__company', 'payroll_run')
+    ).filter(payroll_run__status='RELEASED')
+
+
 @any_authenticated_required
 def download_pdf(request):
-    lines = scope_by_employee_fk(
-        request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
-    ).filter(payroll_run__status='RELEASED')
-    return render(request, 'payslip management/Download PDF.html', {'lines': lines})
+    return render(request, 'payslip management/Download PDF.html', {'lines': _scoped_released_lines(request)})
 
 
 @any_authenticated_required
-def payslip_pdf_download(request, pk):
-    """Streams a real PDF for one released payslip line (object-level scoped)."""
-    from .pdf_utils import render_payslip_pdf
-    line = get_object_or_404(
-        scope_by_employee_fk(request, PayrollRunLine.objects.select_related('employee', 'payroll_run')),
-        pk=pk, payroll_run__status='RELEASED',
-    )
-    pdf_bytes = render_payslip_pdf(line)
-    filename = f"Payslip_{line.employee.employee_code}_{line.payroll_run.month.replace(' ', '_')}.pdf"
+def payslip_detail(request, pk):
+    line = get_object_or_404(_scoped_released_lines(request), pk=pk)
+    return render(request, 'payslip management/Generate payslip.html', {'line': line})
+
+
+@any_authenticated_required
+def payslip_pdf(request, pk):
+    # get_object_or_404 on the *scoped* queryset: another employee's payslip
+    # id simply doesn't exist for this user (no IDOR).
+    line = get_object_or_404(_scoped_released_lines(request), pk=pk)
+    from .pdf import build_payslip_pdf
+    pdf_bytes = build_payslip_pdf(line)
+    log_action(request, 'OTHER', line, company=line.employee.company, details=f'Payslip PDF downloaded {line.payslip_number}')
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    log_action(request, 'EXPORT', line, details=f'Downloaded payslip PDF for {line.employee}')
+    response['Content-Disposition'] = f'attachment; filename="{line.payslip_number or "payslip"}.pdf"'
     return response
 
 
 @any_authenticated_required
 def email_payslip(request):
-    lines = scope_by_employee_fk(
-        request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
-    ).filter(payroll_run__status='RELEASED')
+    lines = _scoped_released_lines(request)
     sent = False
     if request.method == 'POST':
-        from django.core.mail import send_mail
+        from django.core.mail import EmailMessage
         from django.conf import settings as dj_settings
-        line_id = request.POST.get('line_id')
-        line = get_object_or_404(lines, pk=line_id)
+        from .pdf import build_payslip_pdf
+        line = get_object_or_404(lines, pk=request.POST.get('line_id'))
         try:
-            send_mail(
+            msg = EmailMessage(
                 subject=f'Payslip - {line.payroll_run.month}',
-                message=f'Dear {line.employee.full_name},\n\nYour payslip for {line.payroll_run.month} is attached to this notice.\nNet Pay: {line.net_pay}\n\nRegards,\nPayroll Team',
-                from_email=dj_settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[line.employee.email],
-                fail_silently=True,  # never crash the request if SMTP isn't configured
+                body=f'Dear {line.employee.full_name},\n\nPlease find attached your payslip for {line.payroll_run.month}.\n'
+                     f'Net Pay: {line.net_pay}\n\nRegards,\nPayroll Team',
+                from_email=dj_settings.DEFAULT_FROM_EMAIL, to=[line.employee.email],
             )
+            msg.attach(f'{line.payslip_number or "payslip"}.pdf', build_payslip_pdf(line), 'application/pdf')
+            msg.send(fail_silently=False)
             sent = True
-            log_action(request, 'OTHER', line, details='Payslip emailed')
+            log_action(request, 'OTHER', line, company=line.employee.company, details='Payslip emailed')
             messages.success(request, f"Payslip emailed to {line.employee.email}.")
         except Exception:
-            messages.error(request, "Could not send the email right now. Please try again later.")
+            logger.exception('Emailing payslip %s failed', line.pk)
+            messages.error(request, "Could not send the email right now (mail server unavailable). Please try again later.")
     return render(request, 'payslip management/Email payslip.html', {'lines': lines, 'sent': sent})
 
 
 @owner_or_admin_required
 def failed_transaction_report(request):
-    employees = scope_employees(request, Employee.objects.all())
-    lines = PayrollRunLine.objects.filter(
-        employee__in=employees, payroll_run__status='RELEASED', payment_status='FAILED',
-    ).select_related('employee', 'payroll_run')
-
-    if request.method == 'POST':
-        line = get_object_or_404(lines, pk=request.POST.get('line_id'))
-        if line.employee.bank_account_no and line.employee.ifsc_code:
-            line.payment_status = 'SUCCESS'
-            line.payment_reference = f"NEFT{line.payroll_run_id:04d}{line.pk:06d}"
-            line.failure_reason = ''
-            line.payment_attempted_at = timezone.now()
-            line.save(update_fields=['payment_status', 'payment_reference', 'payment_attempted_at', 'failure_reason'])
-            log_action(request, 'UPDATE', line, details=f'Retried bank transfer, now SUCCESS for {line.employee}')
-            messages.success(request, f'Retry succeeded for {line.employee.full_name}.')
-        else:
-            messages.error(request, 'Still missing bank details — cannot retry until the employee record is fixed.')
-        return redirect('failed_transaction_report')
-
-    return render(request, 'Bank Transfer.html', {'lines': lines, 'is_failed_view': True})
+    payments = _scope_payments(request).filter(status='FAILED')
+    return render(request, 'Bank Transfer.html', {'payments': payments, 'tab': 'failed', 'update_form': BankPaymentUpdateForm()})
 
 
 @any_authenticated_required
 def generate_payslip(request):
-    return render(request, 'payslip management/Generate payslip.html')
+    # Legacy URL without an id: show the list the user may pick from.
+    return redirect('download_pdf')
 
 
 @owner_or_admin_required
 def payment_states(request):
-    employees = scope_employees(request, Employee.objects.all())
-    lines = PayrollRunLine.objects.filter(
-        employee__in=employees, payroll_run__status='RELEASED',
-    ).select_related('employee', 'payroll_run')
-    counts = {
-        'pending': lines.filter(payment_status='PENDING').count(),
-        'success': lines.filter(payment_status='SUCCESS').count(),
-        'failed': lines.filter(payment_status='FAILED').count(),
-    }
-    return render(request, 'Bank Transfer.html', {'lines': lines, 'counts': counts, 'is_status_view': True})
+    payments = _scope_payments(request)
+    status = request.GET.get('status', '')
+    if status in dict(BankPayment.STATUS_CHOICES):
+        payments = payments.filter(status=status)
+    return render(request, 'Bank Transfer.html', {
+        'payments': payments, 'tab': 'states', 'status': status,
+        'status_choices': BankPayment.STATUS_CHOICES, 'update_form': BankPaymentUpdateForm(),
+    })
 
 
 @owner_or_admin_required
 def salary_transfer_file(request):
-    """Real downloadable NEFT-style CSV for payroll lines still pending transfer."""
-    employees = scope_employees(request, Employee.objects.all())
-    lines = PayrollRunLine.objects.filter(
-        employee__in=employees, payroll_run__status='RELEASED', payment_status='PENDING',
-    ).select_related('employee', 'payroll_run')
-
+    """Bank upload file for payments not yet paid (PENDING / INITIATED)."""
+    payments = _scope_payments(request).filter(status__in=['PENDING', 'INITIATED'])
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="salary_transfer_file.csv"'
+    response['Content-Disposition'] = f'attachment; filename="salary_transfer_{timezone.localdate():%Y%m%d}.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Employee Code', 'Employee Name', 'Bank Account No', 'IFSC', 'Amount', 'Month', 'Remarks'])
-    for line in lines:
-        writer.writerow([
-            line.employee.employee_code, line.employee.full_name,
-            line.employee.bank_account_no or 'MISSING', line.employee.ifsc_code or 'MISSING',
-            line.net_pay, line.payroll_run.month, 'Salary',
-        ])
-    log_action(request, 'EXPORT', None, details=f'Downloaded salary transfer file ({lines.count()} lines)')
+    writer.writerow(['Payment ID', 'Beneficiary Name', 'Account Number', 'IFSC', 'Bank', 'Amount', 'Mode', 'Narration'])
+    for p in payments:
+        writer.writerow([p.pk, p.account_holder_name, p.account_no, p.ifsc_code, p.bank_name,
+                         f'{p.amount:.2f}', p.mode, f'Salary {p.payroll_line.payroll_run.month} {p.payroll_line.payslip_number}'])
+    log_action(request, 'OTHER', details=f'Salary transfer file exported ({payments.count()} payments)')
     return response
+
+
+PAYSLIP_EXPORT_HEADERS = ['Payslip No', 'Month', 'Employee Code', 'Name', 'Basic', 'Gross Salary', 'LOP Days',
+                          'LOP Amount', 'Arrears', 'Reimbursements', 'Total Earnings', 'PF', 'ESI', 'TDS',
+                          'Total Deductions', 'Net Pay']
+
+
+def _payslip_export_row(line):
+    return [line.payslip_number, line.payroll_run.month, line.employee.employee_code, line.employee.full_name,
+            line.basic, line.gross_salary, line.lop_days, line.lop_amount, line.arrears, line.reimbursements,
+            line.total_earnings, line.pf, line.esi, line.tds, line.total_deductions, line.net_pay]
 
 
 @owner_or_admin_required
@@ -1312,10 +1530,10 @@ def payslips_export_csv(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="payslips.csv"'
     writer = csv.writer(response)
-    writer.writerow(['Month', 'Employee Code', 'Name', 'Basic', 'Gross Salary', 'Net Pay'])
+    writer.writerow(PAYSLIP_EXPORT_HEADERS)
     lines = PayrollRunLine.objects.filter(payroll_run__status='RELEASED', employee__in=employees).select_related('employee', 'payroll_run')
     for line in lines:
-        writer.writerow([line.payroll_run.month, line.employee.employee_code, line.employee.full_name, line.basic, line.gross_salary, line.net_pay])
+        writer.writerow(_payslip_export_row(line))
     log_action(request, 'OTHER', details='Exported payslips CSV')
     return response
 
@@ -1329,12 +1547,12 @@ def payslips_export_excel(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Payslips"
-    headers = ['Month', 'Employee Code', 'Name', 'Basic', 'Gross Salary', 'Net Pay']
+    headers = PAYSLIP_EXPORT_HEADERS
     ws.append(headers)
 
     lines = PayrollRunLine.objects.filter(payroll_run__status='RELEASED', employee__in=employees).select_related('employee', 'payroll_run')
     for line in lines:
-        ws.append([line.payroll_run.month, line.employee.employee_code, line.employee.full_name, float(line.basic), float(line.gross_salary), float(line.net_pay)])
+        ws.append([float(v) if isinstance(v, Decimal) else v for v in _payslip_export_row(line)])
 
     for i, header in enumerate(headers, 1):
         ws.column_dimensions[get_column_letter(i)].width = max(14, len(header) + 4)

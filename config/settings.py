@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,15 +26,18 @@ def env_bool(name, default=False):
 # Core / security
 # ---------------------------------------------------------------------------
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# In production this MUST be set via the DJANGO_SECRET_KEY environment
-# variable. The fallback below is only ever used for local development.
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-local-dev-only-do-not-use-in-production',
-)
+# Render sets RENDER=true on every service. Locally (no RENDER variable) we
+# default to DEBUG=True so http://127.0.0.1:8000 works: previously DEBUG
+# defaulted to False locally, which forced Secure-only CSRF/session cookies
+# over plain http and caused "CSRF verification failed" on login.
+ON_RENDER = bool(os.environ.get('RENDER'))
+DEBUG = env_bool('DJANGO_DEBUG', default=not ON_RENDER)
 
-DEBUG = env_bool('DJANGO_DEBUG', default=False)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set when DEBUG is off (production).')
+    SECRET_KEY = 'django-insecure-local-dev-only-do-not-use-in-production'
 
 ALLOWED_HOSTS = [
     h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()
@@ -60,25 +64,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'axes',
     'payroll_app',
 ]
-
-AUTHENTICATION_BACKENDS = [
-    'axes.backends.AxesStandaloneBackend',
-    'django.contrib.auth.backends.ModelBackend',
-]
-
-# Axes conflicts with Django's test Client.login() (needs a request in authenticate());
-# disable it automatically when running the test suite.
-import sys
-AXES_ENABLED = 'test' not in sys.argv
-
-# Login rate-limiting: lock out an IP+username combo after repeated failed attempts.
-AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 1  # hours
-AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
-AXES_RESET_ON_SUCCESS = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -89,7 +76,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -135,6 +121,12 @@ else:
 
 AUTH_USER_MODEL = 'payroll_app.User'
 
+AUTHENTICATION_BACKENDS = ['payroll_app.backends.EmailOrUsernameBackend']
+
+# Password-reset links expire after 1 hour (Django default is 3 days) and are
+# single-use: the token is bound to the password hash, so it dies once used.
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 # ---------------------------------------------------------------------------
 # Password validation
 # ---------------------------------------------------------------------------
@@ -167,13 +159,21 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        # Manifest storage needs `collectstatic`; locally (DEBUG) use the plain
+        # backend so runserver works without collecting first.
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG
+        else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# On Render set MEDIA_ROOT to a persistent disk mount (e.g. /var/data/media);
+# the default container filesystem is wiped on every deploy.
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', BASE_DIR / 'media'))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -194,6 +194,18 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=True)
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@edgepro-payroll.local')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))  # never hang a request on a dead SMTP server
+
+# Demo-request alert recipients (not secrets; override per environment).
+DEMO_NOTIFY_EMAIL = os.environ.get('DEMO_NOTIFY_EMAIL', 'jaganbharath46@gmail.com')
+DEMO_NOTIFY_MOBILE = os.environ.get('DEMO_NOTIFY_MOBILE', '6383538565')
+
+# SMS: 'fast2sms' or 'twilio'. Empty = SMS disabled (logged, never crashes).
+SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '')
+FAST2SMS_API_KEY = os.environ.get('FAST2SMS_API_KEY', '')
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_FROM_NUMBER = os.environ.get('TWILIO_FROM_NUMBER', '')
 
 # If SMTP is required but not configured, fall back to console so the
 # request completes instead of raising a 500.
@@ -210,13 +222,14 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False  # must remain readable by the CSRF JS if used; token itself isn't the session
 X_FRAME_OPTIONS = 'DENY'
 
-SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=False)
+SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=not DEBUG)
+SECURE_REFERRER_POLICY = 'same-origin'
 SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = env_bool('DJANGO_CSRF_COOKIE_SECURE', default=not DEBUG)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
 SECURE_HSTS_SECONDS = 0 if DEBUG else 60 * 60 * 24 * 30
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD = not DEBUG
+SECURE_HSTS_PRELOAD = False  # opt in deliberately once the domain is final
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ---------------------------------------------------------------------------
