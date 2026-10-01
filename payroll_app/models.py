@@ -363,6 +363,8 @@ class PayrollRunLine(models.Model):
     professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     loan_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     insurance_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    other_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    other_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     net_pay = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -718,3 +720,4 @@ class BankPayment(models.Model):
 from .models_documents import EmployeeDocument  # noqa: E402,F401
 from .models_features import (Announcement, DemoRequestActivity, Grievance, GrievanceUpdate,  # noqa: E402,F401
                               InsurancePolicy, Loan, LoanRepayment, ProfessionalTaxSlab)
+from .models_phase4 import PayComponent, Shift, ShiftAssignment  # noqa: E402,F401

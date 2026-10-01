@@ -21,6 +21,8 @@ from django.views.decorators.http import require_POST
 
 from .models import Employee, InvestmentDeclaration, PayrollRunLine
 from .models_features import Announcement, Grievance, InsurancePolicy, Loan
+from .models_phase4 import PayComponent
+from .phase4 import month_summary, shift_for
 from .models_documents import EmployeeDocument
 
 logger = logging.getLogger(__name__)
@@ -148,6 +150,9 @@ def employee_home(request):
         'recent_claims': _safe_list('Reimbursement', employee=emp),
         'bank_masked': _mask(getattr(emp, 'bank_account_no', '')),
         'today': today,
+        'shift': shift_for(emp, today),
+        'work': month_summary(emp, today.year, today.month),
+        'pay_items': list(PayComponent.objects.filter(employee=emp, active=True)),
         'announcements': list(Announcement.active_for(emp.company)[:5]) if emp.company_id else [],
         'grievances': list(Grievance.objects.filter(employee=emp)[:5]),
         'loans': list(Loan.objects.filter(employee=emp)),

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Pay components{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Other allowances &amp; deductions</h1><div class="muted">Recurring monthly items on top of the salary structure. Earnings are pro-rated by days paid; deductions are fixed. Taxable earnings are included in TDS.</div></div>
+  <div class="fx-card"><h2>Add item</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add</button></p></form></div>
+  <div class="fx-card fx-table">{% if items %}<table><tr><th>Employee</th><th>Name</th><th>Type</th><th>Amount / month</th><th>Taxable</th><th>Effective</th><th>Status</th><th></th></tr>
+    {% for c in items %}<tr><td>{{ c.employee }}</td><td>{{ c.name }}</td><td>{{ c.get_kind_display }}</td><td>&#8377;{{ c.amount }}</td><td>{% if c.kind == 'EARNING' %}{{ c.taxable|yesno:"Yes,No" }}{% else %}-{% endif %}</td><td>{{ c.effective_from|date:"d M Y" }}{% if c.effective_to %} &ndash; {{ c.effective_to|date:"d M Y" }}{% endif %}</td>
+      <td><span class="fx-tag {% if c.active %}ACTIVE{% else %}INACTIVE{% endif %}">{% if c.active %}Active{% else %}Ended{% endif %}</span></td>
+      <td>{% if c.active %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="end" value="{{ c.pk }}">End</button></form>{% endif %}</td></tr>{% endfor %}</table>
+  {% else %}<p class="muted">No items.</p>{% endif %}</div>
+</div>{% endblock %}

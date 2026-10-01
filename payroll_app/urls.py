@@ -138,3 +138,12 @@ urlpatterns += [
     path('declarations/<int:pk>/proof/', _fx.declaration_proof, name='declaration_proof'),
     path('admin-panel/demo-requests/<int:pk>/', _fx.admin_demo_detail, name='admin_demo_detail'),
 ]
+
+# ---- Phase 4: shifts / working hours and other pay components ----
+from . import phase4 as _p4  # noqa: E402
+
+urlpatterns += [
+    path('hr/shifts/', _p4.hr_shifts, name='hr_shifts'),
+    path('hr/work-hours/', _p4.hr_work_hours, name='hr_work_hours'),
+    path('hr/pay-components/', _p4.hr_pay_components, name='hr_pay_components'),
+]

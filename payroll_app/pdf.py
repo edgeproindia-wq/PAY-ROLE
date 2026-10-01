@@ -57,10 +57,18 @@ def build_payslip_pdf(line):
         ('Special Allowance', line.special_allowance), ('Less: Loss of Pay', -line.lop_amount),
         ('Arrears', line.arrears), ('Reimbursements', line.reimbursements),
     ]
+    other = getattr(line, 'other_earnings', 0) or 0
+    if other:
+        earnings.append(('Other Allowances', other))
+    # Days before the joining date (mid-month joiner): shown so the column adds up.
+    not_joined = line.gross_salary - line.lop_amount + line.arrears + line.reimbursements + other - line.total_earnings
+    if not_joined > 0:
+        earnings.insert(5, ('Less: Days before joining', -not_joined))
     deductions = [('Provident Fund', line.pf), ('ESI', line.esi), ('TDS', line.tds)]
     for label, value in (('Professional Tax', getattr(line, 'professional_tax', 0)),
                          ('Loan EMI', getattr(line, 'loan_deduction', 0)),
-                         ('Insurance', getattr(line, 'insurance_deduction', 0))):
+                         ('Insurance', getattr(line, 'insurance_deduction', 0)),
+                         ('Other Deductions', getattr(line, 'other_deductions', 0))):
         if value:
             deductions.append((label, value))
     rows = [['Earnings', 'Amount', 'Deductions', 'Amount']]

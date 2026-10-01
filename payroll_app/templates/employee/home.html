@@ -30,6 +30,9 @@
   .ep-links{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .ep-links a{display:block;padding:12px 14px;border:1px solid #e6e8ef;border-radius:10px;color:#0f172a;text-decoration:none;font-weight:600;font-size:14px}
   .ep-links a:hover{border-color:#5b5bf0;color:#5b5bf0}
+  .ep-grid > div{min-width:0}
+  .ep-card{overflow-x:auto}
+  .ep td{overflow-wrap:anywhere}
   @media (max-width:900px){.ep-kpis{grid-template-columns:1fr 1fr}.ep-grid{grid-template-columns:1fr}}
 </style>
 <div class="ep">
@@ -103,6 +106,18 @@
         </div>
       </div>
 
+
+      <div class="ep-card">
+        <h2>My shift &amp; hours <a href="{% url 'attendance' %}">Attendance</a></h2>
+        <table>
+          <tr><td class="muted">Shift</td><td class="r">{{ shift|default:"Not assigned" }}</td></tr>
+          <tr><td class="muted">Hours this month</td><td class="r">{{ work.hours }} h ({{ work.days }} days)</td></tr>
+          <tr><td class="muted">Overtime this month</td><td class="r">{{ work.overtime_hours }} h</td></tr>
+          <tr><td class="muted">Late check-ins</td><td class="r">{{ work.late_days }}</td></tr>
+        </table>
+        {% if pay_items %}<h2 style="margin-top:14px">Other allowances &amp; deductions</h2><table>
+          {% for c in pay_items %}<tr><td>{{ c.name }} <span class="muted">({{ c.get_kind_display }})</span></td><td class="r">&#8377;{{ c.amount }}/month</td></tr>{% endfor %}</table>{% endif %}
+      </div>
 
       <div class="ep-card">
         <h2>Announcements <a href="{% url 'announcements' %}">All</a></h2>

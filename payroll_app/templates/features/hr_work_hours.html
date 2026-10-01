@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Working hours{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Working hours</h1><div class="muted">From attendance check-in / check-out and each employee's shift. Overtime is informational.</div></div>
+  <form method="get" class="fx-filters"><input type="month" name="month" value="{{ month }}"><button class="fx-btn ghost" type="submit">Show</button></form>
+  <div class="fx-card fx-table"><table><tr><th>Employee</th><th>Shift</th><th>Days with hours</th><th>Hours worked</th><th>Overtime hours</th><th>Late days</th></tr>
+    {% for r in rows %}<tr><td>{{ r.employee }}</td><td>{{ r.shift|default:"-" }}</td><td>{{ r.days }}</td><td>{{ r.hours }}</td><td>{{ r.overtime_hours }}</td><td>{{ r.late_days }}</td></tr>{% empty %}<tr><td colspan="6" class="muted">No employees.</td></tr>{% endfor %}</table></div>
+</div>{% endblock %}

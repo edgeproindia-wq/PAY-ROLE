@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Shifts{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Shifts &amp; working hours</h1><div class="muted">Define shifts and assign employees. Working hours, late check-ins and overtime hours are calculated from attendance check-in / check-out (overtime is shown, not paid automatically). <a href="{% url 'hr_work_hours' %}">Monthly working-hours report</a></div></div>
+  <div class="fx-card"><h2>New shift</h2><form method="post" novalidate>{% csrf_token %}<input type="hidden" name="form" value="shift">{% with form=shift_form %}{% include "features/_form.html" %}{% endwith %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Create shift</button></p></form></div>
+  <div class="fx-card"><h2>Assign shift</h2><form method="post" novalidate>{% csrf_token %}<input type="hidden" name="form" value="assign">{% with form=assign_form %}{% include "features/_form.html" %}{% endwith %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Assign</button></p></form></div>
+  <div class="fx-card fx-table"><h2>Shifts</h2>{% if shifts %}<table><tr><th>Name</th><th>Time</th><th>Break</th><th>Grace</th><th>Scheduled</th><th>Status</th><th></th></tr>
+    {% for s in shifts %}<tr><td>{{ s.name }}</td><td>{{ s.start_time|time:"H:i" }}&ndash;{{ s.end_time|time:"H:i" }}</td><td>{{ s.break_minutes }} min</td><td>{{ s.grace_minutes }} min</td><td>{{ s.scheduled_minutes }} min</td><td><span class="fx-tag {% if s.active %}ACTIVE{% else %}INACTIVE{% endif %}">{% if s.active %}Active{% else %}Inactive{% endif %}</span></td>
+      <td>{% if s.active %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="deactivate" value="{{ s.pk }}">Deactivate</button></form>{% endif %}</td></tr>{% endfor %}</table>{% else %}<p class="muted">No shifts yet.</p>{% endif %}</div>
+  <div class="fx-card fx-table"><h2>Assignments</h2>{% if assignments %}<table><tr><th>Employee</th><th>Shift</th><th>From</th><th>To</th></tr>
+    {% for a in assignments %}<tr><td>{{ a.employee }}</td><td>{{ a.shift.name }}</td><td>{{ a.effective_from|date:"d M Y" }}</td><td>{{ a.effective_to|date:"d M Y"|default:"current" }}</td></tr>{% endfor %}</table>{% else %}<p class="muted">No assignments yet.</p>{% endif %}</div>
+</div>{% endblock %}

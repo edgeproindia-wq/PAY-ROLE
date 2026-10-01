@@ -142,9 +142,14 @@ def calculate_line(run, employee, period):
     loans = loan_deductions(employee, run, period)
     loan_total = q(sum((amount for _, amount in loans), Decimal('0')))
     insurance = insurance_deduction(employee, period)
+    # Other recurring allowances / deductions set by HR (0 unless configured).
+    from .phase4 import component_totals
+    other_earn, other_taxable, other_ded, _ = component_totals(employee, period, pay_factor)
+    if other_taxable:
+        tds = monthly_tds((gross + other_taxable) * 12)
 
-    total_earnings = q(earned_gross + arrears_total + reimb_total)
-    total_deductions = q(pf + esi + tds + pt + loan_total + insurance)
+    total_earnings = q(earned_gross + arrears_total + reimb_total + other_earn)
+    total_deductions = q(pf + esi + tds + pt + loan_total + insurance + other_ded)
     net = q(max(total_earnings - total_deductions, Decimal('0')))
 
     return {
@@ -155,6 +160,7 @@ def calculate_line(run, employee, period):
         'arrears': arrears_total, 'reimbursements': reimb_total,
         'total_earnings': total_earnings, 'pf': pf, 'esi': esi, 'tds': tds,
         'professional_tax': pt, 'loan_deduction': loan_total, 'insurance_deduction': insurance,
+        'other_earnings': other_earn, 'other_deductions': other_ded,
         'total_deductions': total_deductions, 'net_pay': net,
         '_loans': loans,
     }
