@@ -753,3 +753,35 @@ class EmployeeLandingTests(TestCase):
         owner = user('own', 'COMPANY_OWNER', c)
         self.client.force_login(owner)
         self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)
+
+
+class EmployeeIdLoginTests(TestCase):
+    """Employees can sign in with their Employee ID."""
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.c1, self.c2 = company('Acme'), company('Beta')
+        self.e1 = employee(self.c1, 'EPA014', 'a14@ex.com', login='emp14')
+
+    def test_login_with_employee_id_case_insensitive(self):
+        resp = self.client.post(reverse('login'), {'username': 'epa014', 'password': PWD}, follow=True)
+        self.assertEqual(str(self.client.session.get('_auth_user_id')), str(self.e1.user.pk))
+        self.assertEqual(resp.redirect_chain[-1][0], reverse('employee_home'))
+
+    def test_wrong_password_with_employee_id_fails(self):
+        resp = self.client.post(reverse('login'), {'username': 'EPA014', 'password': 'wrong-pass'})
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertContains(resp, 'Invalid username/email or password')
+
+    def test_same_id_in_two_companies_asks_for_username(self):
+        employee(self.c2, 'EPA014', 'b14@ex.com', login='empb14')
+        resp = self.client.post(reverse('login'), {'username': 'EPA014', 'password': PWD})
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertContains(resp, 'more than one company')
+        self.client.post(reverse('login'), {'username': 'emp14', 'password': PWD})
+        self.assertEqual(str(self.client.session.get('_auth_user_id')), str(self.e1.user.pk))
+
+    def test_employee_without_login_account_cannot_sign_in(self):
+        employee(self.c1, 'EPA099', 'a99@ex.com')
+        self.client.post(reverse('login'), {'username': 'EPA099', 'password': PWD})
+        self.assertNotIn('_auth_user_id', self.client.session)

@@ -12,6 +12,21 @@ def company_allows_login(user):
     return user.company is not None and user.company.status == 'APPROVED'
 
 
+def find_login_users(ident):
+    """Accounts matching what was typed: username or email first; if none, an
+    Employee ID (employee code). Returns at most 2 so callers can detect ambiguity."""
+    UserModel = get_user_model()
+    ident = (ident or '').strip()
+    if not ident:
+        return []
+    users = list(UserModel._default_manager.filter(Q(username__iexact=ident) | Q(email__iexact=ident))[:2])
+    if users:
+        return users
+    from .models import Employee
+    emps = list(Employee.objects.filter(employee_code__iexact=ident, user__isnull=False).select_related('user')[:2])
+    return [e.user for e in emps]
+
+
 class EmailOrUsernameBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         UserModel = get_user_model()
@@ -19,10 +34,7 @@ class EmailOrUsernameBackend(ModelBackend):
             username = kwargs.get(UserModel.USERNAME_FIELD)
         if not username or not password:
             return None
-        ident = username.strip()
-        candidates = list(UserModel._default_manager.filter(
-            Q(username__iexact=ident) | Q(email__iexact=ident)
-        )[:2])
+        candidates = find_login_users(username)      # username, email or Employee ID
         if len(candidates) != 1:
             # Unknown, or ambiguous (same email on two accounts): run the
             # hasher anyway to keep timing uniform, then fail.

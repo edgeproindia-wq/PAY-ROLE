@@ -6,7 +6,8 @@ from django.contrib.auth.signals import user_logged_in, user_login_failed
 from django.core.cache import cache
 from django.dispatch import receiver
 
-MAX_FAILURES = 5
+MAX_FAILURES = 5            # per account
+MAX_FAILURES_PER_IP = 50    # per IP: an office sharing one connection is not locked out by one person
 WINDOW = 15 * 60
 
 
@@ -23,7 +24,8 @@ def _keys(request, username):
 
 def is_locked(request, username):
     try:
-        return any((cache.get(k) or 0) >= MAX_FAILURES for k in _keys(request, username))
+        user_key, ip_key = _keys(request, username)
+        return (cache.get(user_key) or 0) >= MAX_FAILURES or (cache.get(ip_key) or 0) >= MAX_FAILURES_PER_IP
     except Exception:                                   # cache down: do not lock everybody out
         import logging
         logging.getLogger(__name__).exception('Login throttle cache unavailable')

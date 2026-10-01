@@ -457,7 +457,7 @@ class LoginForm(AuthenticationForm):
     was refused (pending approval / email not verified / suspended) instead of
     a misleading 'wrong password'."""
 
-    username = forms.CharField(label='Username or email', max_length=254,
+    username = forms.CharField(label='Username, email or Employee ID', max_length=254,
                                widget=forms.TextInput(attrs={'autofocus': True, 'autocomplete': 'username'}))
 
     def clean(self):
@@ -470,7 +470,8 @@ class LoginForm(AuthenticationForm):
         except forms.ValidationError:
             ident = (self.cleaned_data.get('username') or '').strip()
             password = self.cleaned_data.get('password')
-            users = list(User.objects.filter(Q(username__iexact=ident) | Q(email__iexact=ident))[:2])
+            from .backends import find_login_users
+            users = find_login_users(ident)
             if ident and password and len(users) == 1 and users[0].check_password(password):
                 user = users[0]
                 if not user.email_verified:
@@ -488,6 +489,10 @@ class LoginForm(AuthenticationForm):
                 raise forms.ValidationError(
                     'This email is linked to more than one account. Please sign in with your username.',
                     code='ambiguous_email')
+            if ident and '@' not in ident and len(users) > 1:
+                raise forms.ValidationError(
+                    'This Employee ID is used in more than one company. Please sign in with your username or email.',
+                    code='ambiguous_employee_id')
             raise forms.ValidationError('Invalid username/email or password.', code='invalid_login')
 
 
