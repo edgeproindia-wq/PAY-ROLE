@@ -236,7 +236,7 @@ class SuspensionTests(TestCase):
 # Demo request + notifications
 # ---------------------------------------------------------------------------
 
-@override_settings(SMS_PROVIDER='')
+@override_settings(SMS_PROVIDER='', DEMO_NOTIFY_EMAIL='admin-alerts@example.com', DEMO_NOTIFY_MOBILE='9876543210')
 class DemoRequestTests(TestCase):
     def payload(self, **over):
         d = {'full_name': 'Ravi', 'company_name': 'DemoCo', 'email': 'Ravi@DemoCo.com', 'phone': '9876543210',
@@ -253,7 +253,7 @@ class DemoRequestTests(TestCase):
         self.assertEqual(demo.email, 'ravi@democo.com')
         self.assertIsNotNone(demo.preferred_datetime)
         self.assertTrue(Notification.objects.filter(recipient=admin, message__icontains='DemoCo').exists())
-        self.assertEqual(mail.outbox[-1].to, ['jaganbharath46@gmail.com'])
+        self.assertEqual(mail.outbox[-1].to, ['admin-alerts@example.com'])
         for field in ['Ravi', 'ravi@democo.com', '9876543210', 'DemoCo', '50', 'Need payroll']:
             self.assertIn(field, mail.outbox[-1].body)
         self.assertTrue(demo.email_notified)
@@ -374,11 +374,11 @@ class EmployeeManagementTests(TestCase):
         self.assertContains(resp, '9 to 18 digits')
         self.assertFalse(Employee.objects.exists())
 
-    def test_admin_can_create_employee_for_selected_company(self):
+    def test_platform_admin_cannot_create_company_employees(self):
         admin = User.objects.create_superuser('root', 'root@ex.com', PWD)
         self.client.force_login(admin)
-        self.assertRedirects(self.post_employee(company=self.comp.pk), reverse('employee_master'))
-        self.assertEqual(Employee.objects.get().company, self.comp)
+        self.assertEqual(self.post_employee(company=self.comp.pk).status_code, 403)
+        self.assertFalse(Employee.objects.exists())
 
     def test_owner_cannot_plant_employee_in_other_company(self):
         other = company('Other')
@@ -529,7 +529,7 @@ class PayrollCalculationAndIsolationTests(TestCase):
 
         l2 = PayrollRunLine.objects.get(payroll_run=run, employee=self.e2)
         self.assertEqual(l2.esi, Decimal('0.00'))                  # above ESI limit
-        self.assertEqual(l2.tds, Decimal('3833.33'))               # annual 960000 -> 20000 + 26000 = 46000 / 12
+        self.assertEqual(l2.tds, Decimal('0.00'))                  # annual 960000: taxable 885000 <= 12 lakh -> 87A rebate
         self.assertEqual(l2.net_pay, l2.total_earnings - l2.pf - l2.esi - l2.tds)
 
     def test_arrears_and_reimbursement_not_paid_twice(self):
@@ -672,7 +672,8 @@ class SmokeAllPagesTests(TestCase):
         for name in self.PUBLIC:
             self.assertEqual(self.client.get(reverse(name)).status_code, 200, name)
         cases = [
-            (self.admin, self.ADMIN_ONLY + self.OWNER_OR_ADMIN + self.ANY, []),
+            (self.admin, self.ADMIN_ONLY + ['notifications', 'password_change'],
+             [n for n in self.OWNER_OR_ADMIN + self.ANY if n not in ('dashboard', 'notifications', 'password_change')]),
             (self.owner, self.OWNER_OR_ADMIN + self.ANY + ['client_complaints', 'client_requests'], self.ADMIN_ONLY),
             (self.emp.user, self.ANY, self.ADMIN_ONLY + self.OWNER_OR_ADMIN),
         ]

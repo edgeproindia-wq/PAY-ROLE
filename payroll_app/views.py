@@ -1,5 +1,13 @@
 import csv
 import json
+
+
+def _js(value):
+    """JSON safe to embed in <script> with |safe: escapes <, > and & so a name or
+    department such as '</script><script>...' cannot run as code (stored XSS)."""
+    return (json.dumps(value)
+            .replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026'))
+
 import logging
 import secrets
 from decimal import Decimal
@@ -34,10 +42,10 @@ from .models import (
     EmailOTP, BankPayment,
 )
 from .notifications import notify_demo_request, send_email_safe
-from .payroll_engine import build_run_lines, release_claims
+from .payroll_engine import annual_tax, build_run_lines, parse_month, release_claims
 from .permissions import (
     role_required, admin_required, company_owner_required, owner_or_admin_required,
-    any_authenticated_required, scope_employees, scope_by_employee_fk, get_user_company,
+    any_authenticated_required, owner_or_employee_required, scope_employees, scope_by_employee_fk, get_user_company,
     get_object_scoped,
 )
 
@@ -544,7 +552,7 @@ def client_requests(request):
     return render(request, 'client_panel/requests.html', {'form': form, 'requests': reqs})
 
 
-@owner_or_admin_required
+@company_owner_required
 def employee_create_account(request, pk):
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
     if employee.user_id:
@@ -578,14 +586,16 @@ def employee_create_account(request, pk):
 
 @any_authenticated_required
 def dashboard(request):
+    if request.user.is_superuser or request.user.role == 'ADMIN':
+        return redirect('admin_dashboard')  # platform admin has its own dashboard
     employees = scope_employees(request, Employee.objects.all())
     dept_data = employees.filter(employment_status='ACTIVE').values('department').annotate(c=Count('id')).order_by('-c')
-    dept_labels = json.dumps([d['department'] or 'Unassigned' for d in dept_data])
-    dept_values = json.dumps([d['c'] for d in dept_data])
+    dept_labels = _js([d['department'] or 'Unassigned' for d in dept_data])
+    dept_values = _js([d['c'] for d in dept_data])
     status_data = employees.values('employment_status').annotate(c=Count('id'))
     status_map = {'ACTIVE': 'Active', 'ON_LEAVE': 'On Leave', 'RESIGNED': 'Resigned', 'TERMINATED': 'Terminated'}
-    status_labels = json.dumps([status_map.get(s['employment_status'], s['employment_status']) for s in status_data])
-    status_values = json.dumps([s['c'] for s in status_data])
+    status_labels = _js([status_map.get(s['employment_status'], s['employment_status']) for s in status_data])
+    status_values = _js([s['c'] for s in status_data])
 
     if request.user.role == 'EMPLOYEE':
         runs = PayrollRun.objects.filter(lines__employee__in=employees, status='RELEASED').distinct()
@@ -593,8 +603,8 @@ def dashboard(request):
         runs = scope_runs(request)
     run_status_data = runs.values('status').annotate(c=Count('id'))
     run_status_map = {'DRAFT': 'Draft', 'VALIDATED': 'Validated', 'APPROVED': 'Approved', 'RELEASED': 'Released'}
-    run_labels = json.dumps([run_status_map.get(r['status'], r['status']) for r in run_status_data])
-    run_values = json.dumps([r['c'] for r in run_status_data])
+    run_labels = _js([run_status_map.get(r['status'], r['status']) for r in run_status_data])
+    run_values = _js([r['c'] for r in run_status_data])
 
     salary_generated_count = runs.filter(lines__isnull=False).distinct().count()
     latest_payroll_run = runs.first()
@@ -633,7 +643,7 @@ def dashboard(request):
 # Employee master
 # ---------------------------------------------------------------------------
 
-@owner_or_admin_required
+@company_owner_required
 def employee_master_export_csv(request):
     employees = scope_employees(request, Employee.objects.all())
     response = HttpResponse(content_type='text/csv')
@@ -646,7 +656,7 @@ def employee_master_export_csv(request):
     return response
 
 
-@owner_or_admin_required
+@company_owner_required
 def employee_master(request):
     company = get_user_company(request)
     base_qs = scope_employees(request, Employee.objects.all())
@@ -687,7 +697,7 @@ def employee_master(request):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 def employee_edit(request, pk):
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
     is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
@@ -714,7 +724,7 @@ def employee_edit(request, pk):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 def employee_delete(request, pk):
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
     if request.method != 'POST':
@@ -728,7 +738,7 @@ def employee_delete(request, pk):
 # Salary structure
 # ---------------------------------------------------------------------------
 
-@owner_or_admin_required
+@company_owner_required
 def salary_structure(request):
     employees = scope_employees(request, Employee.objects.all())
     if request.method == 'POST':
@@ -744,9 +754,9 @@ def salary_structure(request):
     paginator = Paginator(all_structures, PAGE_SIZE)
     structures = paginator.get_page(request.GET.get('page'))
     chart_qs = all_structures[:15]
-    chart_labels = json.dumps([s.employee.full_name for s in chart_qs])
-    chart_basic = json.dumps([float(s.basic) for s in chart_qs])
-    chart_hra = json.dumps([float(s.hra) for s in chart_qs])
+    chart_labels = _js([s.employee.full_name for s in chart_qs])
+    chart_basic = _js([float(s.basic) for s in chart_qs])
+    chart_hra = _js([float(s.hra) for s in chart_qs])
     return render(request, 'Salary Structure.html', {
         'form': form, 'structures': structures,
         'chart_labels': chart_labels, 'chart_basic': chart_basic, 'chart_hra': chart_hra,
@@ -757,7 +767,7 @@ def salary_structure(request):
 # Attendance
 # ---------------------------------------------------------------------------
 
-@any_authenticated_required
+@owner_or_employee_required
 def attendance(request):
     employees = scope_employees(request, Employee.objects.all())
     records_qs = scope_by_employee_fk(request, Attendance.objects.select_related('employee'))
@@ -784,8 +794,8 @@ def attendance(request):
     records = paginator.get_page(request.GET.get('page'))
     status_counts = records_qs.values('status').annotate(c=Count('id'))
     status_map = {'PRESENT': 'Present', 'ABSENT': 'Absent', 'HALF_DAY': 'Half Day', 'LEAVE': 'On Leave'}
-    chart_labels = json.dumps([status_map.get(s['status'], s['status']) for s in status_counts])
-    chart_values = json.dumps([s['c'] for s in status_counts])
+    chart_labels = _js([status_map.get(s['status'], s['status']) for s in status_counts])
+    chart_values = _js([s['c'] for s in status_counts])
     return render(request, 'Attendance.html', {
         'form': form, 'records': records, 'chart_labels': chart_labels, 'chart_values': chart_values,
         'today_record': today_record,
@@ -832,7 +842,7 @@ def attendance_check(request, action):
 # Leave management (with approval workflow)
 # ---------------------------------------------------------------------------
 
-@any_authenticated_required
+@owner_or_employee_required
 def leave_management(request):
     employees = scope_employees(request, Employee.objects.all())
     leave_qs = scope_by_employee_fk(request, LeaveRequest.objects.select_related('employee'))
@@ -859,8 +869,8 @@ def leave_management(request):
     leave_requests = paginator.get_page(request.GET.get('page'))
     type_counts = leave_qs.values('leave_type').annotate(c=Count('id'))
     type_map = dict(LeaveRequest.LEAVE_TYPE_CHOICES)
-    chart_labels = json.dumps([type_map.get(t['leave_type'], t['leave_type']) for t in type_counts])
-    chart_values = json.dumps([t['c'] for t in type_counts])
+    chart_labels = _js([type_map.get(t['leave_type'], t['leave_type']) for t in type_counts])
+    chart_values = _js([t['c'] for t in type_counts])
     return render(request, 'Leave Management.html', {
         'form': form, 'leave_requests': leave_requests, 'chart_labels': chart_labels, 'chart_values': chart_values,
         'decision_form': LeaveDecisionForm(),
@@ -868,7 +878,7 @@ def leave_management(request):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 def leave_decision(request, pk):
     leave = get_object_scoped(request, LeaveRequest, employee_field='employee', pk=pk)
     if request.method == 'POST':
@@ -896,7 +906,7 @@ def leave_decision(request, pk):
 # Reimbursement (with approval workflow)
 # ---------------------------------------------------------------------------
 
-@any_authenticated_required
+@owner_or_employee_required
 def reimbursement(request):
     employees = scope_employees(request, Employee.objects.all())
     reimb_qs = scope_by_employee_fk(request, Reimbursement.objects.select_related('employee'))
@@ -925,7 +935,7 @@ def reimbursement(request):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 def reimbursement_decision(request, pk):
     reimb = get_object_scoped(request, Reimbursement, employee_field='employee', pk=pk)
     if request.method == 'POST':
@@ -949,7 +959,7 @@ def reimbursement_decision(request, pk):
     return redirect('reimbursement')
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def reimbursement_receipt(request, pk):
     """Receipts are served through this permission-checked view — never as
     public /media/ URLs — so one employee can't fetch another's document."""
@@ -966,7 +976,7 @@ def reimbursement_receipt(request, pk):
 # Statutory / tax reports (owner+admin only — company financial data)
 # ---------------------------------------------------------------------------
 
-@owner_or_admin_required
+@company_owner_required
 def statutory_compliance(request):
     employees = scope_employees(request, Employee.objects.all())
     rows = []
@@ -974,13 +984,13 @@ def statutory_compliance(request):
         pf = ss.basic * Decimal('0.12')
         esi = ss.gross_salary * Decimal('0.0075') if ss.gross_salary <= 21000 else Decimal('0')
         rows.append({'employee': ss.employee, 'basic': ss.basic, 'gross': ss.gross_salary, 'pf': round(pf, 2), 'esi': round(esi, 2)})
-    chart_labels = json.dumps([r['employee'].full_name for r in rows])
-    chart_pf = json.dumps([float(r['pf']) for r in rows])
-    chart_esi = json.dumps([float(r['esi']) for r in rows])
+    chart_labels = _js([r['employee'].full_name for r in rows])
+    chart_pf = _js([float(r['pf']) for r in rows])
+    chart_esi = _js([float(r['esi']) for r in rows])
     return render(request, 'Tax and Compliance/Statutory Compliance.html', {'rows': rows, 'chart_labels': chart_labels, 'chart_pf': chart_pf, 'chart_esi': chart_esi})
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def investment_declaration(request):
     employees = scope_employees(request, Employee.objects.all())
     own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
@@ -1002,33 +1012,28 @@ def investment_declaration(request):
     return render(request, 'Income Tax Management/Investment declartion.html', {'form': form, 'declarations': declarations})
 
 
-@owner_or_admin_required
+@company_owner_required
 def income_tax(request):
     employees = scope_employees(request, Employee.objects.all())
     rows = []
     for ss in SalaryStructure.objects.filter(employee__in=employees).select_related('employee'):
         annual_gross = ss.gross_salary * Decimal('12')
-        if annual_gross <= 300000:
-            tds_annual = Decimal('0')
-        elif annual_gross <= 700000:
-            tds_annual = (annual_gross - Decimal('300000')) * Decimal('0.05')
-        else:
-            tds_annual = Decimal('400000') * Decimal('0.05') + (annual_gross - Decimal('700000')) * Decimal('0.10')
+        tds_annual = annual_tax(annual_gross)   # same rules as payroll (payroll_engine)
         rows.append({'employee': ss.employee, 'annual_gross': round(annual_gross, 2), 'tds_annual': round(tds_annual, 2), 'tds_monthly': round(tds_annual / 12, 2)})
-    chart_labels = json.dumps([r['employee'].full_name for r in rows])
-    chart_values = json.dumps([float(r['tds_monthly']) for r in rows])
+    chart_labels = _js([r['employee'].full_name for r in rows])
+    chart_values = _js([float(r['tds_monthly']) for r in rows])
     return render(request, 'Tax and Compliance/Income Tax.html', {'rows': rows, 'chart_labels': chart_labels, 'chart_values': chart_values})
 
 
-@owner_or_admin_required
+@company_owner_required
 def compliance_reports(request):
     employees = scope_employees(request, Employee.objects.all())
     structures = SalaryStructure.objects.filter(employee__in=employees)
     total_pf = sum((s.basic * Decimal('0.12') for s in structures), Decimal('0'))
     total_esi = sum((s.gross_salary * Decimal('0.0075') for s in structures if s.gross_salary <= 21000), Decimal('0'))
     total_gross = sum((s.gross_salary for s in structures), Decimal('0'))
-    chart_labels = json.dumps(['PF', 'ESI', 'Gross'])
-    chart_values = json.dumps([float(round(total_pf, 2)), float(round(total_esi, 2)), float(round(total_gross, 2))])
+    chart_labels = _js(['PF', 'ESI', 'Gross'])
+    chart_values = _js([float(round(total_pf, 2)), float(round(total_esi, 2)), float(round(total_gross, 2))])
     return render(request, 'Tax and Compliance/Compliance Reports.html', {
         'total_pf': round(total_pf, 2), 'total_esi': round(total_esi, 2), 'total_gross': round(total_gross, 2), 'employee_count': structures.count(),
         'chart_labels': chart_labels, 'chart_values': chart_values,
@@ -1039,15 +1044,15 @@ def compliance_reports(request):
 # Reports (owner+admin — company-scoped; admin sees global data)
 # ---------------------------------------------------------------------------
 
-@owner_or_admin_required
+@company_owner_required
 def total_employees_report(request):
     employees = scope_employees(request, Employee.objects.all())
     dept_summary_qs = employees.values('department').annotate(
         total=Count('id'), active=Count('id', filter=Q(employment_status='ACTIVE'))
     ).order_by('department')
     dept_summary = [{'department': row['department'] or '(No Department)', 'total': row['total'], 'active': row['active']} for row in dept_summary_qs]
-    chart_labels = json.dumps([d['department'] for d in dept_summary])
-    chart_values = json.dumps([d['total'] for d in dept_summary])
+    chart_labels = _js([d['department'] for d in dept_summary])
+    chart_values = _js([d['total'] for d in dept_summary])
     context = {
         'total': employees.count(),
         'active': employees.filter(employment_status='ACTIVE').count(),
@@ -1059,7 +1064,7 @@ def total_employees_report(request):
     return render(request, 'Payroll/Total Employees.html', context)
 
 
-@owner_or_admin_required
+@company_owner_required
 def new_joiners_report(request):
     from datetime import date, timedelta
     employees = scope_employees(request, Employee.objects.all())
@@ -1068,7 +1073,7 @@ def new_joiners_report(request):
     return render(request, 'Payroll/New Joiners.html', {'employees': employees, 'cutoff': cutoff})
 
 
-@owner_or_admin_required
+@company_owner_required
 def payroll_cost_report(request):
     employees = scope_employees(request, Employee.objects.all())
     dept_costs_qs = SalaryStructure.objects.filter(employee__in=employees).values('employee__department').annotate(
@@ -1077,19 +1082,19 @@ def payroll_cost_report(request):
     ).order_by('employee__department')
     dept_costs = [{'department': row['employee__department'], 'employee_count': row['employee_count'], 'total_cost': row['total_cost'] or 0} for row in dept_costs_qs]
     overall_total = sum(d['total_cost'] for d in dept_costs)
-    chart_labels = json.dumps([d['department'] for d in dept_costs])
-    chart_values = json.dumps([float(d['total_cost']) for d in dept_costs])
+    chart_labels = _js([d['department'] for d in dept_costs])
+    chart_values = _js([float(d['total_cost']) for d in dept_costs])
     return render(request, 'Payroll/Payroll Cost.html', {'dept_costs': dept_costs, 'overall_total': overall_total, 'chart_labels': chart_labels, 'chart_values': chart_values})
 
 
-@owner_or_admin_required
+@company_owner_required
 def pending_payroll_report(request):
     employees = scope_employees(request, Employee.objects.all())
     pending_runs = scope_runs(request).exclude(status='RELEASED').prefetch_related('lines')
     return render(request, 'Payroll/Pending Payroll.html', {'pending_runs': pending_runs})
 
 
-@owner_or_admin_required
+@company_owner_required
 def employees_on_leave_report(request):
     from datetime import date
     today = date.today()
@@ -1126,7 +1131,7 @@ def _assert_run_in_scope(request, run, employees_qs=None):
         raise PermissionDenied("This payroll run does not belong to your company.")
 
 
-@owner_or_admin_required
+@company_owner_required
 def payroll_run_download_docx(request, pk):
     from docx import Document
     run = _get_run_scoped(request, pk)
@@ -1154,7 +1159,7 @@ def payroll_run_download_docx(request, pk):
     return response
 
 
-@owner_or_admin_required
+@company_owner_required
 def payroll_run_detail(request, pk):
     run = _get_run_scoped(request, pk)
     lines = run.lines.select_related('employee')
@@ -1170,7 +1175,7 @@ RUN_TRANSITIONS = {
 }
 
 
-@owner_or_admin_required
+@company_owner_required
 def payroll_combined(request):
     is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
     company_qs = Company.objects.filter(status='APPROVED') if is_admin else None
@@ -1197,6 +1202,9 @@ def payroll_combined(request):
                         payroll_run.created_by = request.user
                         payroll_run.save()
                         emps = Employee.objects.filter(company=company, employment_status='ACTIVE')
+                        period = parse_month(month)
+                        if period:   # BUG-06: people who join after this month are not in its run
+                            emps = emps.filter(Q(date_of_joining__isnull=True) | Q(date_of_joining__lte=period[1]))
                         created, skipped = build_run_lines(payroll_run, emps)
                     log_action(request, 'PROCESS_PAYROLL', payroll_run,
                                details=f'Payroll run created: {created} lines, {len(skipped)} skipped (no salary structure)')
@@ -1281,7 +1289,7 @@ def payroll_combined(request):
 # Arrears / Full & Final Settlement
 # ---------------------------------------------------------------------------
 
-@owner_or_admin_required
+@company_owner_required
 def arrears(request):
     from .models import ArrearsRecord
     employees = scope_employees(request, Employee.objects.all())
@@ -1297,7 +1305,7 @@ def arrears(request):
     return render(request, 'Adjustments/Arrears.html', {'form': form, 'records': records})
 
 
-@owner_or_admin_required
+@company_owner_required
 def full_final_settlement(request):
     from .models import FullFinalSettlement
     employees = scope_employees(request, Employee.objects.all())
@@ -1317,7 +1325,7 @@ def full_final_settlement(request):
 # Payslips / bank transfer
 # ---------------------------------------------------------------------------
 
-@any_authenticated_required
+@owner_or_employee_required
 def payslips(request):
     lines = scope_by_employee_fk(
         request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
@@ -1335,7 +1343,7 @@ def _scope_payments(request):
     return qs.none()
 
 
-@owner_or_admin_required
+@company_owner_required
 def bank_transfer(request):
     employees = scope_employees(request, Employee.objects.all())
     lines = (PayrollRunLine.objects
@@ -1391,7 +1399,7 @@ def bank_transfer(request):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 @require_POST
 def bank_payment_update(request, pk):
     payment = get_object_or_404(BankPayment, pk=pk)
@@ -1438,7 +1446,7 @@ def bank_payment_update(request, pk):
     return redirect(back)
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def reports_analytics(request):
     employees = scope_employees(request, Employee.objects.all())
     if request.user.role == 'EMPLOYEE':
@@ -1452,14 +1460,14 @@ def reports_analytics(request):
         'total_released': runs.filter(status='RELEASED').count(),
         'total_pending_leave': leaves.filter(status='PENDING').count(),
     }
-    chart_labels = json.dumps(['Employees', 'Payroll Runs', 'Released', 'Pending Leave'])
-    chart_values = json.dumps([context['total_employees'], context['total_payroll_runs'], context['total_released'], context['total_pending_leave']])
+    chart_labels = _js(['Employees', 'Payroll Runs', 'Released', 'Pending Leave'])
+    chart_values = _js([context['total_employees'], context['total_payroll_runs'], context['total_released'], context['total_pending_leave']])
     context['chart_labels'] = chart_labels
     context['chart_values'] = chart_values
     return render(request, 'Reports and Analytics.html', context)
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def ess(request):
     lines = scope_by_employee_fk(request, PayrollRunLine.objects.all()).filter(payroll_run__status='RELEASED')
     leaves = scope_by_employee_fk(request, LeaveRequest.objects.all())
@@ -1499,7 +1507,7 @@ def notification_mark_read(request, pk):
     return redirect('notifications')
 
 
-@owner_or_admin_required
+@company_owner_required
 def user_roles_permissions(request):
     from .models import UserRoleAssignment
     employees = scope_employees(request, Employee.objects.all())
@@ -1515,7 +1523,7 @@ def user_roles_permissions(request):
     return render(request, 'User Roles and Permissions.html', {'form': form, 'assignments': assignments})
 
 
-@owner_or_admin_required
+@company_owner_required
 def settings_view(request):
     company = get_user_company(request)
     if company is None and not (request.user.is_superuser or request.user.role == 'ADMIN'):
@@ -1534,7 +1542,7 @@ def settings_view(request):
     return render(request, 'Settings.html', {'form': form})
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def payslip_history(request):
     lines = scope_by_employee_fk(
         request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
@@ -1550,18 +1558,18 @@ def _scoped_released_lines(request):
     ).filter(payroll_run__status='RELEASED')
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def download_pdf(request):
     return render(request, 'payslip management/Download PDF.html', {'lines': _scoped_released_lines(request)})
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def payslip_detail(request, pk):
     line = get_object_or_404(_scoped_released_lines(request), pk=pk)
     return render(request, 'payslip management/Generate payslip.html', {'line': line})
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def payslip_pdf(request, pk):
     # get_object_or_404 on the *scoped* queryset: another employee's payslip
     # id simply doesn't exist for this user (no IDOR).
@@ -1574,7 +1582,7 @@ def payslip_pdf(request, pk):
     return response
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def email_payslip(request):
     lines = _scoped_released_lines(request)
     sent = False
@@ -1601,19 +1609,19 @@ def email_payslip(request):
     return render(request, 'payslip management/Email payslip.html', {'lines': lines, 'sent': sent})
 
 
-@owner_or_admin_required
+@company_owner_required
 def failed_transaction_report(request):
     payments = _scope_payments(request).filter(status='FAILED')
     return render(request, 'Bank Transfer.html', {'payments': payments, 'tab': 'failed', 'update_form': BankPaymentUpdateForm()})
 
 
-@any_authenticated_required
+@owner_or_employee_required
 def generate_payslip(request):
     # Legacy URL without an id: show the list the user may pick from.
     return redirect('download_pdf')
 
 
-@owner_or_admin_required
+@company_owner_required
 def payment_states(request):
     payments = _scope_payments(request)
     status = request.GET.get('status', '')
@@ -1625,7 +1633,7 @@ def payment_states(request):
     })
 
 
-@owner_or_admin_required
+@company_owner_required
 def salary_transfer_file(request):
     """Bank upload file for payments not yet paid (PENDING / INITIATED)."""
     payments = _scope_payments(request).filter(status__in=['PENDING', 'INITIATED'])
@@ -1651,7 +1659,7 @@ def _payslip_export_row(line):
             line.total_earnings, line.pf, line.esi, line.tds, line.total_deductions, line.net_pay]
 
 
-@owner_or_admin_required
+@company_owner_required
 def payslips_export_csv(request):
     employees = scope_employees(request, Employee.objects.all())
     response = HttpResponse(content_type='text/csv')
@@ -1665,7 +1673,7 @@ def payslips_export_csv(request):
     return response
 
 
-@owner_or_admin_required
+@company_owner_required
 def payslips_export_excel(request):
     import openpyxl
     from openpyxl.utils import get_column_letter

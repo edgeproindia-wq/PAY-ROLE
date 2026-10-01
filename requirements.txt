@@ -8,3 +8,4 @@ gunicorn>=22.0
 dj-database-url>=2.2
 psycopg2-binary>=2.9.10
 mysqlclient>=2.2; sys_platform != "win32"
+django-storages[s3]>=1.14

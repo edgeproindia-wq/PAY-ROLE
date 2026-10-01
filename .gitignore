@@ -13,3 +13,9 @@ db_backup_*.sqlite3
 
 *.bak
 test_result.txt
+
+# Database dumps (may contain password hashes / personal data)
+data.json
+*dump*.json
+fixtures_prod*.json
+_mustfix_backup/

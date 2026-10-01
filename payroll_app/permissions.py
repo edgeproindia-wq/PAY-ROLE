@@ -12,8 +12,14 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect
 
 
+def effective_role(user):
+    """Superusers are platform admins even if their stored role was left at the default."""
+    return 'ADMIN' if user.is_superuser else getattr(user, 'role', None)
+
+
 def role_required(*allowed_roles):
-    """Restrict a view to specific User.role values. Superusers/ADMIN always pass.
+    """Restrict a view to the listed roles. ADMIN passes only where it is listed:
+    the platform admin manages companies, not other companies' payroll data.
     Must be combined with @login_required (role_required applies it automatically)."""
 
     def decorator(view_func):
@@ -21,8 +27,10 @@ def role_required(*allowed_roles):
         @login_required
         def _wrapped(request, *args, **kwargs):
             user = request.user
-            if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
-                return view_func(request, *args, **kwargs)
+            if effective_role(user) == 'ADMIN':
+                if 'ADMIN' in allowed_roles:
+                    return view_func(request, *args, **kwargs)
+                raise PermissionDenied("Platform admins cannot open company payroll pages.")
             # A company suspended/rejected while its users are logged in must
             # lose access immediately, not at their next login.
             if user.company_id is None or user.company.status != 'APPROVED':
@@ -54,6 +62,11 @@ def any_authenticated_required(view_func):
     return role_required('ADMIN', 'COMPANY_OWNER', 'EMPLOYEE')(view_func)
 
 
+def owner_or_employee_required(view_func):
+    """Company payroll pages: company owner or employee, never the platform admin."""
+    return role_required('COMPANY_OWNER', 'EMPLOYEE')(view_func)
+
+
 def get_user_company(request):
     """Return the company a non-admin user is scoped to, or None for ADMIN
     (meaning: no restriction / sees everything)."""
@@ -70,8 +83,8 @@ def scope_employees(request, queryset):
     EMPLOYEE: only their own employee record.
     """
     user = request.user
-    if user.is_superuser or user.role == 'ADMIN':
-        return queryset
+    if effective_role(user) == 'ADMIN':
+        return queryset.none()  # platform admin never reads company payroll data
     if user.role == 'COMPANY_OWNER':
         return queryset.filter(company=user.company)
     if user.role == 'EMPLOYEE':
@@ -83,8 +96,8 @@ def scope_by_employee_fk(request, queryset, employee_field='employee'):
     """Restrict any queryset that has a FK to Employee (attendance, leave,
     reimbursement, payslips, etc.) using the same rules as scope_employees."""
     user = request.user
-    if user.is_superuser or user.role == 'ADMIN':
-        return queryset
+    if effective_role(user) == 'ADMIN':
+        return queryset.none()  # platform admin never reads company payroll data
     if user.role == 'COMPANY_OWNER':
         return queryset.filter(**{f'{employee_field}__company': user.company})
     if user.role == 'EMPLOYEE':
@@ -97,8 +110,8 @@ def get_object_scoped(request, model, employee_field='employee', **lookup):
     closing IDOR holes on direct URL/PK access."""
     obj = get_object_or_404(model, **lookup)
     user = request.user
-    if user.is_superuser or user.role == 'ADMIN':
-        return obj
+    if effective_role(user) == 'ADMIN':
+        raise PermissionDenied("Platform admins cannot open company payroll records.")
     target = obj
     for part in employee_field.split('__'):
         target = getattr(target, part, None)

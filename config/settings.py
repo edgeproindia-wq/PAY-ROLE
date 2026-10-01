@@ -201,8 +201,9 @@ REQUIRE_EMAIL_VERIFICATION = env_bool('REQUIRE_EMAIL_VERIFICATION', default=Fals
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))  # never hang a request on a dead SMTP server
 
 # Demo-request alert recipients (not secrets; override per environment).
-DEMO_NOTIFY_EMAIL = os.environ.get('DEMO_NOTIFY_EMAIL', 'jaganbharath46@gmail.com')
-DEMO_NOTIFY_MOBILE = os.environ.get('DEMO_NOTIFY_MOBILE', '6383538565')
+# Admin/host address for demo-request and registration alerts (set on Render).
+DEMO_NOTIFY_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL') or os.environ.get('DEMO_NOTIFY_EMAIL', '')
+DEMO_NOTIFY_MOBILE = os.environ.get('DEMO_NOTIFY_MOBILE', '')
 
 # SMS: 'fast2sms' or 'twilio'. Empty = SMS disabled (logged, never crashes).
 SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '')
@@ -264,3 +265,31 @@ LOGGING = {
         'payroll_app': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Private object storage for uploads (BUG-07)
+# Render's disk is wiped on every deploy, so uploaded files (receipts, proofs,
+# documents) go to a PRIVATE S3-compatible bucket (Cloudflare R2 or AWS S3)
+# when STORAGE_BUCKET is set. Credentials come only from environment variables.
+# ---------------------------------------------------------------------------
+STORAGE_BUCKET = os.environ.get('STORAGE_BUCKET', '')
+if STORAGE_BUCKET:
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': STORAGE_BUCKET,
+            'endpoint_url': os.environ.get('STORAGE_ENDPOINT_URL') or None,   # R2: https://<account-id>.r2.cloudflarestorage.com
+            'access_key': os.environ.get('STORAGE_ACCESS_KEY_ID', ''),
+            'secret_key': os.environ.get('STORAGE_SECRET_ACCESS_KEY', ''),
+            'region_name': os.environ.get('STORAGE_REGION', 'auto'),
+            'default_acl': None,          # objects stay private (no public-read)
+            'querystring_auth': True,     # any generated URL is signed ...
+            'querystring_expire': 300,    # ... and expires after 5 minutes
+            'file_overwrite': False,
+            'location': 'private',
+            'signature_version': 's3v4',  # required by Cloudflare R2, standard for AWS
+        },
+    }
+    if os.environ.get('STORAGE_ENDPOINT_URL'):
+        STORAGES['default']['OPTIONS']['addressing_style'] = 'path'   # R2 endpoints use path-style URLs

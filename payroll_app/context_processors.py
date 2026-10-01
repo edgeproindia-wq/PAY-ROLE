@@ -4,6 +4,6 @@ def role_context(request):
         return {'is_admin_role': False, 'is_company_owner': False, 'is_employee_role': False}
     return {
         'is_admin_role': user.is_superuser or user.role == 'ADMIN',
-        'is_company_owner': user.role == 'COMPANY_OWNER',
-        'is_employee_role': user.role == 'EMPLOYEE',
+        'is_company_owner': user.role == 'COMPANY_OWNER' and not user.is_superuser,
+        'is_employee_role': user.role == 'EMPLOYEE' and not user.is_superuser,
     }

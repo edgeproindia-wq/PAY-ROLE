@@ -207,7 +207,9 @@
     </div>
     {% endif %}
 
+    {% if not is_admin_role %}
     <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+    {% endif %}
 
     {% if is_admin_role %}
     <div class="group-title">Platform Admin</div>
@@ -218,7 +220,6 @@
     <a href="{% url 'admin_client_complaints' %}">Client Complaints</a>
     <a href="{% url 'admin_client_requests' %}">Client Requests</a>
     <a href="{% url 'admin_audit_log' %}">Audit Log</a>
-    <div class="group-title">Payroll</div>
     {% endif %}
 
     {% if is_company_owner %}
@@ -228,7 +229,7 @@
     <div class="group-title">Payroll</div>
     {% endif %}
 
-    {% if not user.is_superuser %}
+    {% if not is_admin_role %}
     {% if not is_employee_role %}
     <a href="{% url 'employee_master' %}" class="{% if request.resolver_match.url_name == 'employee_master' %}active{% endif %}">Employee Master</a>
     <a href="{% url 'salary_structure' %}" class="{% if request.resolver_match.url_name == 'salary_structure' %}active{% endif %}">Salary Structure</a>
@@ -267,7 +268,7 @@
     {% endif %}
   </div>
 
-  {% if not user.is_superuser %}
+  {% if not is_admin_role %}
   <script>
     document.getElementById('moreToggle').addEventListener('click', function (e) {
       e.preventDefault();

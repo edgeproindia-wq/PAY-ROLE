@@ -40,15 +40,47 @@ def parse_month(label):
     return None
 
 
-def monthly_tds(annual_gross):
-    """Same slab logic as the existing Income Tax page (views.income_tax)."""
-    if annual_gross <= 300000:
-        tds_annual = Decimal('0')
-    elif annual_gross <= 700000:
-        tds_annual = (annual_gross - Decimal('300000')) * Decimal('0.05')
+# ---------------------------------------------------------------------------
+# Income tax (TDS) - NEW REGIME, FY 2025-26 (Finance Act 2025).
+# CONFIRM WITH YOUR CA before production use, and review every budget year:
+# only this block needs changing when the rules change.
+# ---------------------------------------------------------------------------
+TAX_RULES = {
+    '2025-26': {
+        'standard_deduction': Decimal('75000'),
+        'slabs': [(Decimal('400000'), Decimal('0')), (Decimal('800000'), Decimal('0.05')),
+                  (Decimal('1200000'), Decimal('0.10')), (Decimal('1600000'), Decimal('0.15')),
+                  (Decimal('2000000'), Decimal('0.20')), (Decimal('2400000'), Decimal('0.25')),
+                  (None, Decimal('0.30'))],
+        'rebate_limit': Decimal('1200000'),   # section 87A: no tax up to this taxable income
+        'cess': Decimal('0.04'),
+    },
+}
+CURRENT_TAX_YEAR = '2025-26'
+
+
+def annual_tax(annual_gross, tax_year=CURRENT_TAX_YEAR):
+    """Annual income tax incl. cess on salary income under the new regime."""
+    rules = TAX_RULES[tax_year]
+    taxable = max(Decimal(annual_gross) - rules['standard_deduction'], Decimal('0'))
+    tax, lower = Decimal('0'), Decimal('0')
+    for upper, rate in rules['slabs']:
+        top = taxable if upper is None else min(taxable, upper)
+        if top > lower:
+            tax += (top - lower) * rate
+        if upper is None or taxable <= upper:
+            break
+        lower = upper
+    if taxable <= rules['rebate_limit']:
+        tax = Decimal('0')                                   # 87A rebate
     else:
-        tds_annual = Decimal('400000') * Decimal('0.05') + (annual_gross - Decimal('700000')) * Decimal('0.10')
-    return q(tds_annual / 12)
+        tax = min(tax, taxable - rules['rebate_limit'])      # marginal relief just above the limit
+    return q(tax * (1 + rules['cess']))
+
+
+def monthly_tds(annual_gross, tax_year=CURRENT_TAX_YEAR):
+    """Monthly TDS = annual tax / 12. Used by payroll AND the Income Tax page."""
+    return q(annual_tax(annual_gross, tax_year) / 12)
 
 
 def _company_rates(company):
@@ -74,13 +106,22 @@ def calculate_line(run, employee, period):
         start, end = period
         days_in_month = (end - start).days + 1
         att = Attendance.objects.filter(employee=employee, date__range=(start, end))
+        doj = employee.date_of_joining
+        if doj and doj > end:
+            return None                              # BUG-06 safety net: joins after this month
+        # BUG-05: days of the month before the joining date are not paid. They are kept
+        # separate from LOP (absences) so nothing is counted twice.
+        not_joined_days = Decimal(max((doj - start).days, 0)) if doj else Decimal('0')
         lop_days = Decimal(att.filter(status='ABSENT').count()) + Decimal(att.filter(status='HALF_DAY').count()) * Decimal('0.5')
-        lop_days = min(lop_days, Decimal(days_in_month))
+        lop_days = min(lop_days, Decimal(days_in_month) - not_joined_days)
+    else:
+        not_joined_days = Decimal('0')
 
     lop_amount = q(gross / days_in_month * lop_days) if days_in_month and lop_days else Decimal('0.00')
-    pay_factor = (Decimal(days_in_month) - lop_days) / days_in_month if days_in_month else Decimal('1')
+    not_joined_amount = q(gross / days_in_month * not_joined_days) if days_in_month and not_joined_days else Decimal('0.00')
+    pay_factor = (Decimal(days_in_month) - lop_days - not_joined_days) / days_in_month if days_in_month else Decimal('1')
     earned_basic = q(ss.basic * pay_factor)
-    earned_gross = gross - lop_amount
+    earned_gross = gross - lop_amount - not_joined_amount
 
     # Claim unpaid arrears / approved reimbursements for THIS run only, so they
     # can never be paid twice across runs.

@@ -8,4 +8,4 @@ class PayrollAppConfig(AppConfig):
 
     def ready(self):
         # Register signal handlers (notifications / audit log helpers)
-        from . import signals  # noqa: F401
+        from . import checks, signals  # noqa: F401

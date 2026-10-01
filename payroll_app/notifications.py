@@ -102,6 +102,17 @@ def send_sms_safe(number, text):
         return False, f'SMS failed: {exc.__class__.__name__}'
 
 
+def _demo_recipients():
+    """The configured admin/host address (ADMIN_NOTIFICATION_EMAIL); if none is set,
+    every active platform admin's email, so alerts are never silently dropped."""
+    if settings.DEMO_NOTIFY_EMAIL:
+        return [settings.DEMO_NOTIFY_EMAIL]
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+    users = get_user_model().objects.filter(Q(is_superuser=True) | Q(role='ADMIN'), is_active=True)
+    return [e for e in users.exclude(email='').values_list('email', flat=True)]
+
+
 def notify_demo_request(demo):
     """Email + SMS the configured recipients about a new demo request and
     record the outcome on the DemoRequest row itself."""
@@ -119,7 +130,7 @@ def notify_demo_request(demo):
         f'Submitted at  : {submitted}\n'
     )
     email_ok, email_err = send_email_safe(
-        f'New Demo Request - {demo.company_name}', body, [settings.DEMO_NOTIFY_EMAIL]
+        f'New Demo Request - {demo.company_name}', body, _demo_recipients()
     )
     sms_text = (
         f'New demo request: {demo.full_name}, {demo.company_name}, {demo.phone or demo.email}, '

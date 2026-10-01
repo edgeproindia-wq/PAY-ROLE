@@ -167,11 +167,12 @@ class RoleBasedAccessControlTests(TestCase):
         resp = self.client.post(reverse('leave_decision', args=[leave_b.pk]), {'decision': 'APPROVED'})
         self.assertEqual(resp.status_code, 403)
 
-    def test_admin_sees_all_companies_employees(self):
+    def test_admin_cannot_open_company_payroll_pages(self):
         self.client.login(username='admin1', password='StrongPass123')
-        resp = self.client.get(reverse('employee_master'))
-        self.assertContains(resp, 'A001')
-        self.assertContains(resp, 'B001')
+        for name in ('employee_master', 'payslips', 'bank_transfer', 'attendance', 'salary_structure'):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 403, name)
+        self.assertRedirects(self.client.get(reverse('dashboard')), reverse('admin_dashboard'),
+                             fetch_redirect_response=False)
 
     def test_anonymous_redirected_to_login(self):
         resp = self.client.get(reverse('dashboard'))
