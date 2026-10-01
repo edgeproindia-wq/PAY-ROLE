@@ -472,8 +472,8 @@
       </div>
       <div>
         <h4>Contact</h4>
-        <a href="mailto:jaganbharath46@gmail.com">jaganbharath46@gmail.com</a>
-        <a href="tel:+916383538565">+91 63835 38565</a>
+        {% if public_contact_email %}<a href="mailto:{{ public_contact_email }}">{{ public_contact_email }}</a>{% endif %}
+        {% if public_contact_phone %}<a href="tel:{{ public_contact_phone }}">{{ public_contact_phone }}</a>{% endif %}
       </div>
     </div>
     <div class="footer-bottom">

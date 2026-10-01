@@ -48,7 +48,11 @@ def _file(fieldfile):
     if not fieldfile:
         raise Http404
     name = os.path.basename(fieldfile.name)
-    return FileResponse(fieldfile.open('rb'), as_attachment=True, filename=name)
+    try:
+        handle = fieldfile.open('rb')
+    except Exception:           # missing from storage (lost / not uploaded): never a 500
+        raise Http404('This file is no longer available. Please upload it again.')
+    return FileResponse(handle, as_attachment=True, filename=name)
 
 
 # ================================================================ leave cancellation

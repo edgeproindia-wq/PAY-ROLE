@@ -969,7 +969,11 @@ def reimbursement_receipt(request, pk):
     if not reimb.receipt:
         raise Http404("No receipt uploaded.")
     try:
-        return FileResponse(reimb.receipt.open('rb'), as_attachment=False, filename=reimb.receipt.name.rsplit('/', 1)[-1])
+        try:
+            handle = reimb.receipt.open('rb')
+        except Exception:       # missing from storage (lost / not uploaded): never a 500
+            raise Http404('This receipt is no longer available. Please upload it again.')
+        return FileResponse(handle, as_attachment=False, filename=reimb.receipt.name.rsplit('/', 1)[-1])
     except FileNotFoundError:
         raise Http404("Receipt file is missing on the server.")
 

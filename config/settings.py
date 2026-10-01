@@ -91,6 +91,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'payroll_app.context_processors.role_context',
+                'payroll_app.context_public.public_contact',
             ],
         },
     },
@@ -293,3 +294,14 @@ if STORAGE_BUCKET:
     }
     if os.environ.get('STORAGE_ENDPOINT_URL'):
         STORAGES['default']['OPTIONS']['addressing_style'] = 'path'   # R2 endpoints use path-style URLs
+
+
+# ---------------------------------------------------------------------------
+# Public website contact details (footer) - set in the environment, never in code.
+PUBLIC_CONTACT_EMAIL = os.environ.get('PUBLIC_CONTACT_EMAIL', '')
+PUBLIC_CONTACT_PHONE = os.environ.get('PUBLIC_CONTACT_PHONE', '')
+
+# Shared cache on Render so login throttling counts failures across all workers.
+# The table is created by build.sh (`manage.py createcachetable`).
+if os.environ.get('RENDER'):
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'django_cache'}}

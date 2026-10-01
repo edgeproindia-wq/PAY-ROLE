@@ -22,16 +22,25 @@ def _keys(request, username):
 
 
 def is_locked(request, username):
-    return any((cache.get(k) or 0) >= MAX_FAILURES for k in _keys(request, username))
+    try:
+        return any((cache.get(k) or 0) >= MAX_FAILURES for k in _keys(request, username))
+    except Exception:                                   # cache down: do not lock everybody out
+        import logging
+        logging.getLogger(__name__).exception('Login throttle cache unavailable')
+        return False
 
 
 @receiver(user_login_failed, dispatch_uid='login_throttle_failed')
 def _failed(sender, credentials, request=None, **kwargs):
     for k in _keys(request, (credentials or {}).get('username')):
         try:
-            cache.incr(k)
-        except ValueError:
-            cache.set(k, 1, WINDOW)
+            try:
+                cache.incr(k)
+            except ValueError:
+                cache.set(k, 1, WINDOW)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception('Login throttle cache unavailable')
 
 
 @receiver(user_logged_in, dispatch_uid='login_throttle_success')
