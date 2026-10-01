@@ -196,110 +196,159 @@
   .table-wrap { overflow-x: auto; max-width: 100%; }
   canvas { max-width: 100%; }
 </style>
+<style>
+  /* ---- ESS-style app shell: sidebar sections, top bar with bell + logout, user card ---- */
+  body{ display:block; }
+  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:260px; padding:0; background:#0d1430; color:#cbd5e1;
+            display:flex; flex-direction:column; z-index:60; overflow:hidden; transition:width .2s, transform .2s; }
+  .sidebar .sb-brand{ display:flex; align-items:center; gap:12px; padding:22px 22px 18px; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.06); }
+  .sb-logo{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:#fff; font-weight:800; font-size:15px;
+            background:linear-gradient(135deg,#6d5dfc,#8b5cf6); flex:none; }
+  .sb-brand b{ display:block; color:#fff; font-size:18px; font-weight:800; letter-spacing:.3px; line-height:1.1; }
+  .sb-brand small{ display:block; color:#8b95b8; font-size:11px; letter-spacing:1.6px; font-weight:600; margin-top:2px; }
+  .sb-nav{ flex:1; overflow-y:auto; padding:8px 0 12px; }
+  .sb-section{ color:#64708f; font-size:11px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; padding:16px 24px 6px; }
+  .sidebar .sb-nav a{ display:flex; align-items:center; gap:12px; padding:10px 24px; color:#cbd5e1; text-decoration:none; font-size:14.5px;
+             font-weight:600; border-left:3px solid transparent; white-space:nowrap; }
+  .sidebar .sb-nav a .ic{ width:20px; text-align:center; flex:none; font-size:15px; }
+  .sidebar .sb-nav a:hover{ background:rgba(255,255,255,.04); color:#fff; }
+  .sidebar .sb-nav a.active{ background:#1a2550; color:#fff; border-left-color:#5b8cff; }
+  .sb-user{ display:flex; align-items:center; gap:12px; padding:14px 22px; border-top:1px solid rgba(255,255,255,.06); }
+  .sb-avatar{ width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:800;
+              background:linear-gradient(135deg,#6d5dfc,#8b5cf6); flex:none; }
+  .sb-user b{ display:block; color:#fff; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
+  .sb-user small{ color:#8b95b8; font-size:12px; }
+  .sb-collapse{ background:none; border:none; color:#64708f; font:inherit; font-size:13px; padding:10px 24px 16px; text-align:left; cursor:pointer; }
+  .sb-collapse:hover{ color:#fff; }
+  .main{ margin-left:260px; min-height:100vh; transition:margin .2s; }
+  .content{ margin-left:0 !important; }
+  .topbar{ position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:14px; height:72px; padding:0 32px;
+           background:#fff; border-bottom:1px solid var(--line); }
+  .tb-title{ font-size:22px; font-weight:800; color:var(--ink); margin:0; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tb-actions{ display:flex; align-items:center; gap:10px; }
+  .tb-btn{ display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; border:1px solid var(--line); border-radius:10px;
+           background:#fff; color:var(--ink); font:inherit; font-weight:600; font-size:14.5px; text-decoration:none; cursor:pointer; }
+  .tb-btn:hover{ border-color:#c7cdf7; background:#f8f9ff; }
+  .tb-icon{ width:44px; padding:0; justify-content:center; font-size:17px; position:relative; }
+  .tb-menu{ display:none; }
+  body.sb-collapsed .sidebar{ width:76px; }
+  body.sb-collapsed .main{ margin-left:76px; }
+  body.sb-collapsed .sb-brand span:not(.sb-logo), body.sb-collapsed .sb-section, body.sb-collapsed .sb-nav a .tx,
+  body.sb-collapsed .sb-user div, body.sb-collapsed .sb-collapse .tx{ display:none; }
+  body.sb-collapsed .sidebar .sb-nav a{ justify-content:center; padding:12px 0; }
+  @media (max-width:900px){
+    .sidebar{ transform:translateX(-100%); width:270px; box-shadow:0 0 40px rgba(0,0,0,.3); }
+    body.sb-open .sidebar{ transform:none; }
+    .main, body.sb-collapsed .main{ margin-left:0; }
+    .topbar{ padding:0 14px; height:64px; }
+    .tb-title{ font-size:18px; }
+    .tb-menu{ display:inline-flex; }
+    .tb-btn .tx{ display:none; }
+    .sb-collapse{ display:none; }
+    .content{ padding:18px 14px 50px !important; }
+  }
+  /* cards / grids may shrink on small screens; wide tables scroll inside their card */
+  .card, .grid > *, [class*="grid"] > *{ min-width:0; }
+  .table-wrap{ overflow-x:auto; max-width:100%; }
+  canvas{ max-width:100%; }
+  @media print{ .sidebar, .topbar{ display:none !important; } .main{ margin-left:0 !important; } }
+</style>
 </head>
 <body>
-  <div class="sidebar">
-    <h2>PAYROLL MANAGEMENT</h2>
-
-    {% if user.is_authenticated %}
-    <div style="padding:8px; margin-bottom:8px; border-bottom:1px solid #334155;">
-      <div style="font-size:12.5px; font-weight:700; color:#fff;">{{ user.get_full_name|default:user.username }}</div>
-      <div style="font-size:11px; color:#94a3b8;">{{ user.get_role_display }}{% if user.company %} &middot; {{ user.company.name }}{% endif %}</div>
-      <a href="{% url 'notifications' %}" style="padding:0; display:inline;">Notifications</a> ·
-      <a href="{% url 'password_change' %}" style="padding:0; display:inline;">Password</a> ·
-      <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0;">{% csrf_token %}
-        <button type="submit" style="background:none; border:none; padding:0; color:inherit; font:inherit; cursor:pointer; text-decoration:underline;">Logout</button>
-      </form>
-    </div>
-    {% endif %}
-
-    {% if not is_admin_role %}
-    <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
-    {% endif %}
-
+  <aside class="sidebar" id="sidebar">
+    {% url 'employee_home' as u_brand_emp %}<a class="sb-brand" href="{% if is_admin_role %}{% url 'admin_dashboard' %}{% elif is_employee_role and u_brand_emp %}{{ u_brand_emp }}{% else %}{% url 'dashboard' %}{% endif %}">
+      <span class="sb-logo">EP</span><span><b>EDGEPRO</b><small>PAYROLL</small></span>
+    </a>
+    <nav class="sb-nav">
     {% if is_admin_role %}
-    <div class="group-title">Platform Admin</div>
-    <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
-    <a href="{% url 'admin_company_list' %}">Client Management</a>
-    <a href="{% url 'admin_demo_requests' %}">Demo / Book Requests</a>
-    <a href="{% url 'admin_company_approvals' %}">Company Approvals</a>
-    <a href="{% url 'admin_client_complaints' %}">Client Complaints</a>
-    <a href="{% url 'admin_client_requests' %}">Client Requests</a>
-    <a href="{% url 'admin_audit_log' %}">Audit Log</a>
+      <div class="sb-section">Main</div>
+      {% url 'admin_dashboard' as u_admin1 %}{% if u_admin1 %}<a href="{{ u_admin1 }}"><span class="ic">&#9632;</span><span class="tx">Admin Dashboard</span></a>{% endif %}
+      <div class="sb-section">Platform</div>
+      {% url 'admin_company_list' as u_admin2 %}{% if u_admin2 %}<a href="{{ u_admin2 }}"><span class="ic">&#127970;</span><span class="tx">Client Management</span></a>{% endif %}
+      {% url 'admin_company_approvals' as u_admin3 %}{% if u_admin3 %}<a href="{{ u_admin3 }}"><span class="ic">&#9989;</span><span class="tx">Company Approvals</span></a>{% endif %}
+      {% url 'admin_demo_requests' as u_admin4 %}{% if u_admin4 %}<a href="{{ u_admin4 }}"><span class="ic">&#128197;</span><span class="tx">Demo Requests</span></a>{% endif %}
+      {% url 'admin_client_complaints' as u_admin5 %}{% if u_admin5 %}<a href="{{ u_admin5 }}"><span class="ic">&#128172;</span><span class="tx">Client Complaints</span></a>{% endif %}
+      {% url 'admin_client_requests' as u_admin6 %}{% if u_admin6 %}<a href="{{ u_admin6 }}"><span class="ic">&#128221;</span><span class="tx">Client Requests</span></a>{% endif %}
+      {% url 'admin_audit_log' as u_admin7 %}{% if u_admin7 %}<a href="{{ u_admin7 }}"><span class="ic">&#128269;</span><span class="tx">Audit Log</span></a>{% endif %}
+      {% url 'notifications' as u_admin8 %}{% if u_admin8 %}<a href="{{ u_admin8 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
+    {% elif is_employee_role %}
+      <div class="sb-section">Main</div>
+      {% url 'employee_home' as u_home %}{% if not u_home %}{% url 'dashboard' as u_home %}{% endif %}<a href="{{ u_home }}"><span class="ic">&#9632;</span><span class="tx">Dashboard</span></a>
+      <div class="sb-section">My Pay</div>
+      {% url 'payslips' as u_emp1 %}{% if u_emp1 %}<a href="{{ u_emp1 }}"><span class="ic">&#128196;</span><span class="tx">Payslips</span></a>{% endif %}
+      {% url 'investment_declaration' as u_emp2 %}{% if u_emp2 %}<a href="{{ u_emp2 }}"><span class="ic">&#128176;</span><span class="tx">Investment Declaration</span></a>{% endif %}
+      {% url 'reimbursement' as u_emp3 %}{% if u_emp3 %}<a href="{{ u_emp3 }}"><span class="ic">&#129534;</span><span class="tx">Reimbursements</span></a>{% endif %}
+      <div class="sb-section">Self Service</div>
+      {% url 'attendance' as u_emp4 %}{% if u_emp4 %}<a href="{{ u_emp4 }}"><span class="ic">&#128338;</span><span class="tx">Attendance</span></a>{% endif %}
+      {% url 'leave_management' as u_emp5 %}{% if u_emp5 %}<a href="{{ u_emp5 }}"><span class="ic">&#127796;</span><span class="tx">Leave</span></a>{% endif %}
+      {% url 'grievances' as u_emp6 %}{% if u_emp6 %}<a href="{{ u_emp6 }}"><span class="ic">&#128172;</span><span class="tx">Grievances</span></a>{% endif %}
+      {% url 'announcements' as u_emp7 %}{% if u_emp7 %}<a href="{{ u_emp7 }}"><span class="ic">&#128227;</span><span class="tx">Announcements</span></a>{% endif %}
+      {% url 'ess' as u_emp8 %}{% if u_emp8 %}<a href="{{ u_emp8 }}"><span class="ic">&#128100;</span><span class="tx">My Profile (ESS)</span></a>{% endif %}
+      {% url 'notifications' as u_emp9 %}{% if u_emp9 %}<a href="{{ u_emp9 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
+    {% elif user.is_authenticated %}
+      <div class="sb-section">Main</div>
+      {% url 'dashboard' as u_own1 %}{% if u_own1 %}<a href="{{ u_own1 }}"><span class="ic">&#9632;</span><span class="tx">Dashboard</span></a>{% endif %}
+      <div class="sb-section">People</div>
+      {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="ic">&#128101;</span><span class="tx">Employee Master</span></a>{% endif %}
+      {% url 'attendance' as u_own3 %}{% if u_own3 %}<a href="{{ u_own3 }}"><span class="ic">&#128338;</span><span class="tx">Attendance</span></a>{% endif %}
+      {% url 'leave_management' as u_own4 %}{% if u_own4 %}<a href="{{ u_own4 }}"><span class="ic">&#127796;</span><span class="tx">Leave Management</span></a>{% endif %}
+      {% url 'hr_shifts' as u_own5 %}{% if u_own5 %}<a href="{{ u_own5 }}"><span class="ic">&#128336;</span><span class="tx">Shifts</span></a>{% endif %}
+      {% url 'hr_work_hours' as u_own6 %}{% if u_own6 %}<a href="{{ u_own6 }}"><span class="ic">&#9201;</span><span class="tx">Working Hours</span></a>{% endif %}
+      {% url 'grievances' as u_own7 %}{% if u_own7 %}<a href="{{ u_own7 }}"><span class="ic">&#128172;</span><span class="tx">Grievances</span></a>{% endif %}
+      {% url 'announcements' as u_own8 %}{% if u_own8 %}<a href="{{ u_own8 }}"><span class="ic">&#128227;</span><span class="tx">Announcements</span></a>{% endif %}
+      <div class="sb-section">Payroll</div>
+      {% url 'salary_structure' as u_own9 %}{% if u_own9 %}<a href="{{ u_own9 }}"><span class="ic">&#128200;</span><span class="tx">Salary Structure</span></a>{% endif %}
+      {% url 'payroll_processing' as u_own10 %}{% if u_own10 %}<a href="{{ u_own10 }}"><span class="ic">&#9881;</span><span class="tx">Payroll Processing</span></a>{% endif %}
+      {% url 'payslips' as u_own11 %}{% if u_own11 %}<a href="{{ u_own11 }}"><span class="ic">&#128196;</span><span class="tx">Payslips</span></a>{% endif %}
+      {% url 'bank_transfer' as u_own12 %}{% if u_own12 %}<a href="{{ u_own12 }}"><span class="ic">&#127974;</span><span class="tx">Bank Transfer</span></a>{% endif %}
+      {% url 'reimbursement' as u_own13 %}{% if u_own13 %}<a href="{{ u_own13 }}"><span class="ic">&#129534;</span><span class="tx">Reimbursements</span></a>{% endif %}
+      {% url 'hr_loans' as u_own14 %}{% if u_own14 %}<a href="{{ u_own14 }}"><span class="ic">&#128179;</span><span class="tx">Loans</span></a>{% endif %}
+      {% url 'hr_insurance' as u_own15 %}{% if u_own15 %}<a href="{{ u_own15 }}"><span class="ic">&#128737;</span><span class="tx">Insurance</span></a>{% endif %}
+      {% url 'hr_pay_components' as u_own16 %}{% if u_own16 %}<a href="{{ u_own16 }}"><span class="ic">&#10133;</span><span class="tx">Other Pay Items</span></a>{% endif %}
+      {% url 'arrears' as u_own17 %}{% if u_own17 %}<a href="{{ u_own17 }}"><span class="ic">&#8617;</span><span class="tx">Arrears</span></a>{% endif %}
+      {% url 'full_final_settlement' as u_own18 %}{% if u_own18 %}<a href="{{ u_own18 }}"><span class="ic">&#128075;</span><span class="tx">Full &amp; Final</span></a>{% endif %}
+      <div class="sb-section">Tax &amp; Compliance</div>
+      {% url 'statutory_compliance' as u_own19 %}{% if u_own19 %}<a href="{{ u_own19 }}"><span class="ic">&#127963;</span><span class="tx">Statutory Compliance</span></a>{% endif %}
+      {% url 'hr_professional_tax' as u_own20 %}{% if u_own20 %}<a href="{{ u_own20 }}"><span class="ic">&#128203;</span><span class="tx">Professional Tax</span></a>{% endif %}
+      {% url 'income_tax' as u_own21 %}{% if u_own21 %}<a href="{{ u_own21 }}"><span class="ic">&#129518;</span><span class="tx">Income Tax</span></a>{% endif %}
+      {% url 'investment_declaration' as u_own22 %}{% if u_own22 %}<a href="{{ u_own22 }}"><span class="ic">&#128176;</span><span class="tx">Investment Declaration</span></a>{% endif %}
+      {% url 'hr_declarations' as u_own23 %}{% if u_own23 %}<a href="{{ u_own23 }}"><span class="ic">&#128176;</span><span class="tx">Investment Proofs</span></a>{% endif %}
+      {% url 'hr_form16' as u_own24 %}{% if u_own24 %}<a href="{{ u_own24 }}"><span class="ic">&#128209;</span><span class="tx">Form 16</span></a>{% endif %}
+      {% url 'hr_documents' as u_own25 %}{% if u_own25 %}<a href="{{ u_own25 }}"><span class="ic">&#128193;</span><span class="tx">Tax Documents</span></a>{% endif %}
+      {% url 'compliance_reports' as u_own26 %}{% if u_own26 %}<a href="{{ u_own26 }}"><span class="ic">&#128202;</span><span class="tx">Compliance Reports</span></a>{% endif %}
+      <div class="sb-section">Company</div>
+      {% url 'reports_analytics' as u_own27 %}{% if u_own27 %}<a href="{{ u_own27 }}"><span class="ic">&#128201;</span><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
+      {% url 'ess' as u_own28 %}{% if u_own28 %}<a href="{{ u_own28 }}"><span class="ic">&#128100;</span><span class="tx">ESS</span></a>{% endif %}
+      {% url 'user_roles_permissions' as u_own29 %}{% if u_own29 %}<a href="{{ u_own29 }}"><span class="ic">&#128273;</span><span class="tx">User Roles</span></a>{% endif %}
+      {% url 'settings' as u_own30 %}{% if u_own30 %}<a href="{{ u_own30 }}"><span class="ic">&#9881;</span><span class="tx">Settings</span></a>{% endif %}
+      {% url 'client_complaints' as u_own31 %}{% if u_own31 %}<a href="{{ u_own31 }}"><span class="ic">&#9888;</span><span class="tx">Raise Complaint</span></a>{% endif %}
+      {% url 'client_requests' as u_own32 %}{% if u_own32 %}<a href="{{ u_own32 }}"><span class="ic">&#9993;</span><span class="tx">Raise Request</span></a>{% endif %}
+      {% url 'notifications' as u_own33 %}{% if u_own33 %}<a href="{{ u_own33 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
     {% endif %}
-
-    {% if is_company_owner %}
-    <div class="group-title">Company</div>
-    <a href="{% url 'client_complaints' %}">Raise Complaint</a>
-    <a href="{% url 'client_requests' %}">Raise Request</a>
-    <div class="group-title">Payroll</div>
-    {% endif %}
-
-    {% if not is_admin_role %}
-    {% if not is_employee_role %}
-    <a href="{% url 'employee_master' %}" class="{% if request.resolver_match.url_name == 'employee_master' %}active{% endif %}">Employee Master</a>
-    <a href="{% url 'salary_structure' %}" class="{% if request.resolver_match.url_name == 'salary_structure' %}active{% endif %}">Salary Structure</a>
-    {% endif %}
-    <a href="{% url 'attendance' %}" class="{% if request.resolver_match.url_name == 'attendance' %}active{% endif %}">Attendance</a>
-    <a href="{% url 'leave_management' %}" class="{% if request.resolver_match.url_name == 'leave_management' %}active{% endif %}">Leave Management</a>
-    <a href="{% url 'reimbursement' %}" class="{% if request.resolver_match.url_name == 'reimbursement' %}active{% endif %}">Reimbursement</a>
-    {% if not is_employee_role %}
-    <a href="{% url 'payroll_processing' %}" class="{% if request.resolver_match.url_name == 'payroll_processing' %}active{% endif %}">Payroll Processing</a>
-    {% endif %}
-    {% if is_employee_role %}<a href="{% url 'employee_home' %}">My Dashboard</a><a href="{% url 'grievances' %}">Grievances</a><a href="{% url 'announcements' %}">Announcements</a>{% endif %}
-    {% if is_company_owner %}<a href="{% url 'grievances' %}">Grievances</a><a href="{% url 'announcements' %}">Announcements</a>{% endif %}
-    <a href="{% url 'payslips' %}" class="{% if request.resolver_match.url_name == 'payslips' %}active{% endif %}">Payslips</a>
-    {% if not is_employee_role %}
-    <a href="{% url 'bank_transfer' %}" class="{% if request.resolver_match.url_name == 'bank_transfer' %}active{% endif %}">Bank Transfer</a>
-    {% endif %}
-
-    <div class="more-wrapper">
-      <a href="#" id="moreToggle" class="more-toggle">More <span id="moreArrow">&#9662;</span></a>
-      <div id="moreMenu" class="more-menu">
-        {% if not is_employee_role %}
-        <a href="{% url 'statutory_compliance' %}">Statutory Compliance</a>
-        <a href="{% url 'income_tax' %}">Income Tax</a>
-        <a href="{% url 'compliance_reports' %}">Compliance Reports</a>
-        <a href="{% url 'arrears' %}">Arrears</a>
-        <a href="{% url 'full_final_settlement' %}">Full &amp; Final Settlement</a>
-        <a href="{% url 'reports_analytics' %}">Reports &amp; Analytics</a>
-        {% endif %}
-        {% if is_company_owner %}<a href="{% url 'hr_documents' %}">Tax Documents</a><a href="{% url 'hr_declarations' %}">Investment Proofs</a><a href="{% url 'hr_loans' %}">Loans</a><a href="{% url 'hr_insurance' %}">Insurance</a><a href="{% url 'hr_professional_tax' %}">Professional Tax</a><a href="{% url 'hr_shifts' %}">Shifts</a><a href="{% url 'hr_work_hours' %}">Working Hours</a><a href="{% url 'hr_pay_components' %}">Other Pay Items</a><a href="{% url 'hr_form16' %}">Form 16</a>{% endif %}
-        <a href="{% url 'investment_declaration' %}">Investment Declaration</a>
-        <a href="{% url 'ess' %}">ESS</a>
-        <a href="{% url 'notifications' %}">Notifications</a>
-        {% if not is_employee_role %}
-        <a href="{% url 'user_roles_permissions' %}">User Roles &amp; Permissions</a>
-        <a href="{% url 'settings' %}">Settings</a>
-        {% endif %}
-      </div>
+    </nav>
+    {% if user.is_authenticated %}
+    <div class="sb-user">
+      <span class="sb-avatar">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
+      <div><b>{{ user.get_full_name|default:user.username }}</b><small>{% if is_admin_role %}Platform Admin{% else %}{{ user.get_role_display }}{% endif %}{% if user.company %} &middot; {{ user.company.name }}{% endif %}</small></div>
     </div>
     {% endif %}
-  </div>
+    <button type="button" class="sb-collapse" id="sbCollapse">&lsaquo; <span class="tx">Collapse</span></button>
+  </aside>
 
-  {% if not is_admin_role %}
-  <script>
-    document.getElementById('moreToggle').addEventListener('click', function (e) {
-      e.preventDefault();
-      var menu = document.getElementById('moreMenu');
-      var arrow = document.getElementById('moreArrow');
-      var isOpen = menu.style.display === 'block';
-      menu.style.display = isOpen ? 'none' : 'block';
-      arrow.innerHTML = isOpen ? '&#9662;' : '&#9652;';
-    });
-    (function () {
-      var moreLinks = document.querySelectorAll('#moreMenu a');
-      var current = window.location.pathname;
-      moreLinks.forEach(function (a) {
-        if (a.getAttribute('href') === current) {
-          document.getElementById('moreMenu').style.display = 'block';
-          document.getElementById('moreArrow').innerHTML = '&#9652;';
-          a.classList.add('active');
-        }
-      });
-    })();
-  </script>
-  {% endif %}
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="tb-btn tb-icon tb-menu" id="sbToggle" aria-label="Menu">&#9776;</button>
+      <h1 class="tb-title" id="tbTitle">{% block page_title %}{% endblock %}</h1>
+      {% if user.is_authenticated %}
+      <div class="tb-actions">
+        <a class="tb-btn tb-icon" href="{% url 'notifications' %}" title="Notifications" aria-label="Notifications">&#128276;</a>
+        <a class="tb-btn tb-icon" href="{% url 'password_change' %}" title="Change password" aria-label="Change password">&#128273;</a>
+        <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}
+          <button type="submit" class="tb-btn"><span>&#128682;</span><span class="tx">Logout</span></button>
+        </form>
+      </div>
+      {% endif %}
+    </header>
   <div class="content">
     {% if messages %}
       {% for message in messages %}
@@ -311,6 +360,7 @@
     {% endif %}
     {% block content %}{% endblock %}
   </div>
+  </div>
 <script data-submit-guard>
   // Prevent double submission: a form can be sent only once per click (re-enabled after 8 s).
   document.addEventListener('submit', function (e) {
@@ -319,6 +369,30 @@
     f.dataset.sent = '1';
     setTimeout(function () { delete f.dataset.sent; }, 8000);
   }, true);
+</script>
+<script>
+  // App shell: page title from <title>, active menu item, collapse (desktop) / slide-in (mobile).
+  (function () {
+    var t = document.getElementById('tbTitle');
+    if (t && !t.textContent.trim()) { t.textContent = document.title.split(/\s[|\u00b7\u2013-]\s/)[0].trim(); }
+    var path = window.location.pathname, best = null, bestLen = 0;
+    document.querySelectorAll('.sb-nav a').forEach(function (a) {
+      var h = a.getAttribute('href');
+      if (h && (path === h || (h !== '/' && path.indexOf(h) === 0)) && h.length > bestLen) { best = a; bestLen = h.length; }
+    });
+    if (best) { best.classList.add('active'); }
+    try { if (localStorage.getItem('sbCollapsed') === '1') document.body.classList.add('sb-collapsed'); } catch (e) {}
+    var c = document.getElementById('sbCollapse');
+    if (c) c.addEventListener('click', function () {
+      document.body.classList.toggle('sb-collapsed');
+      try { localStorage.setItem('sbCollapsed', document.body.classList.contains('sb-collapsed') ? '1' : '0'); } catch (e) {}
+    });
+    var m = document.getElementById('sbToggle');
+    if (m) m.addEventListener('click', function (e) { e.stopPropagation(); document.body.classList.toggle('sb-open'); });
+    document.addEventListener('click', function (e) {
+      if (document.body.classList.contains('sb-open') && !e.target.closest('.sidebar')) document.body.classList.remove('sb-open');
+    });
+  })();
 </script>
 </body>
 </html>
