@@ -236,6 +236,10 @@ class LeaveRequest(models.Model):
         ('CASUAL', 'Casual Leave'),
         ('SICK', 'Sick Leave'),
         ('EARNED', 'Earned Leave'),
+        ('UNPAID', 'Unpaid Leave (loss of pay)'),
+        ('MATERNITY', 'Maternity Leave'),
+        ('PATERNITY', 'Paternity Leave'),
+        ('COMP_OFF', 'Compensatory Off'),
     ]
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -293,6 +297,7 @@ class Reimbursement(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursement_decisions'
     )
     decided_at = models.DateTimeField(null=True, blank=True)
+    approver_comment = models.CharField(max_length=255, blank=True)
     # Set when an approved claim is included in a payroll run, so the same
     # claim can never be paid twice.
     paid_in_run = models.ForeignKey(
@@ -721,3 +726,4 @@ from .models_documents import EmployeeDocument  # noqa: E402,F401
 from .models_features import (Announcement, DemoRequestActivity, Grievance, GrievanceUpdate,  # noqa: E402,F401
                               InsurancePolicy, Loan, LoanRepayment, ProfessionalTaxSlab)
 from .models_phase4 import PayComponent, Shift, ShiftAssignment  # noqa: E402,F401
+from .models_phase5 import AnnouncementRead  # noqa: E402,F401

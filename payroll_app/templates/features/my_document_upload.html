@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Upload document{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Upload a document</h1><div class="muted">ID proof, address proof, certificates and similar. Only you and HR can see it; HR will verify it.</div></div>
+  <div class="fx-card"><form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% include "features/_form.html" %}
+    <p style="margin-top:12px"><button class="fx-btn" type="submit">Upload</button> <a class="fx-btn ghost" href="{% url 'employee_home' %}">Back</a></p></form></div>
+</div>{% endblock %}

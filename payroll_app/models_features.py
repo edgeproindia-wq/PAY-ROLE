@@ -118,6 +118,9 @@ class Loan(models.Model):
     company = models.ForeignKey('payroll_app.Company', on_delete=models.CASCADE, related_name='loans')
     employee = models.ForeignKey('payroll_app.Employee', on_delete=models.CASCADE, related_name='loans')
     reference_no = models.CharField(max_length=40)
+    loan_type = models.CharField(max_length=20, default='PERSONAL', choices=[
+        ('PERSONAL', 'Personal loan'), ('SALARY_ADVANCE', 'Salary advance'), ('VEHICLE', 'Vehicle loan'),
+        ('HOUSING', 'Housing loan'), ('OTHER', 'Other')])
     loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text='% per year (information only)')
     tenure_months = models.PositiveSmallIntegerField()
@@ -186,6 +189,7 @@ class ProfessionalTaxSlab(models.Model):
     min_monthly_gross = models.DecimalField(max_digits=10, decimal_places=2)
     max_monthly_gross = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
                                             help_text='Leave blank for "and above"')
+    state = models.CharField(max_length=40, blank=True, help_text='State / region these slabs apply to (for reference)')
     monthly_amount = models.DecimalField(max_digits=8, decimal_places=2)
     february_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True,
                                           help_text='Optional different amount for February')

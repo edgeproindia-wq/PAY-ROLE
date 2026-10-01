@@ -130,7 +130,7 @@ def employee_home(request):
     today = timezone.localdate()
     payslips = list(_my_payslips(emp)[:12])
     latest = payslips[0] if payslips else None
-    docs = list(EmployeeDocument.objects.filter(employee=emp).defer('data'))
+    docs = list(EmployeeDocument.objects.filter(employee=emp).exclude(status='DRAFT').defer('data'))
     doc_slots = []
     for code, label in EmployeeDocument.DOC_TYPES[:2]:            # Form 16 and Form 22 always shown
         have = [d for d in docs if d.doc_type == code]
@@ -150,6 +150,7 @@ def employee_home(request):
         'recent_claims': _safe_list('Reimbursement', employee=emp),
         'bank_masked': _mask(getattr(emp, 'bank_account_no', '')),
         'today': today,
+        'unread_announcements': Announcement.active_for(emp.company).exclude(reads__user=request.user).count() if emp.company_id else 0,
         'shift': shift_for(emp, today),
         'work': month_summary(emp, today.year, today.month),
         'pay_items': list(PayComponent.objects.filter(employee=emp, active=True)),
@@ -186,7 +187,7 @@ def document_download(request, pk):
     emp = _my_employee(request)
     if emp is None:
         raise Http404
-    return _file_response(get_object_or_404(EmployeeDocument, pk=pk, employee=emp))   # own documents only
+    return _file_response(get_object_or_404(EmployeeDocument.objects.exclude(status='DRAFT'), pk=pk, employee=emp))   # own documents only
 
 
 # ------------------------------------------------------------------ HR (company owner) pages

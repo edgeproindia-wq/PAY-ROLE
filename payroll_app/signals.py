@@ -84,3 +84,4 @@ def on_user_login_failed(sender, credentials, request=None, **kwargs):
     ident = str(credentials.get('username', ''))[:150]
     if request is not None:
         log_action(request, 'OTHER', details=f'Failed login attempt for "{ident}"')
+from . import login_throttle  # noqa: E402,F401  (failed-login counting)

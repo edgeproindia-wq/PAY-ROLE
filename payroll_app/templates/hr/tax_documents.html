@@ -23,7 +23,7 @@
 <div class="td">
   <div class="td-card">
     <h1>Tax Documents</h1>
-    <div class="muted">Upload Form 16, Form 22 and other documents for your employees. Each employee sees only their own documents, and gets a notification when one is uploaded.</div>
+    <div class="muted"><a href="{% url 'hr_form16' %}">Generate Form 16 Part B drafts from payroll</a> &middot; Upload Form 16, Form 22 and other documents for your employees. Each employee sees only their own documents, and gets a notification when one is uploaded.</div>
     <form method="post" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
       <div class="td-form">
@@ -40,13 +40,17 @@
     <h2 style="font-size:16px;font-weight:800;margin:0 0 10px">Uploaded documents</h2>
     {% if docs %}
     <table>
-      <tr><th>Employee</th><th>Document</th><th>FY</th><th>Uploaded</th><th></th></tr>
+      <tr><th>Employee</th><th>Document</th><th>FY / expiry</th><th>Status</th><th>Uploaded</th><th></th></tr>
       {% for d in docs %}
-      <tr><td>{{ d.employee }}</td><td>{{ d.label }}</td><td>{{ d.financial_year }}</td><td>{{ d.uploaded_at|date:"d M Y" }}</td>
+      <tr><td>{{ d.employee }}</td><td>{{ d.label }}</td><td>{% if d.financial_year != '-' %}{{ d.financial_year }}{% endif %}{% if d.expiry_date %} exp. {{ d.expiry_date|date:"d M Y" }}{% endif %}</td>
+        <td>{{ d.get_status_display }}{% if d.note %}<br><span class="muted">{{ d.note }}</span>{% endif %}</td><td>{{ d.uploaded_at|date:"d M Y" }}</td>
         <td style="text-align:right;white-space:nowrap">
           <a class="link" href="{% url 'hr_document_download' d.pk %}">Download</a>
-          <form method="post" style="display:inline" onsubmit="return confirm('Delete this document?')">{% csrf_token %}
-            <button class="del" type="submit" name="delete" value="{{ d.pk }}">Delete</button></form>
+          <form method="post" action="{% url 'hr_document_action' d.pk %}" style="display:inline">{% csrf_token %}
+            {% if d.status == 'DRAFT' %}<button class="del" style="color:#166534" name="action" value="publish">Publish</button>{% endif %}
+            {% if d.status == 'PENDING' %}<button class="del" style="color:#166534" name="action" value="verify">Verify</button>
+              <button class="del" name="action" value="reject">Reject</button>{% endif %}
+            <button class="del" name="action" value="delete" onclick="return confirm('Delete this document?')">Delete</button></form>
         </td></tr>
       {% endfor %}
     </table>

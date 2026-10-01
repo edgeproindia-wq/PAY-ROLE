@@ -70,13 +70,15 @@ def component_totals(employee, period, pay_factor):
              .filter(Q(effective_to__isnull=True) | Q(effective_to__gte=start)))
     earn = taxable = ded = Decimal('0')
     breakdown = []
+    basic = getattr(getattr(employee, 'salary_structure', None), 'basic', 0) or 0
     for c in comps:
+        monthly = q(Decimal(basic) * c.percent / 100) if c.calc_type == 'PERCENT_BASIC' else c.amount
         if c.kind == 'EARNING':
-            amt = q(c.amount * pay_factor)
+            amt = q(monthly * pay_factor)
             earn += amt
-            taxable += c.amount if c.taxable else 0
+            taxable += monthly if c.taxable else 0
         else:
-            amt = q(c.amount)
+            amt = q(monthly)
             ded += amt
         breakdown.append((c.name, c.kind, amt))
     return q(earn), q(taxable), q(ded), breakdown
@@ -170,18 +172,27 @@ def hr_work_hours(request):
 class ComponentForm(forms.ModelForm):
     class Meta:
         model = PayComponent
-        fields = ['employee', 'name', 'kind', 'amount', 'taxable', 'effective_from', 'effective_to']
+        fields = ['employee', 'name', 'kind', 'calc_type', 'amount', 'percent', 'taxable', 'effective_from', 'effective_to']
         widgets = {'effective_from': forms.DateInput(attrs={'type': 'date'}), 'effective_to': forms.DateInput(attrs={'type': 'date'})}
 
     def __init__(self, company, *a, **kw):
         super().__init__(*a, **kw)
         self.fields['employee'].queryset = Employee.objects.filter(company=company)
+        for name in ('calc_type', 'percent', 'amount'):
+            self.fields[name].required = False
 
-    def clean_amount(self):
-        a = self.cleaned_data['amount']
-        if a <= 0:
-            raise forms.ValidationError('Amount must be more than zero.')
-        return a
+    def clean(self):
+        c = super().clean()
+        if not c.get('calc_type'):
+            c['calc_type'] = 'FIXED'
+        if c.get('percent') is None:
+            c['percent'] = 0
+        if c.get('calc_type') == 'PERCENT_BASIC':
+            if not c.get('percent') or c['percent'] <= 0 or c['percent'] > 100:
+                self.add_error('percent', 'Enter a percentage between 0 and 100.')
+        elif not c.get('amount') or c['amount'] <= 0:
+            self.add_error('amount', 'Amount must be more than zero.')
+        return c
 
 
 @company_owner_required

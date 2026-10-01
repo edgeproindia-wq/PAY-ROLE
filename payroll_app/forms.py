@@ -461,6 +461,10 @@ class LoginForm(AuthenticationForm):
                                widget=forms.TextInput(attrs={'autofocus': True, 'autocomplete': 'username'}))
 
     def clean(self):
+        from .login_throttle import is_locked
+        if is_locked(self.request, self.cleaned_data.get('username')):
+            raise forms.ValidationError('Too many failed sign-in attempts. Please wait 15 minutes and try again, '
+                                        'or reset your password.', code='locked')
         try:
             return super().clean()
         except forms.ValidationError:

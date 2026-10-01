@@ -52,7 +52,10 @@ class PayComponent(models.Model):
     employee = models.ForeignKey('payroll_app.Employee', on_delete=models.CASCADE, related_name='pay_components')
     name = models.CharField(max_length=60, help_text='e.g. Shift allowance, Canteen deduction')
     kind = models.CharField(max_length=10, choices=KIND_CHOICES)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    CALC_CHOICES = [('FIXED', 'Fixed amount'), ('PERCENT_BASIC', '% of basic')]
+    calc_type = models.CharField(max_length=14, choices=CALC_CHOICES, default='FIXED')
+    percent = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text='Used when calculated as % of basic')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     taxable = models.BooleanField(default=True, help_text='Earnings only: include in the TDS calculation')
     effective_from = models.DateField()
     effective_to = models.DateField(null=True, blank=True)

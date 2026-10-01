@@ -190,7 +190,11 @@ class AnnouncementForm(forms.ModelForm):
 def announcements(request):
     company = request.user.company
     if effective_role(request.user) == 'EMPLOYEE':
-        return render(request, 'features/announcements.html', {'items': Announcement.active_for(company), 'is_owner': False})
+        items = list(Announcement.active_for(company))
+        from .models_phase5 import AnnouncementRead
+        for item in items:                      # opening the page marks them as read
+            AnnouncementRead.objects.get_or_create(announcement=item, user=request.user)
+        return render(request, 'features/announcements.html', {'items': items, 'is_owner': False})
     form = _style(AnnouncementForm(request.POST or None))
     if request.method == 'POST' and request.POST.get('archive'):
         a = get_object_or_404(Announcement, pk=request.POST['archive'], company=company)

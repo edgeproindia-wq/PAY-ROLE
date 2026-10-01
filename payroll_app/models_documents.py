@@ -11,8 +11,14 @@ class EmployeeDocument(models.Model):
         ('FORM16', 'Form 16'),
         ('FORM22', 'Form 22'),
         ('FORM12BB', 'Form 12BB'),
+        ('ID_PROOF', 'ID proof'),
+        ('ADDRESS', 'Address proof'),
+        ('EDUCATION', 'Education certificate'),
+        ('EXPERIENCE', 'Experience letter'),
         ('OTHER', 'Other document'),
     ]
+    STATUS_CHOICES = [('DRAFT', 'Draft (not visible to employee)'), ('PENDING', 'Awaiting verification'),
+                      ('VERIFIED', 'Available'), ('REJECTED', 'Rejected')]
 
     company = models.ForeignKey('payroll_app.Company', on_delete=models.CASCADE, related_name='employee_documents')
     employee = models.ForeignKey('payroll_app.Employee', on_delete=models.CASCADE, related_name='documents')
@@ -26,6 +32,9 @@ class EmployeeDocument(models.Model):
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                     related_name='+')
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='VERIFIED')
+    expiry_date = models.DateField(null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True)
 
     class Meta:
         app_label = 'payroll_app'

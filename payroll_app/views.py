@@ -948,10 +948,12 @@ def reimbursement_decision(request, pk):
             reimb.status = form.cleaned_data['decision']
             reimb.decided_by = request.user
             reimb.decided_at = timezone.now()
+            reimb.approver_comment = form.cleaned_data.get('comment', '').strip()
             reimb.save()
             if reimb.employee.user_id:
                 Notification.objects.create(recipient_id=reimb.employee.user_id,
-                                            message=f"Your {reimb.get_category_display()} claim of {reimb.amount} was {reimb.status.lower()}.",
+                                            message=(f"Your {reimb.get_category_display()} claim of {reimb.amount} was {reimb.status.lower()}."
+                                                     + (f" Comment: {reimb.approver_comment}" if reimb.approver_comment else ''))[:255],
                                             link='/reimbursement/')
             log_action(request, 'APPROVE' if reimb.status == 'APPROVED' else 'REJECT', reimb,
                        details=f'Reimbursement {reimb.status}')

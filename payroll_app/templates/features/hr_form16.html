@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Form 16{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Generate Form 16 (Part B) drafts</h1>
+    <div class="muted">Builds a Part B salary &amp; TDS statement per employee from <b>released</b> payroll in the financial year (April&ndash;March). Drafts are hidden from employees until you publish them on Tax Documents. <b>Have your CA verify the figures. Part A must be downloaded from TRACES.</b></div></div>
+  <div class="fx-card"><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}
+    <p style="margin-top:12px"><button class="fx-btn" type="submit">Generate drafts</button> <a class="fx-btn ghost" href="{% url 'hr_documents' %}">Tax Documents</a></p></form></div>
+</div>{% endblock %}

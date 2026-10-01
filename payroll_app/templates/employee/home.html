@@ -85,9 +85,11 @@
           {% endif %}
         {% endfor %}
         {% for d in other_docs %}
-          <div class="ep-doc"><div><b>{{ d.label }}</b> <span class="muted">&middot; FY {{ d.financial_year }}</span><br><span class="ep-tag ok">Available</span></div>
+          <div class="ep-doc"><div><b>{{ d.label }}</b> <span class="muted">&middot; {% if d.financial_year != '-' %}FY {{ d.financial_year }}{% else %}uploaded {{ d.uploaded_at|date:"d M Y" }}{% endif %}{% if d.expiry_date %} &middot; expires {{ d.expiry_date|date:"d M Y" }}{% endif %}</span><br>
+            <span class="ep-tag {% if d.status == 'VERIFIED' %}ok{% elif d.status == 'REJECTED' %}bad{% else %}wait{% endif %}">{{ d.get_status_display }}</span>{% if d.note %} <span class="muted">{{ d.note }}</span>{% endif %}</div>
             <a class="ep-btn" href="{% url 'employee_document_download' d.pk %}">Download</a></div>
         {% endfor %}
+        <p style="margin-top:10px"><a class="ep-btn ghost" href="{% url 'my_document_upload' %}">Upload a document</a></p>
       </div>
     </div>
 
@@ -120,7 +122,7 @@
       </div>
 
       <div class="ep-card">
-        <h2>Announcements <a href="{% url 'announcements' %}">All</a></h2>
+        <h2>Announcements{% if unread_announcements %} <span class="ep-tag wait">{{ unread_announcements }} new</span>{% endif %} <a href="{% url 'announcements' %}">All</a></h2>
         {% for a in announcements %}<div class="ep-doc"><div><b>{{ a.title }}</b> <span class="muted">&middot; {{ a.publish_date|date:"d M Y" }}</span><br><span class="muted">{{ a.message|truncatechars:140 }}</span></div></div>
         {% empty %}<p class="muted">No announcements.</p>{% endfor %}
       </div>

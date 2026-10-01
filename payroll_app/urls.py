@@ -147,3 +147,12 @@ urlpatterns += [
     path('hr/work-hours/', _p4.hr_work_hours, name='hr_work_hours'),
     path('hr/pay-components/', _p4.hr_pay_components, name='hr_pay_components'),
 ]
+
+# ---- Phase 5: Form 16 Part B drafts, employee document uploads, document verification ----
+from . import phase5 as _p5  # noqa: E402
+
+urlpatterns += [
+    path('hr/form16/', _p5.hr_form16, name='hr_form16'),
+    path('me/documents/upload/', _p5.my_document_upload, name='my_document_upload'),
+    path('hr/documents/<int:pk>/action/', _p5.hr_document_action, name='hr_document_action'),
+]

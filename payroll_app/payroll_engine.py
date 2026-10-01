@@ -113,6 +113,10 @@ def calculate_line(run, employee, period):
         # separate from LOP (absences) so nothing is counted twice.
         not_joined_days = Decimal(max((doj - start).days, 0)) if doj else Decimal('0')
         lop_days = Decimal(att.filter(status='ABSENT').count()) + Decimal(att.filter(status='HALF_DAY').count()) * Decimal('0.5')
+        # Approved UNPAID leave is loss of pay too (days already marked ABSENT are not counted twice).
+        from .phase5 import unpaid_leave_days
+        absent_dates = set(att.filter(status__in=['ABSENT', 'HALF_DAY']).values_list('date', flat=True))
+        lop_days += unpaid_leave_days(employee, max(start, doj) if doj else start, end, absent_dates)
         lop_days = min(lop_days, Decimal(days_in_month) - not_joined_days)
     else:
         not_joined_days = Decimal('0')

@@ -33,6 +33,10 @@ def loan_deductions(employee, run, period):
     result = []
     for loan in Loan.objects.filter(employee=employee, status='ACTIVE', start_date__lte=period[1]):
         remaining = loan.loan_amount - loan.recovered(exclude_run=run)
+        if remaining <= 0:
+            loan.status = 'CLOSED'                 # fully recovered: close it, never deduct again
+            loan.save(update_fields=['status'])
+            continue
         amount = q(min(loan.emi_amount, max(remaining, Decimal('0'))))
         if amount > 0:
             result.append((loan, amount))
