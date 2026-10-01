@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Employee Insurance{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Employee Insurance</h1><div class="muted">The employee's monthly premium is deducted in every payroll month the policy is effective. The employer contribution is shown for information.</div></div>
+  <div class="fx-card"><h2>Add policy</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add policy</button></p></form></div>
+  <div class="fx-card fx-table">{% if items %}<table><tr><th>Employee</th><th>Provider</th><th>Policy no.</th><th>Type</th><th>Employee premium / month</th><th>Employer / month</th><th>Effective</th><th>Status</th><th></th></tr>
+    {% for p in items %}<tr><td>{{ p.employee }}</td><td>{{ p.provider }}</td><td>{{ p.policy_number }}</td><td>{{ p.policy_type }}</td><td>&#8377;{{ p.employee_premium_monthly }}</td><td>&#8377;{{ p.employer_contribution_monthly }}</td><td>{{ p.effective_from|date:"d M Y" }}{% if p.effective_to %} &ndash; {{ p.effective_to|date:"d M Y" }}{% endif %}</td><td><span class="fx-tag {{ p.status }}">{{ p.get_status_display }}</span></td>
+      <td>{% if p.status == 'ACTIVE' %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="deactivate" value="{{ p.pk }}">Deactivate</button></form>{% endif %}</td></tr>{% endfor %}</table>
+  {% else %}<p class="muted">No policies.</p>{% endif %}</div>
+</div>{% endblock %}

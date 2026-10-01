@@ -58,6 +58,11 @@ def build_payslip_pdf(line):
         ('Arrears', line.arrears), ('Reimbursements', line.reimbursements),
     ]
     deductions = [('Provident Fund', line.pf), ('ESI', line.esi), ('TDS', line.tds)]
+    for label, value in (('Professional Tax', getattr(line, 'professional_tax', 0)),
+                         ('Loan EMI', getattr(line, 'loan_deduction', 0)),
+                         ('Insurance', getattr(line, 'insurance_deduction', 0))):
+        if value:
+            deductions.append((label, value))
     rows = [['Earnings', 'Amount', 'Deductions', 'Amount']]
     for i in range(max(len(earnings), len(deductions))):
         e = earnings[i] if i < len(earnings) else ('', None)

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Demo Requests{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Demo Requests</h1><div class="muted">Search, filter and open a request to assign it, change status, set a follow-up and add notes.</div></div>
+  <form method="get" class="fx-filters"><input type="text" name="q" value="{{ q }}" placeholder="Search ID, name, company, email, phone">
+    <select name="status"><option value="">All statuses</option>{% for c, l in statuses %}<option value="{{ c }}" {% if c == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <button class="fx-btn ghost" type="submit">Search</button></form>
+  <div class="fx-card fx-table">{% if demos %}<table><tr><th>Request ID</th><th>Name</th><th>Company</th><th>Contact</th><th>Modules</th><th>Status</th><th>Assigned</th><th>Follow-up</th><th>Received</th><th>Email</th></tr>
+    {% for d in demos %}<tr><td><a href="{% url 'admin_demo_detail' d.pk %}">{{ d.request_code|default:d.pk }}</a></td><td>{{ d.full_name }}</td><td>{{ d.company_name }}</td><td>{{ d.email }}<br>{{ d.phone }}</td><td>{{ d.modules }}</td>
+      <td><span class="fx-tag {{ d.status }}">{{ d.get_status_display }}</span></td><td>{{ d.assigned_to|default:"-" }}</td><td>{{ d.follow_up_date|date:"d M Y"|default:"-" }}</td><td>{{ d.created_at|date:"d M Y H:i" }}</td>
+      <td>{% if d.email_notified %}<span class="fx-tag CLOSED">Sent</span>{% else %}<span class="fx-tag REJECTED" title="{{ d.notification_error }}">Failed</span>{% endif %}</td></tr>{% endfor %}</table>
+    <p class="muted">Page {{ demos.number }} of {{ demos.paginator.num_pages }} {% if demos.has_previous %}<a href="?page={{ demos.previous_page_number }}&q={{ q|urlencode }}&status={{ status }}">Previous</a>{% endif %} {% if demos.has_next %}<a href="?page={{ demos.next_page_number }}&q={{ q|urlencode }}&status={{ status }}">Next</a>{% endif %}</p>
+  {% else %}<p class="muted">No demo requests.</p>{% endif %}</div>
+</div>{% endblock %}

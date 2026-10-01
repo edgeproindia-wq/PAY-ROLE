@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Grievances{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Grievances</h1>
+    <div class="muted">{% if is_owner %}Grievances raised by your employees. Only your company's grievances are shown.{% else %}Raise a grievance and track it with its tracking ID. Only you and HR can see it.{% endif %}</div></div>
+  {% if not is_owner %}
+  <div class="fx-card"><h2>Raise a grievance</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{% include "features/_form.html" %}
+      <p style="margin-top:12px"><button class="fx-btn" type="submit">Submit grievance</button></p></form></div>
+  {% else %}
+  <form method="get" class="fx-filters"><select name="status"><option value="">All statuses</option>
+    {% for c, l in statuses %}<option value="{{ c }}" {% if c == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    <button class="fx-btn ghost" type="submit">Filter</button></form>
+  {% endif %}
+  <div class="fx-card fx-table">
+    {% if items %}<table><tr><th>Tracking ID</th>{% if is_owner %}<th>Employee</th>{% endif %}<th>Subject</th><th>Category</th><th>Status</th><th>Raised</th></tr>
+    {% for g in items %}<tr><td><a href="{% url 'grievance_detail' g.pk %}">{{ g.tracking_id }}</a></td>{% if is_owner %}<td>{{ g.employee }}</td>{% endif %}
+      <td>{{ g.subject }}</td><td>{{ g.get_category_display }}</td><td><span class="fx-tag {{ g.status }}">{{ g.get_status_display }}</span></td><td>{{ g.created_at|date:"d M Y" }}</td></tr>{% endfor %}
+    </table>{% else %}<p class="muted">No grievances yet.</p>{% endif %}
+  </div>
+</div>{% endblock %}

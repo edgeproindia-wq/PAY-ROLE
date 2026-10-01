@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block content %}
+<style>
+  .ep{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0f172a}
+  .ep h1{font-size:24px;font-weight:800;margin:0}
+  .ep .muted{color:#64748b;font-size:13.5px}
+  .ep-hero{background:#0d1220;color:#fff;border-radius:14px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+  .ep-hero h1{color:#fff}
+  .ep-hero .muted{color:#a3acc2}
+  .ep-pill{display:inline-block;background:rgba(124,124,248,.18);color:#c7c9ff;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;margin-right:6px}
+  .ep-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}
+  .ep-kpi{background:#fff;border:1px solid #e6e8ef;border-radius:12px;padding:16px 18px}
+  .ep-kpi small{display:block;font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#64748b}
+  .ep-kpi b{display:block;font-size:22px;margin-top:6px}
+  .ep-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+  .ep-card{background:#fff;border:1px solid #e6e8ef;border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .ep-card h2{font-size:16px;font-weight:800;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center}
+  .ep-card h2 a{font-size:13px;font-weight:600;color:#5b5bf0;text-decoration:none}
+  .ep table{width:100%;border-collapse:collapse;font-size:14px}
+  .ep th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;padding:8px 6px;border-bottom:1px solid #e6e8ef}
+  .ep td{padding:10px 6px;border-bottom:1px solid #f1f3f7}
+  .ep .r{text-align:right}
+  .ep-btn{display:inline-block;padding:6px 12px;border-radius:6px;background:#5b5bf0;color:#fff!important;font-size:13px;font-weight:600;text-decoration:none}
+  .ep-btn.ghost{background:#fff;color:#5b5bf0!important;border:1px solid #5b5bf0}
+  .ep-doc{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f3f7}
+  .ep-doc:last-child{border-bottom:none}
+  .ep-tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .ok{background:#dcfce7;color:#166534}.wait{background:#fff6e5;color:#b45309}.bad{background:#fee2e2;color:#b91c1c}
+  .ep-links{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ep-links a{display:block;padding:12px 14px;border:1px solid #e6e8ef;border-radius:10px;color:#0f172a;text-decoration:none;font-weight:600;font-size:14px}
+  .ep-links a:hover{border-color:#5b5bf0;color:#5b5bf0}
+  @media (max-width:900px){.ep-kpis{grid-template-columns:1fr 1fr}.ep-grid{grid-template-columns:1fr}}
+</style>
+<div class="ep">
+{% if no_employee %}
+  <div class="ep-card"><h2>My Dashboard</h2>
+    <p class="muted">Your login is not linked to an employee record yet. Please ask your HR / company owner to link your account in Employee Master.</p></div>
+{% else %}
+  <div class="ep-hero">
+    <div>
+      <h1>Welcome, {{ emp.first_name }}</h1>
+      <div class="muted" style="margin-top:6px">
+        <span class="ep-pill">{{ emp.employee_code }}</span>{{ emp.designation }}{% if emp.department %} &middot; {{ emp.department }}{% endif %}{% if emp.company %} &middot; {{ emp.company.name }}{% endif %}
+      </div>
+    </div>
+    <div class="muted">Joined {{ emp.date_of_joining|date:"d M Y" }}</div>
+  </div>
+
+  <div class="ep-kpis">
+    <div class="ep-kpi"><small>Latest net pay</small><b>{% if latest %}&#8377;{{ latest.net_pay|floatformat:"2g" }}{% else %}&mdash;{% endif %}</b><span class="muted">{{ latest_period }}</span></div>
+    <div class="ep-kpi"><small>Present this month</small><b>{% if present_days is not None %}{{ present_days }} days{% else %}&mdash;{% endif %}</b></div>
+    <div class="ep-kpi"><small>Pending leave</small><b>{% if pending_leaves is not None %}{{ pending_leaves }}{% else %}&mdash;{% endif %}</b></div>
+    <div class="ep-kpi"><small>Pending claims</small><b>{% if pending_claims is not None %}{{ pending_claims }}{% else %}&mdash;{% endif %}</b></div>
+  </div>
+
+  <div class="ep-grid">
+    <div>
+      <div class="ep-card">
+        <h2>My Payslips <a href="{% url 'payslips' %}">View all</a></h2>
+        {% if payslips %}
+        <table>
+          <tr><th>Pay period</th><th class="r">Net pay</th><th class="r"></th></tr>
+          {% for p in payslips %}
+          <tr><td>{{ p.period }}</td><td class="r">{% if p.net is not None %}&#8377;{{ p.net|floatformat:"2g" }}{% endif %}</td>
+              <td class="r"><a class="ep-btn" href="{% url 'payslip_pdf' p.line.pk %}">Download PDF</a></td></tr>
+          {% endfor %}
+        </table>
+        {% else %}<p class="muted">No payslips released yet.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Tax &amp; Documents</h2>
+        {% for slot in doc_slots %}
+          {% if slot.docs %}
+            {% for d in slot.docs %}
+            <div class="ep-doc"><div><b>{{ d.label }}</b> <span class="muted">&middot; FY {{ d.financial_year }}</span><br><span class="ep-tag ok">Available</span></div>
+              <a class="ep-btn" href="{% url 'employee_document_download' d.pk %}">Download</a></div>
+            {% endfor %}
+          {% else %}
+            <div class="ep-doc"><div><b>{{ slot.label }}</b><br><span class="ep-tag wait">Not issued yet</span></div></div>
+          {% endif %}
+        {% endfor %}
+        {% for d in other_docs %}
+          <div class="ep-doc"><div><b>{{ d.label }}</b> <span class="muted">&middot; FY {{ d.financial_year }}</span><br><span class="ep-tag ok">Available</span></div>
+            <a class="ep-btn" href="{% url 'employee_document_download' d.pk %}">Download</a></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div class="ep-card">
+        <h2>Quick actions</h2>
+        <div class="ep-links">
+          <a href="{% url 'leave_management' %}">&#127796; Apply leave</a>
+          <a href="{% url 'attendance' %}">&#128197; My attendance</a>
+          <a href="{% url 'reimbursement' %}">&#129534; Submit a claim</a>
+          <a href="{% url 'investment_declaration' %}">&#128176; Investment declaration</a>
+          <a href="{% url 'payslips' %}">&#128196; All payslips</a>
+          <a href="{% url 'notifications' %}">&#128276; Notifications</a>
+          <a href="{% url 'grievances' %}">&#128172; Raise a grievance</a>
+          <a href="{% url 'password_change' %}">&#128273; Change password</a>
+        </div>
+      </div>
+
+
+      <div class="ep-card">
+        <h2>Announcements <a href="{% url 'announcements' %}">All</a></h2>
+        {% for a in announcements %}<div class="ep-doc"><div><b>{{ a.title }}</b> <span class="muted">&middot; {{ a.publish_date|date:"d M Y" }}</span><br><span class="muted">{{ a.message|truncatechars:140 }}</span></div></div>
+        {% empty %}<p class="muted">No announcements.</p>{% endfor %}
+      </div>
+
+      <div class="ep-card">
+        <h2>My grievances <a href="{% url 'grievances' %}">Raise / track</a></h2>
+        {% if grievances %}<table>{% for g in grievances %}
+          <tr><td><a href="{% url 'grievance_detail' g.pk %}">{{ g.tracking_id }}</a><br><span class="muted">{{ g.subject }}</span></td>
+              <td class="r"><span class="ep-tag {% if g.status == 'RESOLVED' or g.status == 'CLOSED' %}ok{% elif g.status == 'REJECTED' %}bad{% else %}wait{% endif %}">{{ g.get_status_display }}</span></td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No grievances raised.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Loans &amp; insurance</h2>
+        {% for l in loans %}<div class="ep-doc"><div><b>Loan {{ l.reference_no }}</b> <span class="muted">&middot; EMI &#8377;{{ l.emi_amount }} from {{ l.start_date|date:"M Y" }}</span><br><span class="muted">Amount &#8377;{{ l.loan_amount }} &middot; balance &#8377;{{ l.balance }}</span></div><span class="ep-tag {% if l.status == 'ACTIVE' %}wait{% else %}ok{% endif %}">{{ l.get_status_display }}</span></div>{% endfor %}
+        {% for p in insurance %}<div class="ep-doc"><div><b>{{ p.provider }}</b> <span class="muted">&middot; {{ p.policy_type }} &middot; {{ p.policy_number }}</span><br><span class="muted">Your premium &#8377;{{ p.employee_premium_monthly }}/month{% if p.sum_insured %} &middot; cover &#8377;{{ p.sum_insured }}{% endif %}</span></div></div>{% endfor %}
+        {% if not loans and not insurance %}<p class="muted">No loans or insurance policies.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Investment declarations <a href="{% url 'investment_declaration' %}">Open</a></h2>
+        {% if declarations %}<table>{% for d in declarations %}
+          <tr><td>{{ d.section }} &middot; FY {{ d.financial_year }}</td><td class="r">&#8377;{{ d.declared_amount }}</td>
+              <td class="r">{% if d.proof_document %}<a class="ep-btn ghost" href="{% url 'declaration_proof' d.pk %}">Proof</a>{% endif %}</td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No declarations yet.</p>{% endif %}
+      </div>
+      <div class="ep-card">
+        <h2>Recent leave <a href="{% url 'leave_management' %}">Open</a></h2>
+        {% if recent_leaves %}<table>{% for l in recent_leaves %}
+          <tr><td>{{ l.from_date|date:"d M" }} &ndash; {{ l.to_date|date:"d M Y" }}{% if l.approver_comment %}<br><span class="muted">&ldquo;{{ l.approver_comment }}&rdquo;</span>{% endif %}</td>
+              <td class="r"><span class="ep-tag {% if l.status == 'APPROVED' %}ok{% elif l.status == 'REJECTED' or l.status == 'CANCELLED' %}bad{% else %}wait{% endif %}">{{ l.get_status_display|default:l.status }}</span>
+              {% if l.status == 'PENDING' or l.status == 'APPROVED' and l.from_date > today %}
+                <form method="post" action="{% url 'leave_cancel' l.pk %}" style="display:inline" onsubmit="return confirm('Cancel this leave request?')">{% csrf_token %}<button class="ep-btn ghost" type="submit">Cancel</button></form>{% endif %}</td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No leave requests yet.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Recent claims <a href="{% url 'reimbursement' %}">Open</a></h2>
+        {% if recent_claims %}<table>{% for c in recent_claims %}
+          <tr><td>{{ c.date|date:"d M Y" }}</td><td class="r">&#8377;{{ c.amount|floatformat:"2g" }}</td>
+              <td class="r"><span class="ep-tag {% if c.status == 'APPROVED' %}ok{% elif c.status == 'REJECTED' %}bad{% else %}wait{% endif %}">{{ c.get_status_display|default:c.status }}</span></td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No claims yet.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>My profile</h2>
+        <table>
+          <tr><td class="muted">Email</td><td class="r">{{ emp.email }}</td></tr>
+          {% if emp.phone %}<tr><td class="muted">Mobile</td><td class="r">{{ emp.phone }}</td></tr>{% endif %}
+          {% if pan_masked %}<tr><td class="muted">PAN</td><td class="r">{{ pan_masked }}</td></tr>{% endif %}
+          {% if bank_masked %}<tr><td class="muted">Bank account</td><td class="r">{{ bank_masked }}</td></tr>{% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

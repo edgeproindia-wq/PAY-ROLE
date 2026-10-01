@@ -120,17 +120,20 @@ def notify_demo_request(demo):
     submitted = timezone.localtime(demo.created_at).strftime('%d %b %Y %I:%M %p')
     body = (
         'New demo request received\n\n'
+        f'Request ID    : {demo.request_code}\n'
         f'Full name     : {demo.full_name}\n'
         f'Email         : {demo.email}\n'
         f'Mobile        : {demo.phone or "-"}\n'
         f'Company       : {demo.company_name}\n'
         f'Employees     : {demo.team_size or "-"}\n'
         f'Preferred demo: {when}\n'
+        f'Industry      : {demo.industry or "-"}\n'
+        f'Modules       : {demo.modules or "-"}\n'
         f'Message       : {demo.message or "-"}\n'
         f'Submitted at  : {submitted}\n'
     )
     email_ok, email_err = send_email_safe(
-        f'New Demo Request - {demo.company_name}', body, _demo_recipients()
+        f'New Request Demo Received - {demo.company_name} ({demo.request_code})', body, _demo_recipients()
     )
     sms_text = (
         f'New demo request: {demo.full_name}, {demo.company_name}, {demo.phone or demo.email}, '

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Announcements</h1><div class="muted">{% if is_owner %}Publish notices to your company. Employees are notified.{% else %}Notices from your company.{% endif %}</div></div>
+  {% if is_owner %}<div class="fx-card"><h2>New announcement</h2>
+    <form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Publish</button></p></form></div>{% endif %}
+  {% for a in items %}<div class="fx-card"><h2>{{ a.title }} {% if is_owner %}<span class="fx-tag {{ a.status }}">{{ a.get_status_display }}</span>{% endif %}</h2>
+    <div class="muted">{{ a.publish_date|date:"d M Y" }}{% if a.expiry_date %} &ndash; until {{ a.expiry_date|date:"d M Y" }}{% endif %}{% if is_owner %} &middot; {{ a.get_audience_display }}{% endif %}</div>
+    <p style="white-space:pre-wrap">{{ a.message }}</p>
+    {% if is_owner and a.status == 'PUBLISHED' %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="archive" value="{{ a.pk }}">Archive</button></form>{% endif %}
+  </div>{% empty %}<div class="fx-card"><p class="muted">No announcements.</p></div>{% endfor %}
+</div>{% endblock %}

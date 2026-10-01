@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Grievance {{ g.tracking_id }}{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>{{ g.tracking_id }} &middot; {{ g.subject }}</h1>
+    <div class="muted"><span class="fx-tag {{ g.status }}">{{ g.get_status_display }}</span> &middot; {{ g.get_category_display }}{% if g.department %} &middot; {{ g.department }}{% endif %} &middot; raised {{ g.created_at|date:"d M Y H:i" }} by {{ g.employee }}{% if g.assigned_to %} &middot; assigned to {{ g.assigned_to }}{% endif %}</div>
+    <p style="white-space:pre-wrap;margin-top:12px">{{ g.description }}</p>
+    {% if g.attachment %}<p><a class="fx-btn ghost" href="{% url 'grievance_attachment' g.pk %}">Download attachment</a></p>{% endif %}
+  </div>
+  <div class="fx-card"><h2>History</h2><div class="fx-tl">
+    {% for u in updates %}<div><b>{{ u.author|default:"System" }}</b> <span class="muted">{{ u.created_at|date:"d M Y H:i" }}</span>
+      {% if u.new_status %}<br><span class="muted">Status &rarr;</span> <span class="fx-tag {{ u.new_status }}">{{ u.new_status }}</span>{% endif %}
+      {% if u.message %}<div style="white-space:pre-wrap">{{ u.message }}</div>{% endif %}</div>{% endfor %}
+  </div></div>
+  {% if is_owner or g.status != 'CLOSED' and g.status != 'REJECTED' %}
+  <div class="fx-card"><h2>{% if is_owner %}Respond / update{% else %}Add a comment{% endif %}</h2>
+    <form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}
+      <p style="margin-top:12px"><button class="fx-btn" type="submit">Save</button> <a class="fx-btn ghost" href="{% url 'grievances' %}">Back</a></p></form></div>
+  {% endif %}
+</div>{% endblock %}

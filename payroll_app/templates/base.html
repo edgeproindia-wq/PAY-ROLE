@@ -190,6 +190,12 @@
   }
 </style>
 {% block extra_head %}{% endblock %}
+<style>
+  /* mobile: cards and grid children may shrink; wide tables scroll inside their card */
+  .card, .grid > *, [class*="grid"] > * { min-width: 0; }
+  .table-wrap { overflow-x: auto; max-width: 100%; }
+  canvas { max-width: 100%; }
+</style>
 </head>
 <body>
   <div class="sidebar">
@@ -240,6 +246,8 @@
     {% if not is_employee_role %}
     <a href="{% url 'payroll_processing' %}" class="{% if request.resolver_match.url_name == 'payroll_processing' %}active{% endif %}">Payroll Processing</a>
     {% endif %}
+    {% if is_employee_role %}<a href="{% url 'employee_home' %}">My Dashboard</a><a href="{% url 'grievances' %}">Grievances</a><a href="{% url 'announcements' %}">Announcements</a>{% endif %}
+    {% if is_company_owner %}<a href="{% url 'grievances' %}">Grievances</a><a href="{% url 'announcements' %}">Announcements</a>{% endif %}
     <a href="{% url 'payslips' %}" class="{% if request.resolver_match.url_name == 'payslips' %}active{% endif %}">Payslips</a>
     {% if not is_employee_role %}
     <a href="{% url 'bank_transfer' %}" class="{% if request.resolver_match.url_name == 'bank_transfer' %}active{% endif %}">Bank Transfer</a>
@@ -256,6 +264,7 @@
         <a href="{% url 'full_final_settlement' %}">Full &amp; Final Settlement</a>
         <a href="{% url 'reports_analytics' %}">Reports &amp; Analytics</a>
         {% endif %}
+        {% if is_company_owner %}<a href="{% url 'hr_documents' %}">Tax Documents</a><a href="{% url 'hr_declarations' %}">Investment Proofs</a><a href="{% url 'hr_loans' %}">Loans</a><a href="{% url 'hr_insurance' %}">Insurance</a><a href="{% url 'hr_professional_tax' %}">Professional Tax</a>{% endif %}
         <a href="{% url 'investment_declaration' %}">Investment Declaration</a>
         <a href="{% url 'ess' %}">ESS</a>
         <a href="{% url 'notifications' %}">Notifications</a>

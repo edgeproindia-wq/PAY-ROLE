@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Employee Loans{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Employee Loans</h1><div class="muted">The EMI is deducted in each payroll run from the start month until the loan amount is recovered. Enter the loan amount as the total to recover (including any interest).</div></div>
+  <div class="fx-card"><h2>Add loan</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add loan</button></p></form></div>
+  <div class="fx-card fx-table">{% if items %}<table><tr><th>Reference</th><th>Employee</th><th>Amount</th><th>EMI</th><th>Tenure</th><th>Start</th><th>Balance</th><th>Status</th><th></th></tr>
+    {% for l in items %}<tr><td>{{ l.reference_no }}</td><td>{{ l.employee }}</td><td>&#8377;{{ l.loan_amount }}</td><td>&#8377;{{ l.emi_amount }}</td><td>{{ l.tenure_months }} m</td><td>{{ l.start_date|date:"M Y" }}</td><td>&#8377;{{ l.balance }}</td><td><span class="fx-tag {{ l.status }}">{{ l.get_status_display }}</span></td>
+      <td>{% if l.status == 'ACTIVE' %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="close" value="{{ l.pk }}">Close</button></form>{% endif %}</td></tr>{% endfor %}</table>
+  {% else %}<p class="muted">No loans.</p>{% endif %}</div>
+</div>{% endblock %}

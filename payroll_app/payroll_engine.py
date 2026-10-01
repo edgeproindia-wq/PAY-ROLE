@@ -136,9 +136,15 @@ def calculate_line(run, employee, period):
     pf = q(earned_basic * pf_rate)
     esi = q(earned_gross * esi_rate) if gross <= ESI_GROSS_LIMIT else Decimal('0.00')
     tds = monthly_tds(gross * 12)
+    # Optional deductions: all 0 unless HR configured PT slabs, loans or insurance.
+    from .payroll_extras import insurance_deduction, loan_deductions, professional_tax_for
+    pt = professional_tax_for(employee.company, earned_gross, period)
+    loans = loan_deductions(employee, run, period)
+    loan_total = q(sum((amount for _, amount in loans), Decimal('0')))
+    insurance = insurance_deduction(employee, period)
 
     total_earnings = q(earned_gross + arrears_total + reimb_total)
-    total_deductions = q(pf + esi + tds)
+    total_deductions = q(pf + esi + tds + pt + loan_total + insurance)
     net = q(max(total_earnings - total_deductions, Decimal('0')))
 
     return {
@@ -148,7 +154,9 @@ def calculate_line(run, employee, period):
         'days_in_month': days_in_month, 'lop_days': lop_days, 'lop_amount': lop_amount,
         'arrears': arrears_total, 'reimbursements': reimb_total,
         'total_earnings': total_earnings, 'pf': pf, 'esi': esi, 'tds': tds,
+        'professional_tax': pt, 'loan_deduction': loan_total, 'insurance_deduction': insurance,
         'total_deductions': total_deductions, 'net_pay': net,
+        '_loans': loans,
     }
 
 
@@ -163,7 +171,10 @@ def build_run_lines(run, employees):
         if values is None:
             skipped.append(emp)
             continue
-        PayrollRunLine.objects.update_or_create(payroll_run=run, employee=emp, defaults=values)
+        loans = values.pop('_loans', [])
+        line, _ = PayrollRunLine.objects.update_or_create(payroll_run=run, employee=emp, defaults=values)
+        from .payroll_extras import record_loan_repayments
+        record_loan_repayments(line, loans)
         created += 1
     return created, skipped
 

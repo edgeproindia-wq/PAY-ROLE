@@ -114,3 +114,27 @@ urlpatterns = [
 
     path('page/<path:template_path>/', views.generic_page, name='generic_page'),
 ]
+
+# ---- Phase 3: employee dashboard, documents, grievances, announcements, loans, insurance,
+#      professional tax, investment proofs and the admin demo-request CRM ----
+from . import employee_portal as _ep, features as _fx  # noqa: E402
+
+urlpatterns.insert(0, path('post-login/', _ep.post_login, name='post_login_employee_aware'))
+urlpatterns.insert(0, path('admin-panel/demo-requests/', _fx.admin_demo_list, name='admin_demo_list'))
+urlpatterns += [
+    path('me/', _ep.employee_home, name='employee_home'),
+    path('me/documents/<int:pk>/', _ep.document_download, name='employee_document_download'),
+    path('hr/tax-documents/', _ep.hr_documents, name='hr_documents'),
+    path('hr/tax-documents/<int:pk>/download/', _ep.hr_document_download, name='hr_document_download'),
+    path('leave/<int:pk>/cancel/', _fx.leave_cancel, name='leave_cancel'),
+    path('grievances/', _fx.grievances, name='grievances'),
+    path('grievances/<int:pk>/', _fx.grievance_detail, name='grievance_detail'),
+    path('grievances/<int:pk>/attachment/', _fx.grievance_attachment, name='grievance_attachment'),
+    path('announcements/', _fx.announcements, name='announcements'),
+    path('hr/loans/', _fx.hr_loans, name='hr_loans'),
+    path('hr/insurance/', _fx.hr_insurance, name='hr_insurance'),
+    path('hr/professional-tax/', _fx.hr_professional_tax, name='hr_professional_tax'),
+    path('hr/declarations/', _fx.hr_declarations, name='hr_declarations'),
+    path('declarations/<int:pk>/proof/', _fx.declaration_proof, name='declaration_proof'),
+    path('admin-panel/demo-requests/<int:pk>/', _fx.admin_demo_detail, name='admin_demo_detail'),
+]

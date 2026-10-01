@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Investment Proofs{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Investment declarations &amp; proofs</h1><div class="muted">Proof files are private; downloads are checked against your company.</div></div>
+  <div class="fx-card fx-table">{% if items %}<table><tr><th>Employee</th><th>Section</th><th>Amount</th><th>FY</th><th>Proof</th></tr>
+    {% for d in items %}<tr><td>{{ d.employee }}</td><td>{{ d.section }}</td><td>&#8377;{{ d.declared_amount }}</td><td>{{ d.financial_year }}</td>
+      <td>{% if d.proof_document %}<a class="fx-btn ghost" href="{% url 'declaration_proof' d.pk %}">Download</a>{% else %}<span class="muted">None</span>{% endif %}</td></tr>{% endfor %}</table>
+  {% else %}<p class="muted">No declarations.</p>{% endif %}</div>
+</div>{% endblock %}

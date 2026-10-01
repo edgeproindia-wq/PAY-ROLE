@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Demo {{ demo.request_code }}{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>{{ demo.request_code }} &middot; {{ demo.company_name }}</h1>
+    <div class="muted"><span class="fx-tag {{ demo.status }}">{{ demo.get_status_display }}</span> &middot; received {{ demo.created_at|date:"d M Y H:i" }}{% if demo.updated_at %} &middot; updated {{ demo.updated_at|date:"d M Y H:i" }}{% endif %}</div>
+    <div class="fx-table" style="margin-top:12px"><table>
+      <tr><td class="muted">Name</td><td>{{ demo.full_name }}</td><td class="muted">Email</td><td>{{ demo.email }}</td></tr>
+      <tr><td class="muted">Phone</td><td>{{ demo.phone }}</td><td class="muted">Company size</td><td>{{ demo.team_size }}</td></tr>
+      <tr><td class="muted">Industry</td><td>{{ demo.industry|default:"-" }}</td><td class="muted">Modules</td><td>{{ demo.modules|default:"-" }}</td></tr>
+      <tr><td class="muted">Preferred time</td><td>{{ demo.preferred_datetime|date:"d M Y H:i"|default:"-" }}</td><td class="muted">Admin email</td><td>{% if demo.email_notified %}Sent{% else %}Failed {{ demo.notification_error }}{% endif %}</td></tr>
+    </table></div>
+    <p style="white-space:pre-wrap">{{ demo.message }}</p></div>
+  <div class="fx-card"><h2>Update</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}
+    <p style="margin-top:12px"><button class="fx-btn" type="submit">Save</button> <a class="fx-btn ghost" href="{% url 'admin_demo_requests' %}">Back to list</a></p></form></div>
+  <div class="fx-card"><h2>Activity</h2><div class="fx-tl">{% for a in activities %}<div><b>{{ a.actor|default:"System" }}</b> <span class="muted">{{ a.created_at|date:"d M Y H:i" }}</span><br>{{ a.action }}{% if a.note %}<div style="white-space:pre-wrap" class="muted">{{ a.note }}</div>{% endif %}</div>{% empty %}<p class="muted">No activity yet.</p>{% endfor %}</div></div>
+</div>{% endblock %}

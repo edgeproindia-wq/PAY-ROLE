@@ -181,6 +181,7 @@ class LeaveRequestForm(forms.ModelForm):
 class LeaveDecisionForm(forms.Form):
     """Approve/reject a leave request — status is never taken from raw POST."""
     decision = forms.ChoiceField(choices=[('APPROVED', 'Approve'), ('REJECTED', 'Reject')])
+    comment = forms.CharField(max_length=255, required=False)
 
 
 class ReimbursementForm(forms.ModelForm):
@@ -301,10 +302,21 @@ class InvestmentDeclarationForm(forms.ModelForm):
 # Public / auth workflow forms
 # ---------------------------------------------------------------------------
 
+DEMO_INDUSTRIES = [('', 'Select industry'), ('IT', 'IT / Software'), ('MANUFACTURING', 'Manufacturing'),
+                   ('ENGINEERING', 'Engineering / Construction'), ('HEALTHCARE', 'Healthcare'), ('RETAIL', 'Retail'),
+                   ('EDUCATION', 'Education'), ('FINANCE', 'Finance'), ('OTHER', 'Other')]
+DEMO_MODULES = [('PAYROLL', 'Payroll'), ('ATTENDANCE', 'Attendance & leave'), ('ESS', 'Employee self-service'),
+                ('COMPLIANCE', 'PF / ESI / TDS compliance'), ('REPORTS', 'Reports'), ('DOCUMENTS', 'Form 16 & documents')]
+
+
 class DemoRequestForm(forms.ModelForm):
+    industry = forms.ChoiceField(choices=DEMO_INDUSTRIES, required=False)
+    modules_choice = forms.MultipleChoiceField(choices=DEMO_MODULES, required=False, label='Modules you need',
+                                               widget=forms.CheckboxSelectMultiple)
+
     class Meta:
         model = DemoRequest
-        fields = ['full_name', 'company_name', 'email', 'phone', 'team_size', 'preferred_datetime', 'message']
+        fields = ['full_name', 'company_name', 'email', 'phone', 'team_size', 'industry', 'preferred_datetime', 'message']
         labels = {
             'phone': 'Mobile number', 'team_size': 'Number of employees / users',
             'preferred_datetime': 'Preferred demo date & time', 'message': 'Message / requirements',
@@ -322,6 +334,14 @@ class DemoRequestForm(forms.ModelForm):
 
     def clean_phone(self):
         return validate_indian_mobile(self.cleaned_data.get('phone'))
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        labels = dict(DEMO_MODULES)
+        obj.modules = ', '.join(labels[c] for c in self.cleaned_data.get('modules_choice') or [])
+        if commit:
+            obj.save()
+        return obj
 
     def clean_preferred_datetime(self):
         value = self.cleaned_data.get('preferred_datetime')

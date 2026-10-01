@@ -241,6 +241,7 @@ class LeaveRequest(models.Model):
         ('PENDING', 'Pending'),
         ('APPROVED', 'Approved'),
         ('REJECTED', 'Rejected'),
+        ('CANCELLED', 'Cancelled'),
     ]
 
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='leave_requests')
@@ -253,6 +254,9 @@ class LeaveRequest(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='leave_decisions'
     )
     decided_at = models.DateTimeField(null=True, blank=True)
+    approver_comment = models.CharField(max_length=255, blank=True)      # reason given when approving/rejecting
+    cancellation_reason = models.CharField(max_length=255, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-from_date']
@@ -356,6 +360,9 @@ class PayrollRunLine(models.Model):
     pf = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     esi = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     tds = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    loan_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    insurance_deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     net_pay = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -472,10 +479,15 @@ class DemoRequest(models.Model):
     """Public 'Request a Demo' submission — no login required to create."""
 
     STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
+        ('PENDING', 'New'),
         ('CONTACTED', 'Contacted'),
-        ('APPROVED', 'Approved'),
-        ('REJECTED', 'Rejected'),
+        ('DEMO_SCHEDULED', 'Demo scheduled'),
+        ('DEMO_COMPLETED', 'Demo completed'),
+        ('FOLLOW_UP', 'Follow-up required'),
+        ('CONVERTED', 'Converted'),
+        ('CLOSED', 'Closed'),
+        ('APPROVED', 'Approved (legacy)'),
+        ('REJECTED', 'Rejected (legacy)'),
     ]
 
     full_name = models.CharField(max_length=150)
@@ -485,8 +497,15 @@ class DemoRequest(models.Model):
     team_size = models.CharField(max_length=50, blank=True)
     preferred_datetime = models.DateTimeField(null=True, blank=True)
     message = models.TextField(blank=True)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     admin_notes = models.CharField(max_length=500, blank=True)
+    request_code = models.CharField(max_length=20, unique=True, null=True, blank=True, editable=False)
+    industry = models.CharField(max_length=60, blank=True)
+    modules = models.CharField(max_length=300, blank=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='assigned_demo_requests')
+    follow_up_date = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
     email_notified = models.BooleanField(default=False)
     sms_notified = models.BooleanField(default=False)
     notification_error = models.CharField(max_length=500, blank=True)
@@ -495,6 +514,12 @@ class DemoRequest(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.request_code:      # human-friendly ID, e.g. DR-2026-00042
+            self.request_code = f"DR-{self.created_at:%Y}-{self.pk:05d}"
+            type(self).objects.filter(pk=self.pk).update(request_code=self.request_code)
 
     def __str__(self):
         return f"Demo request - {self.company_name} ({self.get_status_display()})"
@@ -687,3 +712,9 @@ class BankPayment(models.Model):
 
     def __str__(self):
         return f"{self.payroll_line.employee} - {self.amount} - {self.status}"
+
+
+# Phase-3 models live in their own modules; importing them here registers them with the app.
+from .models_documents import EmployeeDocument  # noqa: E402,F401
+from .models_features import (Announcement, DemoRequestActivity, Grievance, GrievanceUpdate,  # noqa: E402,F401
+                              InsurancePolicy, Loan, LoanRepayment, ProfessionalTaxSlab)

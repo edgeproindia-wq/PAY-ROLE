@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Professional Tax{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Professional Tax slabs</h1><div class="muted">Professional tax is deducted from monthly earned gross using these slabs. No slabs = no professional tax. Rules differ by state and change over time &mdash; enter them as confirmed by your CA.</div></div>
+  <div class="fx-card"><h2>Add slab</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add slab</button></p></form></div>
+  <div class="fx-card fx-table">{% if items %}<table><tr><th>Monthly gross from</th><th>To</th><th>PT / month</th><th>February</th><th></th></tr>
+    {% for s in items %}<tr><td>&#8377;{{ s.min_monthly_gross }}</td><td>{% if s.max_monthly_gross %}&#8377;{{ s.max_monthly_gross }}{% else %}and above{% endif %}</td><td>&#8377;{{ s.monthly_amount }}</td><td>{% if s.february_amount is not None %}&#8377;{{ s.february_amount }}{% else %}same{% endif %}</td>
+      <td><form method="post">{% csrf_token %}<button class="fx-btn danger" name="delete" value="{{ s.pk }}">Delete</button></form></td></tr>{% endfor %}</table>
+  {% else %}<p class="muted">No slabs configured &mdash; professional tax is not being deducted.</p>{% endif %}</div>
+</div>{% endblock %}

@@ -56,9 +56,7 @@ OTP_MAX_ATTEMPTS = 5
 
 # Explicit whitelist for the legacy generic template loader — prevents path
 # traversal / arbitrary template disclosure via the URL.
-GENERIC_PAGE_WHITELIST = {
-    'Staffing module mobile ui mockup',
-}
+GENERIC_PAGE_WHITELIST = set()   # the old mock-up page had no template (500) and was removed
 
 
 # ---------------------------------------------------------------------------
@@ -891,10 +889,12 @@ def leave_decision(request, pk):
             leave.status = form.cleaned_data['decision']
             leave.decided_by = request.user
             leave.decided_at = timezone.now()
+            leave.approver_comment = form.cleaned_data.get('comment', '').strip()
             leave.save()
             if leave.employee.user_id:
                 Notification.objects.create(recipient_id=leave.employee.user_id,
-                                            message=f"Your {leave.get_leave_type_display()} request was {leave.status.lower()}.",
+                                            message=(f"Your {leave.get_leave_type_display()} request was {leave.status.lower()}."
+                                                     + (f" Comment: {leave.approver_comment}" if leave.approver_comment else ''))[:255],
                                             link='/leave_management/')
             log_action(request, 'APPROVE' if leave.status == 'APPROVED' else 'REJECT', leave,
                        details=f'Leave request {leave.status}')
