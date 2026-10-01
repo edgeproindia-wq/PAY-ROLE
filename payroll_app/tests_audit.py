@@ -395,7 +395,8 @@ class EmployeeManagementTests(TestCase):
         self.assertEqual(e.user.role, 'EMPLOYEE')
         self.client.logout()
         self.assertTrue(self.client.login(username='e9@ex.com', password='EmpPass12345'))
-        self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)
+        self.assertRedirects(self.client.get(reverse('dashboard')), reverse('employee_home'), fetch_redirect_response=False)
+        self.assertEqual(self.client.get(reverse('employee_home')).status_code, 200)
         self.assertEqual(self.client.get(reverse('employee_master')).status_code, 403)
 
     def test_missing_bank_details_shown_not_crash(self):
@@ -675,7 +676,7 @@ class SmokeAllPagesTests(TestCase):
             (self.admin, self.ADMIN_ONLY + ['notifications', 'password_change'],
              [n for n in self.OWNER_OR_ADMIN + self.ANY if n not in ('dashboard', 'notifications', 'password_change')]),
             (self.owner, self.OWNER_OR_ADMIN + self.ANY + ['client_complaints', 'client_requests'], self.ADMIN_ONLY),
-            (self.emp.user, self.ANY, self.ADMIN_ONLY + self.OWNER_OR_ADMIN),
+            (self.emp.user, [n for n in self.ANY if n != 'dashboard'] + ['employee_home'], self.ADMIN_ONLY + self.OWNER_OR_ADMIN),
         ]
         for u, ok, forbidden in cases:
             self.client.force_login(u)
@@ -736,3 +737,19 @@ class EmailFirstRegistrationTests(TestCase):
         resp = self.client.post(url, {'action': 'send_otp', 'email': 'team@co.com'})
         self.assertContains(resp, 'maximum allowed')
         self.assertEqual(len(mail.outbox), 1, 'no OTP for a 21st account')
+
+
+class EmployeeLandingTests(TestCase):
+    """An employee always ends up on /me/, even after logging in from /login/?next=/."""
+    def test_employee_login_with_next_root_lands_on_me(self):
+        c = company('Acme')
+        e = employee(c, 'A1', 'a1@ex.com', login='emp1')
+        resp = self.client.post(reverse('login') + '?next=/', {'username': 'emp1', 'password': PWD}, follow=True)
+        self.assertEqual(resp.redirect_chain[-1][0], reverse('employee_home'))
+        self.assertContains(resp, 'Welcome')
+
+    def test_owner_still_gets_company_dashboard(self):
+        c = company('Acme')
+        owner = user('own', 'COMPANY_OWNER', c)
+        self.client.force_login(owner)
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)

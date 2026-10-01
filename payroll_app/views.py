@@ -586,6 +586,8 @@ def employee_create_account(request, pk):
 def dashboard(request):
     if request.user.is_superuser or request.user.role == 'ADMIN':
         return redirect('admin_dashboard')  # platform admin has its own dashboard
+    if request.user.role == 'EMPLOYEE' and getattr(request.user, 'employee_profile', None) is not None:
+        return redirect('employee_home')    # employees use their own dashboard (/me/)
     employees = scope_employees(request, Employee.objects.all())
     dept_data = employees.filter(employment_status='ACTIVE').values('department').annotate(c=Count('id')).order_by('-c')
     dept_labels = _js([d['department'] or 'Unassigned' for d in dept_data])
