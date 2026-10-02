@@ -1,0 +1,43 @@
+﻿python : Creating test database for alias 'default'...
+At C:\Users\Administrator\AppData\Local\Temp\apply_mustfix_bug01_07.ps1:555 char:1
++ python manage.py test payroll_app 2>&1 | Out-File _test_result.txt -E ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Creating test d...as 'default'...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+............................[2026-10-01 15:32:46,224] WARNING payroll_app.notifications: SMS not sent to 9876543210: SMS_PROVIDER 
+is not configured
+.[2026-10-01 15:32:46,307] ERROR payroll_app.notifications: Email to ['admin-alerts@example.com'] failed
+Traceback (most recent call last):
+  File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\notifications.py", line 31, in send_email_safe
+    sent = send_mail(
+        subject=subject,
+    ...<3 lines>...
+        fail_silently=False,
+    )
+  File "C:\Users\Administrator\venv\Lib\site-packages\django\core\mail\__init__.py", line 92, in send_mail
+    return mail.send()
+           ~~~~~~~~~^^
+  File "C:\Users\Administrator\venv\Lib\site-packages\django\core\mail\message.py", line 307, in send
+    return self.get_connection(fail_silently).send_messages([self])
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_audit.py", line 301, in send_messages
+    raise ConnectionRefusedError('smtp down')
+ConnectionRefusedError: smtp down
+[2026-10-01 15:32:46,312] WARNING payroll_app.notifications: SMS not sent to 9876543210: SMS_PROVIDER is not configured
+.[2026-10-01 15:32:46,383] ERROR payroll_app.notifications: SMS to 9876543210 via fast2sms failed
+Traceback (most recent call last):
+  File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\notifications.py", line 75, in send_sms_safe
+    with urllib.request.urlopen(req, timeout=SMS_TIMEOUT_SECONDS) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1241, in _execute_mock_call
+    raise effect
+urllib.error.URLError: <urlopen error down>
+.[2026-10-01 15:32:47,417] WARNING payroll_app.notifications: SMS not sent to 9876543210: SMS_PROVIDER is not configured

@@ -1,0 +1,802 @@
+﻿===== FULL FILE payroll_app/permissions.py =====
+"""Backend role-based access control helpers.
+
+These are enforced server-side on every view ù hiding a sidebar link is
+never treated as sufficient protection on its own.
+"""
+from functools import wraps
+
+from django.contrib import messages
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect
+
+
+def role_required(*allowed_roles):
+    """Restrict a view to specific User.role values. Superusers/ADMIN always pass.
+    Must be combined with @login_required (role_required applies it automatically)."""
+
+    def decorator(view_func):
+        @wraps(view_func)
+        @login_required
+        def _wrapped(request, *args, **kwargs):
+            user = request.user
+            if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+                return view_func(request, *args, **kwargs)
+            # A company suspended/rejected while its users are logged in must
+            # lose access immediately, not at their next login.
+            if user.company_id is None or user.company.status != 'APPROVED':
+                logout(request)
+                messages.error(request, 'Your company account is not active. Please contact support.')
+                return redirect('login')
+            if user.role == 'EMPLOYEE' and not hasattr(user, 'employee_profile'):
+                raise PermissionDenied("Your login is not linked to an employee record. Contact your HR admin.")
+            if getattr(user, 'role', None) in allowed_roles:
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied("You do not have permission to access this page.")
+        return _wrapped
+    return decorator
+
+
+def admin_required(view_func):
+    return role_required('ADMIN')(view_func)
+
+
+def company_owner_required(view_func):
+    return role_required('COMPANY_OWNER')(view_func)
+
+
+def owner_or_admin_required(view_func):
+    return role_required('COMPANY_OWNER', 'ADMIN')(view_func)
+
+
+def any_authenticated_required(view_func):
+    return role_required('ADMIN', 'COMPANY_OWNER', 'EMPLOYEE')(view_func)
+
+
+def get_user_company(request):
+    """Return the company a non-admin user is scoped to, or None for ADMIN
+    (meaning: no restriction / sees everything)."""
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return None
+    return user.company
+
+
+def scope_employees(request, queryset):
+    """Restrict an Employee queryset by the caller's role.
+    ADMIN: no restriction.
+    COMPANY_OWNER: only employees of their own company.
+    EMPLOYEE: only their own employee record.
+    """
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return queryset
+    if user.role == 'COMPANY_OWNER':
+        return queryset.filter(company=user.company)
+    if user.role == 'EMPLOYEE':
+        return queryset.filter(user=user)
+    return queryset.none()
+
+
+def scope_by_employee_fk(request, queryset, employee_field='employee'):
+    """Restrict any queryset that has a FK to Employee (attendance, leave,
+    reimbursement, payslips, etc.) using the same rules as scope_employees."""
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return queryset
+    if user.role == 'COMPANY_OWNER':
+        return queryset.filter(**{f'{employee_field}__company': user.company})
+    if user.role == 'EMPLOYEE':
+        return queryset.filter(**{employee_field: getattr(user, 'employee_profile', None)})
+    return queryset.none()
+
+
+def get_object_scoped(request, model, employee_field='employee', **lookup):
+    """get_object_or_404 that also enforces company/employee isolation,
+    closing IDOR holes on direct URL/PK access."""
+    obj = get_object_or_404(model, **lookup)
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return obj
+    target = obj
+    for part in employee_field.split('__'):
+        target = getattr(target, part, None)
+        if target is None:
+            break
+    if user.role == 'COMPANY_OWNER':
+        emp = obj if employee_field == '' else getattr(obj, employee_field.split('__')[0], obj)
+        company = getattr(emp, 'company', None) if hasattr(emp, 'company') else None
+        if company is None and hasattr(obj, 'company'):
+            company = obj.company
+        if company != user.company:
+            raise PermissionDenied("You cannot access another company's data.")
+    elif user.role == 'EMPLOYEE':
+        emp = getattr(obj, employee_field.split('__')[0], obj) if employee_field else obj
+        if emp != getattr(user, 'employee_profile', None):
+            raise PermissionDenied("You cannot access another employee's data.")
+    return obj
+
+===== payroll_app/models.py : Employee =====
+class Employee(models.Model):
+    EMPLOYMENT_STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('ON_LEAVE', 'On Leave'),
+        ('RESIGNED', 'Resigned'),
+        ('TERMINATED', 'Terminated'),
+    ]
+    GENDER_CHOICES = [
+        ('M', 'Male'),
+        ('F', 'Female'),
+        ('O', 'Other'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, related_name='employees', null=True, blank=True,
+        help_text='The tenant company this employee belongs to.'
+    )
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='employee_profile', help_text='Login account for this employee (ESS access).'
+    )
+    employee_code = models.CharField(max_length=20, help_text='e.g. EMP0001')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=15, blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    date_of_joining = models.DateField()
+    department = models.CharField(max_length=200)
+    designation = models.CharField(max_length=200)
+    employment_status = models.CharField(max_length=20, choices=EMPLOYMENT_STATUS_CHOICES, default='ACTIVE')
+    pan_number = models.CharField(max_length=10, blank=True)
+    aadhar_number = models.CharField(max_length=12, blank=True)
+    ACCOUNT_TYPE_CHOICES = [
+        ('SAVINGS', 'Savings'),
+        ('CURRENT', 'Current'),
+        ('SALARY', 'Salary'),
+    ]
+    BANK_STATUS_CHOICES = [
+        ('UNVERIFIED', 'Unverified'),
+        ('VERIFIED', 'Verified'),
+        ('INACTIVE', 'Inactive'),
+    ]
+
+    bank_name = models.CharField(max_length=120, blank=True)
+    account_holder_name = models.CharField(max_length=150, blank=True)
+    bank_account_no = models.CharField(max_length=30, blank=True)
+    ifsc_code = models.CharField(max_length=11, blank=True)
+    bank_branch = models.CharField(max_length=150, blank=True)
+    account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPE_CHOICES, blank=True)
+    bank_status = models.CharField(max_length=10, choices=BANK_STATUS_CHOICES, default='UNVERIFIED')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['company', 'employee_code'], name='unique_employee_code_per_company'),
+        ]
+        ordering = ['employee_code']
+
+    @property
+    def has_bank_details(self):
+        """Minimum data needed to pay someone: account number + IFSC, and
+        the account not marked inactive."""
+        return bool(self.bank_account_no and self.ifsc_code and self.bank_status != 'INACTIVE')
+
+    @property
+    def masked_account_no(self):
+        acc = self.bank_account_no or ''
+        return ('X' * max(len(acc) - 4, 0)) + acc[-4:] if acc else ''
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def __str__(self):
+        return f"{self.employee_code} - {self.full_name}"
+===== payroll_app/models.py : Attendance =====
+class Attendance(models.Model):
+    STATUS_CHOICES = [
+        ('PRESENT', 'Present'),
+        ('ABSENT', 'Absent'),
+        ('HALF_DAY', 'Half Day'),
+        ('LEAVE', 'On Leave'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_records')
+    date = models.DateField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PRESENT')
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
+    remarks = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ('employee', 'date')
+
+    @property
+    def hours_worked(self):
+        if self.check_in and self.check_out:
+            import datetime as _dt
+            delta = _dt.datetime.combine(self.date, self.check_out) - _dt.datetime.combine(self.date, self.check_in)
+            return round(delta.total_seconds() / 3600, 2) if delta.total_seconds() > 0 else 0
+        return None
+
+    def __str__(self):
+        return f"{self.employee} - {self.date} - {self.status}"
+===== payroll_app/models.py : LeaveRequest =====
+class LeaveRequest(models.Model):
+    LEAVE_TYPE_CHOICES = [
+        ('CASUAL', 'Casual Leave'),
+        ('SICK', 'Sick Leave'),
+        ('EARNED', 'Earned Leave'),
+    ]
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='leave_requests')
+    leave_type = models.CharField(max_length=10, choices=LEAVE_TYPE_CHOICES)
+    from_date = models.DateField()
+    to_date = models.DateField()
+    reason = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='leave_decisions'
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-from_date']
+
+    @property
+    def days(self):
+        return (self.to_date - self.from_date).days + 1
+
+    def __str__(self):
+        return f"{self.employee} - {self.leave_type} - {self.status}"
+===== payroll_app/models.py : Reimbursement =====
+class Reimbursement(models.Model):
+    CATEGORY_CHOICES = [
+        ('TRAVEL', 'Travel'),
+        ('MEDICAL', 'Medical'),
+        ('FOOD', 'Food'),
+        ('OTHER', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='reimbursements')
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField()
+    description = models.CharField(max_length=255, blank=True)
+    receipt = models.FileField(upload_to='reimbursement_receipts/%Y/%m/', null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursement_decisions'
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    # Set when an approved claim is included in a payroll run, so the same
+    # claim can never be paid twice.
+    paid_in_run = models.ForeignKey(
+        'PayrollRun', on_delete=models.SET_NULL, null=True, blank=True, related_name='reimbursements_paid'
+    )
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.employee} - {self.category} - {self.amount}"
+===== payroll_app/models.py : PayrollRun =====
+class PayrollRun(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('VALIDATED', 'Validated'),
+        ('APPROVED', 'Approved'),
+        ('RELEASED', 'Released'),
+    ]
+
+    company = models.ForeignKey(
+        Company, on_delete=models.CASCADE, null=True, blank=True, related_name='payroll_runs',
+        help_text='Tenant that owns this run. Legacy runs are back-filled from their lines.'
+    )
+    month = models.CharField(max_length=20, help_text='e.g. August 2026')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
+    is_locked = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='payroll_runs_created'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.month} ({self.status})"
+===== payroll_app/models.py : PayrollRunLine =====
+class PayrollRunLine(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+    ]
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    payment_reference = models.CharField(max_length=50, blank=True)
+    payment_attempted_at = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.CharField(max_length=255, blank=True)
+    payroll_run = models.ForeignKey(PayrollRun, on_delete=models.CASCADE, related_name='lines')
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    payslip_number = models.CharField(max_length=40, blank=True, db_index=True)
+    basic = models.DecimalField(max_digits=10, decimal_places=2)
+    hra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    conveyance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    special_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    gross_salary = models.DecimalField(max_digits=10, decimal_places=2)
+    days_in_month = models.PositiveSmallIntegerField(default=0)
+    lop_days = models.DecimalField(max_digits=5, decimal_places=1, default=0)
+    lop_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    arrears = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    reimbursements = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    pf = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    esi = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    tds = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    net_pay = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.payroll_run} - {self.employee}"
+===== payroll_app/models.py : InvestmentDeclaration =====
+class InvestmentDeclaration(models.Model):
+    SECTION_CHOICES = [
+        ('80C', 'Section 80C'),
+        ('80D', 'Section 80D'),
+        ('80CCD', 'Section 80CCD (NPS)'),
+        ('HRA', 'HRA Exemption'),
+        ('OTHER', 'Other'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='investment_declarations')
+    financial_year = models.CharField(max_length=9, help_text='e.g. 2026-2027')
+    section = models.CharField(max_length=10, choices=SECTION_CHOICES)
+    investment_type = models.CharField(max_length=100)
+    declared_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    proof_document = models.FileField(
+        upload_to='investment_proofs/%Y/%m/', blank=True, null=True,
+        validators=[validate_proof_document],
+    )
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.employee} - {self.financial_year} - {self.section}"
+===== payroll_app/models.py : Notification =====
+class Notification(models.Model):
+    """In-app notification for a specific user."""
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications'
+    )
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"To {self.recipient}: {self.message[:40]}"
+===== payroll_app/views.py : post_login_redirect =====
+def post_login_redirect(request):
+    user = request.user
+    if user.is_superuser or user.role == 'ADMIN':
+        return redirect('admin_dashboard')
+    return redirect('dashboard')
+===== payroll_app/views.py : dashboard =====
+def dashboard(request):
+    employees = scope_employees(request, Employee.objects.all())
+    dept_data = employees.filter(employment_status='ACTIVE').values('department').annotate(c=Count('id')).order_by('-c')
+    dept_labels = json.dumps([d['department'] or 'Unassigned' for d in dept_data])
+    dept_values = json.dumps([d['c'] for d in dept_data])
+    status_data = employees.values('employment_status').annotate(c=Count('id'))
+    status_map = {'ACTIVE': 'Active', 'ON_LEAVE': 'On Leave', 'RESIGNED': 'Resigned', 'TERMINATED': 'Terminated'}
+    status_labels = json.dumps([status_map.get(s['employment_status'], s['employment_status']) for s in status_data])
+    status_values = json.dumps([s['c'] for s in status_data])
+
+    if request.user.role == 'EMPLOYEE':
+        runs = PayrollRun.objects.filter(lines__employee__in=employees, status='RELEASED').distinct()
+    else:
+        runs = scope_runs(request)
+    run_status_data = runs.values('status').annotate(c=Count('id'))
+    run_status_map = {'DRAFT': 'Draft', 'VALIDATED': 'Validated', 'APPROVED': 'Approved', 'RELEASED': 'Released'}
+    run_labels = json.dumps([run_status_map.get(r['status'], r['status']) for r in run_status_data])
+    run_values = json.dumps([r['c'] for r in run_status_data])
+
+    salary_generated_count = runs.filter(lines__isnull=False).distinct().count()
+    latest_payroll_run = runs.first()
+    latest_run_net_pay = 0
+    latest_run_employee_count = 0
+    if latest_payroll_run:
+        run_lines = latest_payroll_run.lines.filter(employee__in=employees)
+        latest_run_net_pay = sum(l.net_pay for l in run_lines)
+        latest_run_employee_count = run_lines.count()
+
+    leaves = scope_by_employee_fk(request, LeaveRequest.objects.select_related('employee'))
+    reimbursements = scope_by_employee_fk(request, Reimbursement.objects.select_related('employee'))
+    declarations = scope_by_employee_fk(request, InvestmentDeclaration.objects.all())
+
+    context = {
+        'dept_labels': dept_labels, 'dept_values': dept_values,
+        'status_labels': status_labels, 'status_values': status_values,
+        'run_labels': run_labels, 'run_values': run_values,
+        'total_employees': employees.filter(employment_status='ACTIVE').count(),
+        'total_salary_structures': SalaryStructure.objects.filter(employee__in=employees).count(),
+        'salary_generated_count': salary_generated_count,
+        'pending_leave': leaves.filter(status='PENDING').count(),
+        'pending_reimbursements': reimbursements.filter(status='PENDING').count(),
+        'latest_payroll_run': latest_payroll_run,
+        'latest_run_net_pay': latest_run_net_pay,
+        'latest_run_employee_count': latest_run_employee_count,
+        'pending_investment_declarations': declarations.filter(is_verified=False).count(),
+        'pending_approvals': runs.filter(status='VALIDATED').count(),
+        'recent_leaves': leaves.order_by('-id')[:5],
+        'recent_reimbursements': reimbursements.order_by('-id')[:5],
+    }
+    return render(request, 'Dashboard.html', context)
+===== payroll_app/views.py : attendance =====
+def attendance(request):
+    employees = scope_employees(request, Employee.objects.all())
+    records_qs = scope_by_employee_fk(request, Attendance.objects.select_related('employee'))
+
+    today_record = None
+    if request.user.role == 'EMPLOYEE':
+        today_record = Attendance.objects.filter(
+            employee=getattr(request.user, 'employee_profile', None), date=timezone.localdate()
+        ).first()
+
+    if request.method == 'POST':
+        if request.user.role == 'EMPLOYEE':
+            messages.error(request, "Use the Check In / Check Out buttons to record your own attendance.")
+            return redirect('attendance')
+        form = AttendanceForm(request.POST, employee_queryset=employees)
+        if form.is_valid():
+            record = form.save()
+            log_action(request, 'CREATE', record, details='Attendance recorded')
+            return redirect('attendance')
+    else:
+        form = AttendanceForm(employee_queryset=employees)
+
+    paginator = Paginator(records_qs, PAGE_SIZE)
+    records = paginator.get_page(request.GET.get('page'))
+    status_counts = records_qs.values('status').annotate(c=Count('id'))
+    status_map = {'PRESENT': 'Present', 'ABSENT': 'Absent', 'HALF_DAY': 'Half Day', 'LEAVE': 'On Leave'}
+    chart_labels = json.dumps([status_map.get(s['status'], s['status']) for s in status_counts])
+    chart_values = json.dumps([s['c'] for s in status_counts])
+    return render(request, 'Attendance.html', {
+        'form': form, 'records': records, 'chart_labels': chart_labels, 'chart_values': chart_values,
+        'today_record': today_record,
+    })
+===== payroll_app/views.py : leave_management =====
+def leave_management(request):
+    employees = scope_employees(request, Employee.objects.all())
+    leave_qs = scope_by_employee_fk(request, LeaveRequest.objects.select_related('employee'))
+
+    own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
+    if request.method == 'POST':
+        form = LeaveRequestForm(request.POST, employee_queryset=employees, forced_employee=own_employee)
+        if form.is_valid():
+            leave = form.save(commit=False)
+            if request.user.role == 'EMPLOYEE':
+                # Employees may only file leave for themselves ù never trust the client's choice.
+                own_employee = getattr(request.user, 'employee_profile', None)
+                if own_employee is None:
+                    raise PermissionDenied("No employee profile linked to this account.")
+                leave.employee = own_employee
+            leave.save()
+            log_action(request, 'CREATE', leave, details='Leave request submitted')
+            messages.success(request, 'Leave request submitted for approval.')
+            return redirect('leave_management')
+    else:
+        form = LeaveRequestForm(employee_queryset=employees, forced_employee=own_employee)
+
+    paginator = Paginator(leave_qs, PAGE_SIZE)
+    leave_requests = paginator.get_page(request.GET.get('page'))
+    type_counts = leave_qs.values('leave_type').annotate(c=Count('id'))
+    type_map = dict(LeaveRequest.LEAVE_TYPE_CHOICES)
+    chart_labels = json.dumps([type_map.get(t['leave_type'], t['leave_type']) for t in type_counts])
+    chart_values = json.dumps([t['c'] for t in type_counts])
+    return render(request, 'Leave Management.html', {
+        'form': form, 'leave_requests': leave_requests, 'chart_labels': chart_labels, 'chart_values': chart_values,
+        'decision_form': LeaveDecisionForm(),
+        'balance': leave_balance(own_employee, timezone.localdate().year) if own_employee else None,
+    })
+===== payroll_app/views.py : reimbursement =====
+def reimbursement(request):
+    employees = scope_employees(request, Employee.objects.all())
+    reimb_qs = scope_by_employee_fk(request, Reimbursement.objects.select_related('employee'))
+
+    own_employee = getattr(request.user, 'employee_profile', None) if request.user.role == 'EMPLOYEE' else None
+    if request.method == 'POST':
+        form = ReimbursementForm(request.POST, request.FILES, employee_queryset=employees, forced_employee=own_employee)
+        if form.is_valid():
+            reimb = form.save(commit=False)
+            if request.user.role == 'EMPLOYEE':
+                own_employee = getattr(request.user, 'employee_profile', None)
+                if own_employee is None:
+                    raise PermissionDenied("No employee profile linked to this account.")
+                reimb.employee = own_employee
+            reimb.save()
+            log_action(request, 'CREATE', reimb, details='Reimbursement claim submitted')
+            messages.success(request, 'Claim submitted for approval.')
+            return redirect('reimbursement')
+    else:
+        form = ReimbursementForm(employee_queryset=employees, forced_employee=own_employee)
+
+    paginator = Paginator(reimb_qs, PAGE_SIZE)
+    reimbursements = paginator.get_page(request.GET.get('page'))
+    return render(request, 'Reimbursement.html', {
+        'form': form, 'reimbursements': reimbursements, 'decision_form': LeaveDecisionForm(),
+    })
+===== payroll_app/views.py : payslips =====
+def payslips(request):
+    lines = scope_by_employee_fk(
+        request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
+    ).filter(payroll_run__status='RELEASED')
+    return render(request, 'Payslips.html', {'lines': lines})
+===== payroll_app/views.py : ess =====
+def ess(request):
+    lines = scope_by_employee_fk(request, PayrollRunLine.objects.all()).filter(payroll_run__status='RELEASED')
+    leaves = scope_by_employee_fk(request, LeaveRequest.objects.all())
+    reimbursements = scope_by_employee_fk(request, Reimbursement.objects.all())
+    context = {
+        'total_payslips': lines.count(),
+        'pending_leave': leaves.filter(status='PENDING').count(),
+        'pending_reimbursements': reimbursements.filter(status='PENDING').count(),
+    }
+    return render(request, 'ESS.html', context)
+===== payroll_app/views.py : payslip_history =====
+def payslip_history(request):
+    lines = scope_by_employee_fk(
+        request, PayrollRunLine.objects.select_related('employee', 'payroll_run')
+    ).filter(payroll_run__status='RELEASED').order_by('-payroll_run__created_at')
+    paginator = Paginator(lines, 15)
+    lines_page = paginator.get_page(request.GET.get('page'))
+    return render(request, 'payslip management/payslip History.html', {'lines': lines_page})
+===== payroll_app/views.py : payslip_detail =====
+def payslip_detail(request, pk):
+    line = get_object_or_404(_scoped_released_lines(request), pk=pk)
+    return render(request, 'payslip management/Generate payslip.html', {'line': line})
+===== payroll_app/views.py : payslip_pdf =====
+def payslip_pdf(request, pk):
+    # get_object_or_404 on the *scoped* queryset: another employee's payslip
+    # id simply doesn't exist for this user (no IDOR).
+    line = get_object_or_404(_scoped_released_lines(request), pk=pk)
+    from .pdf import build_payslip_pdf
+    pdf_bytes = build_payslip_pdf(line)
+    log_action(request, 'OTHER', line, company=line.employee.company, details=f'Payslip PDF downloaded {line.payslip_number}')
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{line.payslip_number or "payslip"}.pdf"'
+    return response
+===== payroll_app/views.py : email_payslip =====
+def email_payslip(request):
+    lines = _scoped_released_lines(request)
+    sent = False
+    if request.method == 'POST':
+        from django.core.mail import EmailMessage
+        from django.conf import settings as dj_settings
+        from .pdf import build_payslip_pdf
+        line = get_object_or_404(lines, pk=request.POST.get('line_id'))
+        try:
+            msg = EmailMessage(
+                subject=f'Payslip - {line.payroll_run.month}',
+                body=f'Dear {line.employee.full_name},\n\nPlease find attached your payslip for {line.payroll_run.month}.\n'
+                     f'Net Pay: {line.net_pay}\n\nRegards,\nPayroll Team',
+                from_email=dj_settings.DEFAULT_FROM_EMAIL, to=[line.employee.email],
+            )
+            msg.attach(f'{line.payslip_number or "payslip"}.pdf', build_payslip_pdf(line), 'application/pdf')
+            msg.send(fail_silently=False)
+            sent = True
+            log_action(request, 'OTHER', line, company=line.employee.company, details='Payslip emailed')
+            messages.success(request, f"Payslip emailed to {line.employee.email}.")
+        except Exception:
+            logger.exception('Emailing payslip %s failed', line.pk)
+            messages.error(request, "Could not send the email right now (mail server unavailable). Please try again later.")
+    return render(request, 'payslip management/Email payslip.html', {'lines': lines, 'sent': sent})
+===== payroll_app/views.py : generate_payslip =====
+def generate_payslip(request):
+    # Legacy URL without an id: show the list the user may pick from.
+    return redirect('download_pdf')
+===== payroll_app/views.py : _payslip_export_row =====
+def _payslip_export_row(line):
+    return [line.payslip_number, line.payroll_run.month, line.employee.employee_code, line.employee.full_name,
+            line.basic, line.gross_salary, line.lop_days, line.lop_amount, line.arrears, line.reimbursements,
+            line.total_earnings, line.pf, line.esi, line.tds, line.total_deductions, line.net_pay]
+===== payroll_app/views.py : payslips_export_csv =====
+def payslips_export_csv(request):
+    employees = scope_employees(request, Employee.objects.all())
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="payslips.csv"'
+    writer = csv.writer(response)
+    writer.writerow(PAYSLIP_EXPORT_HEADERS)
+    lines = PayrollRunLine.objects.filter(payroll_run__status='RELEASED', employee__in=employees).select_related('employee', 'payroll_run')
+    for line in lines:
+        writer.writerow(_payslip_export_row(line))
+    log_action(request, 'OTHER', details='Exported payslips CSV')
+    return response
+===== payroll_app/views.py : payslips_export_excel =====
+def payslips_export_excel(request):
+    import openpyxl
+    from openpyxl.utils import get_column_letter
+
+    employees = scope_employees(request, Employee.objects.all())
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Payslips"
+    headers = PAYSLIP_EXPORT_HEADERS
+    ws.append(headers)
+
+    lines = PayrollRunLine.objects.filter(payroll_run__status='RELEASED', employee__in=employees).select_related('employee', 'payroll_run')
+    for line in lines:
+        ws.append([float(v) if isinstance(v, Decimal) else v for v in _payslip_export_row(line)])
+
+    for i, header in enumerate(headers, 1):
+        ws.column_dimensions[get_column_letter(i)].width = max(14, len(header) + 4)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="payslips.xlsx"'
+    wb.save(response)
+    log_action(request, 'OTHER', details='Exported payslips Excel')
+    return response
+===== URLS =====
+path('welcome/', views.landing, name='landing'),
+path('request-demo/', views.request_demo, name='request_demo'),
+path('register/', views.company_register, name='company_register'),
+path('login/', auth_views.LoginView.as_view(
+path('verify-email/', views.verify_email, name='verify_email'),
+path('logout/', views.logout_view, name='logout'),
+path('post-login/', views.post_login_redirect, name='post_login_redirect'),
+path('password-reset/', auth_views.PasswordResetView.as_view(
+path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(
+path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
+path('account/password-change/', auth_views.PasswordChangeView.as_view(
+path('account/password-change/done/', auth_views.PasswordChangeDoneView.as_view(
+path('admin-panel/', views.admin_dashboard, name='admin_dashboard'),
+path('admin-panel/demo-requests/', views.admin_demo_requests, name='admin_demo_requests'),
+path('admin-panel/demo-requests/<int:pk>/decide/', views.admin_demo_request_decide, name='admin_demo_request_decide'),
+path('admin-panel/company-approvals/', views.admin_company_approvals, name='admin_company_approvals'),
+path('admin-panel/company-approvals/<int:pk>/decide/', views.admin_company_decide, name='admin_company_decide'),
+path('admin-panel/companies/', views.admin_company_list, name='admin_company_list'),
+path('admin-panel/complaints/', views.admin_client_complaints, name='admin_client_complaints'),
+path('admin-panel/complaints/<int:pk>/respond/', views.admin_complaint_respond, name='admin_complaint_respond'),
+path('admin-panel/requests/', views.admin_client_requests, name='admin_client_requests'),
+path('admin-panel/requests/<int:pk>/respond/', views.admin_request_respond, name='admin_request_respond'),
+path('admin-panel/audit-log/', views.admin_audit_log, name='admin_audit_log'),
+path('client/complaints/', views.client_complaints, name='client_complaints'),
+path('client/requests/', views.client_requests, name='client_requests'),
+path('employee/<int:pk>/create-account/', views.employee_create_account, name='employee_create_account'),
+path('', views.dashboard, name='dashboard'),
+path('employee_master/', views.employee_master, name='employee_master'),
+path('employee_master/export/csv/', views.employee_master_export_csv, name='employee_master_export_csv'),
+path('employee/<int:pk>/edit/', views.employee_edit, name='employee_edit'),
+path('employee/<int:pk>/delete/', views.employee_delete, name='employee_delete'),
+path('salary_structure/', views.salary_structure, name='salary_structure'),
+path('attendance/', views.attendance, name='attendance'),
+path('attendance/check-<str:action>/', views.attendance_check, name='attendance_check'),
+path('leave_management/', views.leave_management, name='leave_management'),
+path('leave_management/<int:pk>/decide/', views.leave_decision, name='leave_decision'),
+path('reimbursement/', views.reimbursement, name='reimbursement'),
+path('reimbursement/<int:pk>/decide/', views.reimbursement_decision, name='reimbursement_decision'),
+path('reimbursement/<int:pk>/receipt/', views.reimbursement_receipt, name='reimbursement_receipt'),
+path('payslips/', views.payslips, name='payslips'),
+path('payslips/<int:pk>/', views.payslip_detail, name='payslip_detail'),
+path('payslips/<int:pk>/pdf/', views.payslip_pdf, name='payslip_pdf'),
+path('payslips/export/csv/', views.payslips_export_csv, name='payslips_export_csv'),
+path('payslips/export/excel/', views.payslips_export_excel, name='payslips_export_excel'),
+path('statutory_compliance/', views.statutory_compliance, name='statutory_compliance'),
+path('investment_declaration/', views.investment_declaration, name='investment_declaration'),
+path('income_tax/', views.income_tax, name='income_tax'),
+path('compliance_reports/', views.compliance_reports, name='compliance_reports'),
+path('total_employees/', views.total_employees_report, name='total_employees_report'),
+path('new_joiners/', views.new_joiners_report, name='new_joiners_report'),
+path('payroll_cost/', views.payroll_cost_report, name='payroll_cost_report'),
+path('pending_payroll/', views.pending_payroll_report, name='pending_payroll_report'),
+path('employees_on_leave/', views.employees_on_leave_report, name='employees_on_leave_report'),
+path('payroll_run/<int:pk>/', views.payroll_run_detail, name='payroll_run_detail'),
+path('payroll_run/<int:pk>/download/docx/', views.payroll_run_download_docx, name='payroll_run_download_docx'),
+path('payroll/', views.payroll_combined, name='payroll_combined'),
+path('payroll_processing/', views.payroll_combined, name='payroll_processing'),
+path('payroll_preview/', views.payroll_combined, name='payroll_preview'),
+path('payroll_validation/', views.payroll_combined, name='payroll_validation'),
+path('payroll_approval/', views.payroll_combined, name='payroll_approval'),
+path('payroll_release/', views.payroll_combined, name='payroll_release'),
+path('arrears/', views.arrears, name='arrears'),
+path('full_final_settlement/', views.full_final_settlement, name='full_final_settlement'),
+path('bank_transfer/', views.bank_transfer, name='bank_transfer'),
+path('bank_transfer/payment/<int:pk>/update/', views.bank_payment_update, name='bank_payment_update'),
+path('bank_transfer/download_pdf/', views.download_pdf, name='download_pdf'),
+path('bank_transfer/failed_transaction_report/', views.failed_transaction_report, name='failed_transaction_report'),
+path('bank_transfer/payment_states/', views.payment_states, name='payment_states'),
+path('bank_transfer/salary_transfer_file/', views.salary_transfer_file, name='salary_transfer_file'),
+path('reports_analytics/', views.reports_analytics, name='reports_analytics'),
+path('ess/', views.ess, name='ess'),
+path('notifications/', views.notifications, name='notifications'),
+path('notifications/<int:pk>/read/', views.notification_mark_read, name='notification_mark_read'),
+path('user_roles_permissions/', views.user_roles_permissions, name='user_roles_permissions'),
+path('settings/', views.settings_view, name='settings'),
+path('payslip_history/', views.payslip_history, name='payslip_history'),
+path('email_payslip/', views.email_payslip, name='email_payslip'),
+path('generate_payslip/', views.generate_payslip, name='generate_payslip'),
+path('page/<path:template_path>/', views.generic_page, name='generic_page'),
+===== TEMPLATES =====
+payroll_app\templates\403.html
+payroll_app\templates\404.html
+payroll_app\templates\500.html
+payroll_app\templates\Adjustments\Arrears.html
+payroll_app\templates\Adjustments\Full and Final Settlement.html
+payroll_app\templates\admin_panel\audit_log.html
+payroll_app\templates\admin_panel\client_complaints.html
+payroll_app\templates\admin_panel\client_requests.html
+payroll_app\templates\admin_panel\company_approvals.html
+payroll_app\templates\admin_panel\company_list.html
+payroll_app\templates\admin_panel\dashboard.html
+payroll_app\templates\admin_panel\demo_requests.html
+payroll_app\templates\Attendance.html
+payroll_app\templates\auth\login.html
+payroll_app\templates\auth\password_change.html
+payroll_app\templates\auth\password_change_done.html
+payroll_app\templates\auth\password_reset.html
+payroll_app\templates\auth\password_reset_complete.html
+payroll_app\templates\auth\password_reset_confirm.html
+payroll_app\templates\auth\password_reset_done.html
+payroll_app\templates\auth\password_reset_email.html
+payroll_app\templates\auth\verify_email.html
+payroll_app\templates\Bank Transfer.html
+payroll_app\templates\base.html
+payroll_app\templates\client_panel\complaints.html
+payroll_app\templates\client_panel\employee_account_form.html
+payroll_app\templates\client_panel\requests.html
+payroll_app\templates\Dashboard.html
+payroll_app\templates\Employee Master.html
+payroll_app\templates\ESS.html
+payroll_app\templates\Income Tax Management\Investment declartion.html
+payroll_app\templates\Leave Management.html
+payroll_app\templates\Notifications.html
+payroll_app\templates\Payroll\Employees On Leave.html
+payroll_app\templates\Payroll\New Joiners.html
+payroll_app\templates\Payroll\Payroll Combined.html
+payroll_app\templates\Payroll\Payroll Cost.html
+payroll_app\templates\Payroll\Payroll Run Detail.html
+payroll_app\templates\Payroll\Pending Payroll.html
+payroll_app\templates\Payroll\Total Employees.html
+payroll_app\templates\payslip management\Download PDF.html
+payroll_app\templates\payslip management\Email payslip.html
+payroll_app\templates\payslip management\Generate payslip.html
+payroll_app\templates\payslip management\payslip History.html
+payroll_app\templates\Payslips.html
+payroll_app\templates\public\auth_base.html
+payroll_app\templates\public\company_register.html
+payroll_app\templates\public\employee_register.html
+payroll_app\templates\public\landing.html
+payroll_app\templates\public\marketing_base.html
+payroll_app\templates\public\request_demo.html
+payroll_app\templates\public\split_base.html
+payroll_app\templates\public_base.html
+payroll_app\templates\Reimbursement.html
+payroll_app\templates\Reports and Analytics.html
+payroll_app\templates\Salary Structure.html
+payroll_app\templates\Settings.html
+payroll_app\templates\Tax and Compliance\Compliance Reports.html
+payroll_app\templates\Tax and Compliance\Income Tax.html
+payroll_app\templates\Tax and Compliance\Statutory Compliance.html
+payroll_app\templates\User Roles and Permissions.html
