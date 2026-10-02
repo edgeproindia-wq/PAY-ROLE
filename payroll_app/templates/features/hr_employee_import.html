@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Import Employees{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Import Employees</h1>
+    <div class="muted">Upload your employee list from Excel or CSV. Every row is checked with the same rules as <b>Add Employee</b> and shown below before anything is saved. Existing Employee IDs are skipped.
+      <a href="{% url 'hr_employee_import_template' %}">Download the Excel template</a>.</div></div>
+
+  <div class="fx-card"><h2>1. Upload file</h2>
+    <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}<input type="hidden" name="step" value="preview">
+      {% with form=upload %}{% include "features/_form.html" %}{% endwith %}
+      <p style="margin-top:12px"><button class="fx-btn" type="submit">Check file</button></p></form></div>
+
+  {% if report is not None %}
+  <div class="fx-card"><h2>2. Check result: {{ ok|length }} ready, {{ bad|length }} with errors</h2>
+    {% if bad %}<div class="fx-table"><table><tr><th>Row</th><th>Employee ID</th><th>Name</th><th>Problem</th></tr>
+      {% for r in bad %}<tr><td>{{ r.line }}</td><td>{{ r.code }}</td><td>{{ r.name }}</td><td style="color:#b91c1c">{% for e in r.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td></tr>{% endfor %}
+    </table></div><p class="muted">Fix these rows in your file and upload again, or import the ready rows now and add the rest later.</p>{% endif %}
+    {% if ok %}
+    <p class="muted">Ready: {% for r in ok %}{{ r.code }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="step" value="import">
+      {{ confirm.non_field_errors }}
+      <p><label style="text-transform:none;font-size:14px">{{ confirm.create_logins }} {{ confirm.create_logins.label }} (employees sign in with their Employee ID)</label></p>
+      <div class="fx-grid"><div><label>{{ confirm.password1.label }}</label>{{ confirm.password1 }}</div>
+        <div><label>{{ confirm.password2.label }}</label>{{ confirm.password2 }}</div></div>
+      <p style="margin-top:12px"><button class="fx-btn" type="submit">Import {{ ok|length }} employee(s)</button></p></form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>{% endblock %}

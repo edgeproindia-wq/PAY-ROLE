@@ -156,3 +156,18 @@ urlpatterns += [
     path('me/documents/upload/', _p5.my_document_upload, name='my_document_upload'),
     path('hr/documents/<int:pk>/action/', _p5.hr_document_action, name='hr_document_action'),
 ]
+
+
+# ---- Employee Logins: owner creates all employee sign-ins in one click ----
+from . import employee_logins as _el  # noqa: E402
+
+urlpatterns += [path('hr/employee-logins/', _el.hr_employee_logins, name='hr_employee_logins')]
+
+
+# ---- Import Employees from Excel / CSV ----
+from . import employee_import as _ei  # noqa: E402
+
+urlpatterns += [
+    path('hr/employee-import/', _ei.hr_employee_import, name='hr_employee_import'),
+    path('hr/employee-import/template.xlsx', _ei.hr_employee_import_template, name='hr_employee_import_template'),
+]

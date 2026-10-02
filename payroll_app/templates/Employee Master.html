@@ -8,6 +8,7 @@
     <p class="page-subtitle">Manage employee records, personal details and employment status</p>
   </div>
   <div class="page-actions">
+    <a href="{% url 'hr_employee_import' %}" class="btn btn-outline">&#128229; Import Excel</a>
     <a href="{% url 'employee_master_export_csv' %}" class="btn btn-outline">&#8681; Export CSV</a>
     <button class="btn btn-primary" onclick="document.getElementById('addEmpModal').classList.add('open')">+ Add Employee</button>
   </div>

@@ -289,7 +289,9 @@
       <div class="sb-section">Main</div>
       {% url 'dashboard' as u_own1 %}{% if u_own1 %}<a href="{{ u_own1 }}"><span class="ic">&#9632;</span><span class="tx">Dashboard</span></a>{% endif %}
       <div class="sb-section">People</div>
-      {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="ic">&#128101;</span><span class="tx">Employee Master</span></a>{% endif %}
+      {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="ic">&#128101;</span><span class="tx">Employee Master</span></a>{% endif %}
+      {% url 'hr_employee_import' as u_import %}{% if u_import %}<a href="{{ u_import }}"><span class="ic">&#128229;</span><span class="tx">Import Employees</span></a>{% endif %}
+      {% url 'hr_employee_logins' as u_logins %}{% if u_logins %}<a href="{{ u_logins }}"><span class="ic">&#128272;</span><span class="tx">Employee Logins</span></a>{% endif %}
       {% url 'attendance' as u_own3 %}{% if u_own3 %}<a href="{{ u_own3 }}"><span class="ic">&#128338;</span><span class="tx">Attendance</span></a>{% endif %}
       {% url 'leave_management' as u_own4 %}{% if u_own4 %}<a href="{{ u_own4 }}"><span class="ic">&#127796;</span><span class="tx">Leave Management</span></a>{% endif %}
       {% url 'hr_shifts' as u_own5 %}{% if u_own5 %}<a href="{{ u_own5 }}"><span class="ic">&#128336;</span><span class="tx">Shifts</span></a>{% endif %}

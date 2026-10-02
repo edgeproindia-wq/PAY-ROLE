@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Employee Logins{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Employee Logins</h1>
+    <div class="muted">Employees sign in on the login page with their <b>Employee ID</b> and the password you set here. <b>{{ active }}</b> employee(s) already have a login; <b>{{ pending|length }}</b> do not. Ask employees to change the password after their first sign-in.</div></div>
+  <div class="fx-card"><h2>1. Create logins for all {{ pending|length }} employees without one</h2>
+    {% if pending %}
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="action" value="bulk">
+      {% with form=bulk %}{% include "features/_form.html" %}{{ form.non_field_errors }}{% endwith %}
+      <p style="margin-top:12px"><button class="fx-btn" type="submit">Create {{ pending|length }} login(s)</button></p></form>
+    <p class="muted" style="margin-top:10px">Employee IDs: {% for e in pending %}{{ e.employee_code }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% else %}<p class="muted">Every employee already has a login.</p>{% endif %}
+  </div>
+  <div class="fx-card"><h2>2. Reset (or create) one employee's login</h2>
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="action" value="reset">
+      {% with form=reset %}{% include "features/_form.html" %}{{ form.non_field_errors }}{% endwith %}
+      <p style="margin-top:12px"><button class="fx-btn ghost" type="submit">Set password</button></p></form>
+  </div>
+</div>{% endblock %}
