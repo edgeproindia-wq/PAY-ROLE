@@ -163,13 +163,13 @@
 </div>
 
 <script>
-  const palette = ['#4f46e5','#0f9d6a','#f5a524','#ef6c5a','#0369a1','#8b5cf6','#14b8a6'];
+  const palette = ['#147d39','#0f9d6a','#f5a524','#ef6c5a','#0369a1','#189645','#14b8a6'];
 
   new Chart(document.getElementById('deptChart'), {
     type: 'bar',
     data: {
       labels: {{ dept_labels|safe }},
-      datasets: [{ label:'Employees', data: {{ dept_values|safe }}, backgroundColor:'#4f46e5', borderRadius:6, maxBarThickness:36 }]
+      datasets: [{ label:'Employees', data: {{ dept_values|safe }}, backgroundColor:'#147d39', borderRadius:6, maxBarThickness:36 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } } }
   });

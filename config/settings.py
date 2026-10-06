@@ -1,5 +1,5 @@
 """
-Django settings for the EdgePro Payroll project.
+Django settings for the Namma Payroll project.
 
 Rewritten for production-readiness: every environment-sensitive value is
 read from an environment variable with a safe local-dev default, so the
@@ -119,6 +119,10 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# Every request runs inside ONE database transaction: if anything fails part-way,
+# nothing is half-saved.
+DATABASES['default']['ATOMIC_REQUESTS'] = True
 
 AUTH_USER_MODEL = 'payroll_app.User'
 

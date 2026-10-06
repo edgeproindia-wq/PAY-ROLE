@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +12,7 @@
     --navy:#0f172a; --navy-soft:#1e293b; --navy-line:#334155;
     --ink:#0f172a; --body:#334155; --muted:#64748b; --faint:#94a3b8;
     --paper:#f4f6f9; --card:#ffffff; --line:#e6e9f0; --line-soft:#eef1f6;
-    --accent:#4f46e5; --accent-dark:#4338ca; --accent-soft:#eef0fe;
+    --accent:#147d39; --accent-dark:#1b6635; --accent-soft:#effaf3;
     --success:#0f9d6a; --success-soft:#e5f8f1;
     --warn:#b45309; --warn-soft:#fef3e0;
     --danger:#dc2626; --danger-soft:#fdeceb;
@@ -160,7 +161,7 @@
   .step.active .label, .step.done .label{ color:var(--ink); }
 
   .profile-head{ display:flex; gap:18px; align-items:center; padding:22px; }
-  .profile-avatar{ width:64px; height:64px; border-radius:16px; background:linear-gradient(135deg,var(--accent),#8b7cf6); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; flex-shrink:0; }
+  .profile-avatar{ width:64px; height:64px; border-radius:16px; background:linear-gradient(135deg,var(--accent),#1eb653); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; flex-shrink:0; }
   .profile-name{ font-size:17px; font-weight:800; color:var(--ink); }
   .profile-meta{ font-size:12.5px; color:var(--muted); margin-top:2px; }
   .detail-list{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px 24px; }
@@ -199,11 +200,11 @@
 <style>
   /* ---- ESS-style app shell: sidebar sections, top bar with bell + logout, user card ---- */
   body{ display:block; }
-  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:260px; padding:0; background:#0d1430; color:#cbd5e1;
+  .sidebar{ position:fixed; top:0; left:0; bottom:0; width:260px; padding:0; background:#06170c; color:#cbd5e1;
             display:flex; flex-direction:column; z-index:60; overflow:hidden; transition:width .2s, transform .2s; }
   .sidebar .sb-brand{ display:flex; align-items:center; gap:12px; padding:22px 22px 18px; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.06); }
   .sb-logo{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:#fff; font-weight:800; font-size:15px;
-            background:linear-gradient(135deg,#6d5dfc,#8b5cf6); flex:none; }
+            background:linear-gradient(135deg,#199c47,#189645); flex:none; }
   .sb-brand b{ display:block; color:#fff; font-size:18px; font-weight:800; letter-spacing:.3px; line-height:1.1; }
   .sb-brand small{ display:block; color:#8b95b8; font-size:11px; letter-spacing:1.6px; font-weight:600; margin-top:2px; }
   .sb-nav{ flex:1; overflow-y:auto; padding:8px 0 12px; }
@@ -212,10 +213,10 @@
              font-weight:600; border-left:3px solid transparent; white-space:nowrap; }
   .sidebar .sb-nav a .ic{ width:20px; text-align:center; flex:none; font-size:15px; }
   .sidebar .sb-nav a:hover{ background:rgba(255,255,255,.04); color:#fff; }
-  .sidebar .sb-nav a.active{ background:#1a2550; color:#fff; border-left-color:#5b8cff; }
+  .sidebar .sb-nav a.active{ background:#0d2716; color:#fff; border-left-color:#5b8cff; }
   .sb-user{ display:flex; align-items:center; gap:12px; padding:14px 22px; border-top:1px solid rgba(255,255,255,.06); }
   .sb-avatar{ width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:800;
-              background:linear-gradient(135deg,#6d5dfc,#8b5cf6); flex:none; }
+              background:linear-gradient(135deg,#199c47,#189645); flex:none; }
   .sb-user b{ display:block; color:#fff; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
   .sb-user small{ color:#8b95b8; font-size:12px; }
   .sb-collapse{ background:none; border:none; color:#64708f; font:inherit; font-size:13px; padding:10px 24px 16px; text-align:left; cursor:pointer; }
@@ -228,7 +229,7 @@
   .tb-actions{ display:flex; align-items:center; gap:10px; }
   .tb-btn{ display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; border:1px solid var(--line); border-radius:10px;
            background:#fff; color:var(--ink); font:inherit; font-weight:600; font-size:14.5px; text-decoration:none; cursor:pointer; }
-  .tb-btn:hover{ border-color:#c7cdf7; background:#f8f9ff; }
+  .tb-btn:hover{ border-color:#ade7c1; background:#f8f9ff; }
   .tb-icon{ width:44px; padding:0; justify-content:center; font-size:17px; position:relative; }
   .tb-menu{ display:none; }
   body.sb-collapsed .sidebar{ width:76px; }
@@ -253,11 +254,15 @@
   canvas{ max-width:100%; }
   @media print{ .sidebar, .topbar{ display:none !important; } .main{ margin-left:0 !important; } }
 </style>
+<style id="namma-watermark">
+html::after{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:9990;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320'%3E%3Ctext x='150' y='210' text-anchor='middle' transform='rotate(-24 150 210)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%23092847' fill-opacity='0.05'%3ENamma Payroll%3C/text%3E%3Ctext x='420' y='100' text-anchor='middle' transform='rotate(-24 420 100)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%231f9348' fill-opacity='0.055'%3ENamma Payroll%3C/text%3E%3C/svg%3E");background-repeat:repeat;}
+@media print{html::after{display:none}}
+</style>
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
     {% url 'employee_home' as u_brand_emp %}<a class="sb-brand" href="{% if is_admin_role %}{% url 'admin_dashboard' %}{% elif is_employee_role and u_brand_emp %}{{ u_brand_emp }}{% else %}{% url 'dashboard' %}{% endif %}">
-      <span class="sb-logo">EP</span><span><b>EDGEPRO</b><small>PAYROLL</small></span>
+      <img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" style="height:40px;width:auto;display:block;background:#fff;border-radius:8px;padding:4px 8px;">
     </a>
     <nav class="sb-nav">
     {% if is_admin_role %}

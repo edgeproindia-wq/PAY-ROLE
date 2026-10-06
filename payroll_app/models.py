@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from .concurrency import VersionedModel
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +106,7 @@ class User(AbstractUser):
         return self.role == 'EMPLOYEE'
 
 
-class Employee(models.Model):
+class Employee(VersionedModel):
     EMPLOYMENT_STATUS_CHOICES = [
         ('ACTIVE', 'Active'),
         ('ON_LEAVE', 'On Leave'),
@@ -231,7 +232,7 @@ class Attendance(models.Model):
         return f"{self.employee} - {self.date} - {self.status}"
 
 
-class LeaveRequest(models.Model):
+class LeaveRequest(VersionedModel):
     LEAVE_TYPE_CHOICES = [
         ('CASUAL', 'Casual Leave'),
         ('SICK', 'Sick Leave'),
@@ -273,7 +274,7 @@ class LeaveRequest(models.Model):
         return f"{self.employee} - {self.leave_type} - {self.status}"
 
 
-class Reimbursement(models.Model):
+class Reimbursement(VersionedModel):
     CATEGORY_CHOICES = [
         ('TRAVEL', 'Travel'),
         ('MEDICAL', 'Medical'),
@@ -311,7 +312,7 @@ class Reimbursement(models.Model):
         return f"{self.employee} - {self.category} - {self.amount}"
 
 
-class PayrollRun(models.Model):
+class PayrollRun(VersionedModel):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
         ('VALIDATED', 'Validated'),
@@ -377,7 +378,7 @@ class PayrollRunLine(models.Model):
         return f"{self.payroll_run} - {self.employee}"
 
 
-class CompanySettings(models.Model):
+class CompanySettings(VersionedModel):
     company = models.OneToOneField(
         Company, on_delete=models.CASCADE, null=True, blank=True, related_name='settings'
     )
@@ -671,7 +672,7 @@ class EmailOTP(models.Model):
 # Bank transfer / salary payment tracking
 # ---------------------------------------------------------------------------
 
-class BankPayment(models.Model):
+class BankPayment(VersionedModel):
     """One payment instruction per released payslip line. The OneToOne makes
     a duplicate payment for the same payslip impossible at the DB level.
 

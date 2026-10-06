@@ -5,7 +5,7 @@
 {% block hero_text %}Sign in to run payroll, approve leave and claims, download payslips and track compliance &mdash; all from one secure workspace.{% endblock %}
 {% block content %}
 <h2>Welcome Back</h2>
-<p class="sub">Sign in to access your EDGEPRO payroll workspace.</p>
+<p class="sub">Sign in to access your Namma Payroll workspace.</p>
 {% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
 {% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
 {% if form.errors and not form.non_field_errors %}<div class="alert">Invalid username/email or password.</div>{% endif %}

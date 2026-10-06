@@ -4,12 +4,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Payroll Management System — Modern Payroll & HR Platform</title>
+<title>Namma Payroll — Modern Payroll &amp; HR Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#0b1120; --ink:#0f172a; --body:#334155; --muted:#64748b;
-    --paper:#f8f9fc; --line:#e6e9f0; --accent:#5865f2; --accent-dark:#4338ca; --accent-soft:#eef0fe;
+    --paper:#f8f9fc; --line:#e6e9f0; --accent:#178f41; --accent-dark:#1b6635; --accent-soft:#effaf3;
     --success:#059669; --success-soft:#ecfdf5;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -28,6 +28,7 @@
   .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;}
   .nav-logo{font-size:19px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;}
   .nav-logo span{color:var(--accent);}
+.nav-logo-img{height:44px;width:auto;display:block;}
   .nav-links{display:flex;gap:28px;font-size:14px;font-weight:500;color:var(--body);}
   .nav-links a:hover{color:var(--accent);}
   .nav-actions{display:flex;gap:10px;align-items:center;}
@@ -94,6 +95,10 @@
   .footer-bottom{border-top:1px solid #1e293b;padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12.5px;}
   @media(max-width:800px){ .footer-grid{grid-template-columns:1fr 1fr;} }
 </style>
+<style id="namma-watermark">
+html::after{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:9990;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320'%3E%3Ctext x='150' y='210' text-anchor='middle' transform='rotate(-24 150 210)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%23092847' fill-opacity='0.05'%3ENamma Payroll%3C/text%3E%3Ctext x='420' y='100' text-anchor='middle' transform='rotate(-24 420 100)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%231f9348' fill-opacity='0.055'%3ENamma Payroll%3C/text%3E%3C/svg%3E");background-repeat:repeat;}
+@media print{html::after{display:none}}
+</style>
 </head>
 <body>
 <div id="animatedBg" style="position:fixed;inset:0;z-index:-1;pointer-events:none;transition:background 0.4s cubic-bezier(0.1,0.4,0.2,1);"></div>
@@ -119,7 +124,7 @@
 
 <nav class="navbar">
   <div class="container nav-inner">
-    <div class="nav-logo"><span style="font-weight:800;font-size:18px;letter-spacing:.2px;">EdgePro Axis</span></div>
+    <div class="nav-logo"><img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" class="nav-logo-img"></div>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#modules">Modules</a>
@@ -168,7 +173,7 @@
   .showcase-visual .mock-card .k{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em;}
   .showcase-visual .mock-card .v{font-size:17px;font-weight:800;color:#fff;margin-top:4px;}
   .showcase-visual .mock-bar-row{display:flex;align-items:flex-end;gap:6px;height:60px;margin-top:10px;}
-  .showcase-visual .mock-bar{flex:1;background:#5865f2;border-radius:3px 3px 0 0;}
+  .showcase-visual .mock-bar{flex:1;background:#178f41;border-radius:3px 3px 0 0;}
   .showcase-visual .mock-list-item{display:flex;justify-content:space-between;font-size:11px;color:#cbd5e1;padding:7px 0;border-bottom:1px solid #1e293b;}
   .showcase-visual .mock-pill{display:inline-block;background:#334155;color:#e2e8f0;font-size:10px;padding:3px 9px;border-radius:20px;}
   @media(max-width:820px){
@@ -201,7 +206,7 @@
       <div class="mock-list-item"><span>Basic</span><span>&#8377;35,000</span></div>
       <div class="mock-list-item"><span>HRA</span><span>&#8377;14,000</span></div>
       <div class="mock-list-item"><span>Special Allowance</span><span>&#8377;6,200</span></div>
-      <div class="mock-list-item"><span>Gross</span><span style="color:#5865f2;font-weight:700;">&#8377;55,200</span></div>
+      <div class="mock-list-item"><span>Gross</span><span style="color:#178f41;font-weight:700;">&#8377;55,200</span></div>
     </div>
   </div>
 
@@ -228,7 +233,7 @@
       <div class="mock-list-item"><span>Casual Leave</span><span class="mock-pill">6 / 12</span></div>
       <div class="mock-list-item"><span>Sick Leave</span><span class="mock-pill">3 / 8</span></div>
       <div class="mock-list-item"><span>Earned Leave</span><span class="mock-pill">10 / 15</span></div>
-      <div class="mock-list-item"><span>Pending Requests</span><span class="mock-pill" style="background:#5865f2;">2</span></div>
+      <div class="mock-list-item"><span>Pending Requests</span><span class="mock-pill" style="background:#178f41;">2</span></div>
     </div>
   </div>
 
@@ -261,7 +266,7 @@
       <div class="mock-top"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
       <div class="mock-list-item"><span>Payslip_EPRO0091_March.pdf</span><span class="mock-pill">Sent</span></div>
       <div class="mock-list-item"><span>Payslip_EPRO0092_March.pdf</span><span class="mock-pill">Sent</span></div>
-      <div class="mock-list-item"><span>Bulk Generate</span><span class="mock-pill" style="background:#5865f2;">61 employees</span></div>
+      <div class="mock-list-item"><span>Bulk Generate</span><span class="mock-pill" style="background:#178f41;">61 employees</span></div>
     </div>
   </div>
 
@@ -273,7 +278,7 @@
         <div class="mock-card"><div class="k">Successful</div><div class="v">58</div></div>
         <div class="mock-card"><div class="k">Failed</div><div class="v">3</div></div>
       </div>
-      <div class="mock-list-item"><span>Batch #204</span><span class="mock-pill" style="background:#059669;">Completed</span></div>
+      <div class="mock-list-item"><span>Batch #051c0d</span><span class="mock-pill" style="background:#059669;">Completed</span></div>
     </div>
   </div>
 
@@ -334,7 +339,7 @@
     <div class="showcase-text"><h3>User Roles &amp; Permissions</h3><p>Role-based access control across every module of the platform.</p></div>
     <div class="showcase-visual" role="img" aria-label="User Roles and Permissions dashboard">
       <div class="mock-top"><span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span></div>
-      <div class="mock-list-item"><span>Admin</span><span class="mock-pill" style="background:#5865f2;">Full Access</span></div>
+      <div class="mock-list-item"><span>Admin</span><span class="mock-pill" style="background:#178f41;">Full Access</span></div>
       <div class="mock-list-item"><span>HR</span><span class="mock-pill">Employee &amp; Leave</span></div>
       <div class="mock-list-item"><span>Employee</span><span class="mock-pill">Self-Service Only</span></div>
     </div>
@@ -477,7 +482,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>&copy; 2026 Payroll Management System. All rights reserved.</span>
+      <span>&copy; 2026 Namma Payroll. All rights reserved.</span>
       <span>Privacy Policy &nbsp;·&nbsp; Terms &amp; Conditions</span>
     </div>
   </div>

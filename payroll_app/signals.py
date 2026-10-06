@@ -27,19 +27,19 @@ def _notify_company_owner(company, message, link=''):
 
 @receiver(post_save, sender=DemoRequest)
 def on_demo_request_created(sender, instance, created, **kwargs):
-    if created:
+    if created and not kwargs.get('raw'):
         _notify_admins(f"New demo request from {instance.company_name}", link='/admin-panel/demo-requests/')
 
 
 @receiver(post_save, sender=Company)
 def on_company_registered(sender, instance, created, **kwargs):
-    if created:
+    if created and not kwargs.get('raw'):
         _notify_admins(f"New company registration pending approval: {instance.name}", link='/admin-panel/company-approvals/')
 
 
 @receiver(post_save, sender=LeaveRequest)
 def on_leave_request_created(sender, instance, created, **kwargs):
-    if created:
+    if created and not kwargs.get('raw'):
         _notify_company_owner(
             instance.employee.company,
             f"{instance.employee.full_name} requested {instance.get_leave_type_display()}",
@@ -49,7 +49,7 @@ def on_leave_request_created(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Reimbursement)
 def on_reimbursement_created(sender, instance, created, **kwargs):
-    if created:
+    if created and not kwargs.get('raw'):
         _notify_company_owner(
             instance.employee.company,
             f"{instance.employee.full_name} submitted a {instance.get_category_display()} claim",

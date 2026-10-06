@@ -20,7 +20,7 @@ def render_payslip_pdf(line):
     sub_style = ParagraphStyle('PayslipSub', parent=styles['Normal'], textColor=colors.HexColor('#64748b'))
 
     employee = line.employee
-    company_name = employee.company.name if employee.company else 'EDGEPRO Payroll'
+    company_name = employee.company.name if employee.company else 'Namma Payroll'
 
     story = [
         Paragraph(company_name, title_style),

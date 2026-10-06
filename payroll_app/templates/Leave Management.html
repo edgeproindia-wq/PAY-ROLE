@@ -113,7 +113,7 @@
   }
   new Chart(document.getElementById('leaveChart'), {
     type: 'bar',
-    data: { labels: {{ chart_labels|safe }}, datasets: [{ label:'Requests', data: {{ chart_values|safe }}, backgroundColor:'#4f46e5', borderRadius:6, maxBarThickness:44 }] },
+    data: { labels: {{ chart_labels|safe }}, datasets: [{ label:'Requests', data: {{ chart_values|safe }}, backgroundColor:'#147d39', borderRadius:6, maxBarThickness:44 }] },
     options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, grid:{color:'#eef1f6'} }, y:{ grid:{display:false} } } }
   });
   {% if form.errors %}document.getElementById('addLeaveModal').classList.add('open');{% endif %}

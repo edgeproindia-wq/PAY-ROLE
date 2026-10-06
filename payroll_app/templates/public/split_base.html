@@ -1,15 +1,16 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}EDGEPRO Payroll{% endblock %} &middot; EDGEPRO Payroll</title>
+<title>{% block title %}Namma Payroll{% endblock %} &middot; Namma Payroll</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  :root{--ink:#0f172a;--body:#475569;--muted:#64748b;--line:#dfe3ea;--brand:#5b5bf0;--brand-d:#4a4ad8;--dark:#0d1220;--bg:#f3f4f7}
+  :root{--ink:#0f172a;--body:#475569;--muted:#64748b;--line:#dfe3ea;--brand:#179042;--brand-d:#197539;--dark:#0d1220;--bg:#f3f4f7}
   html,body{height:100%}
   body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--bg)}
   a{color:var(--brand);text-decoration:none}
@@ -17,7 +18,7 @@
   .topnav{height:80px;background:#fff;border-bottom:1px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:relative}
   .brand{display:flex;align-items:center;gap:11px;color:var(--ink);font-weight:800;font-size:18px;letter-spacing:.2px}
   .logo{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;
-        background:linear-gradient(135deg,#6d5dfc,#8b5cf6)}
+        background:linear-gradient(135deg,#199c47,#189645)}
   .links{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:26px}
   .links a{color:#334155;font-weight:500;font-size:15px}
   .links a:hover{color:var(--brand)}
@@ -31,7 +32,7 @@
   .left{background:var(--dark);color:#fff;padding:64px 56px 40px;display:flex;flex-direction:column}
   .left-inner{max-width:580px}
   .left h1{font-size:37px;line-height:1.25;font-weight:800;letter-spacing:-.6px}
-  .hl{background:linear-gradient(90deg,#6d6dfa,#8b93ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hl{background:linear-gradient(90deg,#1ba84d,#37de72);-webkit-background-clip:text;background-clip:text;color:transparent}
   .left p.lead{margin-top:22px;color:#a3acc2;font-size:16.5px;line-height:1.6}
   .checks{margin-top:34px;display:grid;gap:12px}
   .check{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.08);
@@ -47,7 +48,7 @@
   .card .sub{margin-top:10px;color:var(--body);font-size:15px;line-height:1.35}
   .alert{margin-top:20px;padding:12px 16px;border-radius:8px;font-size:14.5px;background:#fef2f2;color:#991b1b;border-left:4px solid #dc2626}
   .alert.ok{background:#ecfdf5;color:#065f46;border-left-color:#10b981}
-  .alert.info{background:#eef2ff;color:#3730a3;border-left-color:var(--brand)}
+  .alert.info{background:#f0fbf4;color:#18502c;border-left-color:var(--brand)}
   form{margin-top:28px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
   .field{margin-bottom:26px}
@@ -58,7 +59,7 @@
   input[type=text],input[type=email],input[type=password],input[type=tel],input[type=number],input[type=url],select,textarea{
     width:100%;height:46px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit;font-size:15px;color:var(--ink);outline:none}
   textarea{height:auto;min-height:216px;padding:12px 14px;resize:vertical}
-  input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(91,91,240,.14)}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(23, 144, 66,.14)}
   .errorlist{list-style:none;margin-top:6px;color:#dc2626;font-size:13px}
   .help{margin-top:6px;font-size:12.5px;color:var(--muted)}
   .btn{display:flex;align-items:center;justify-content:center;width:100%;height:50px;border:none;border-radius:8px;cursor:pointer;
@@ -75,10 +76,14 @@
   }
   @media (max-width:560px){.grid2{grid-template-columns:1fr}.topnav{padding:0 14px}.brand span{display:none}.navbtns a{padding:0 14px}}
 </style>
+<style id="namma-watermark">
+html::after{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:9990;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320'%3E%3Ctext x='150' y='210' text-anchor='middle' transform='rotate(-24 150 210)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%23092847' fill-opacity='0.05'%3ENamma Payroll%3C/text%3E%3Ctext x='420' y='100' text-anchor='middle' transform='rotate(-24 420 100)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%231f9348' fill-opacity='0.055'%3ENamma Payroll%3C/text%3E%3C/svg%3E");background-repeat:repeat;}
+@media print{html::after{display:none}}
+</style>
 </head>
 <body>
 <header class="topnav">
-  <a class="brand" href="{% url 'landing' %}"><span class="logo">EP</span><span>EDGEPRO PAYROLL</span></a>
+  <a class="brand" href="{% url 'landing' %}"><img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" style="height:44px;width:auto;display:block;"></a>
   <nav class="links">
     <a href="{% url 'landing' %}">Home</a>
     <a href="{% url 'landing' %}#features">Features</a>
@@ -109,7 +114,7 @@
         <div class="tile">&#128202; Reports &amp; Analytics</div>
       </div>
     </div>
-    <div class="left-foot"><div>&copy; EDGEPRO Payroll &middot; Secure payroll for growing businesses</div></div>
+    <div class="left-foot"><div>&copy; Namma Payroll &middot; Secure payroll for growing businesses</div></div>
   </aside>
   <main class="right">
     <div class="card">

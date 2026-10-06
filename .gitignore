@@ -19,3 +19,5 @@ data.json
 *dump*.json
 fixtures_prod*.json
 _mustfix_backup/
+
+backups/

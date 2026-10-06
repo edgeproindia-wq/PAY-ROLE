@@ -1,22 +1,23 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}EDGEPRO Payroll{% endblock %}</title>
+<title>{% block title %}Namma Payroll{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#0f172a; --card-dark:#1c2742; --accent:#6366f1; --accent-dark:#4f46e5;
+    --navy:#0f172a; --card-dark:#1c2742; --accent:#199845; --accent-dark:#147d39;
     --ink:#0f172a; --muted:#64748b; --line:#e6e9f0;
-    --dot-blue:#60a5fa; --dot-purple:#a78bfa; --dot-yellow:#fbbf24;
+    --dot-blue:#60a5fa; --dot-purple:#2bdd69; --dot-yellow:#fbbf24;
   }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:'Inter',Arial,sans-serif; color:var(--ink); }
   nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 40px; border-bottom:1px solid var(--line); background:#fff; }
   .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
-  .brand .logo{ width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#8b5cf6); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:13px; }
+  .brand .logo{ width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--accent),#189645); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:13px; }
   .brand .name{ font-weight:800; font-size:15px; letter-spacing:.01em; }
   .navlinks{ display:flex; gap:30px; font-size:14px; font-weight:600; color:#334155; }
   .navlinks a{ color:inherit; text-decoration:none; }
@@ -29,7 +30,7 @@
   .split{ display:flex; min-height:calc(100vh - 65px); }
   .left{ flex:1 1 50%; background:var(--navy); color:#fff; padding:56px; display:flex; flex-direction:column; justify-content:center; }
   .left h1{ font-size:34px; font-weight:800; line-height:1.2; margin:0 0 16px; }
-  .left h1 .accent{ color:#a5b4fc; }
+  .left h1 .accent{ color:#79d89a; }
   .left p.desc{ color:#94a3b8; font-size:14.5px; line-height:1.65; max-width:460px; margin:0 0 26px; }
   .checklist{ display:flex; flex-direction:column; gap:10px; max-width:460px; margin-bottom:22px; }
   .checklist .item{ background:var(--card-dark); border-radius:9px; padding:12px 16px; display:flex; align-items:center; gap:12px; font-size:13.5px; font-weight:600; }
@@ -75,12 +76,16 @@
   @media (max-width:860px){ .split{ flex-direction:column; } .left{ padding:36px 24px; } .right{ padding:36px 24px; } .navlinks{ display:none; } .form-grid{ grid-template-columns:1fr; } }
 </style>
 {% block extra_head %}{% endblock %}
+<style id="namma-watermark">
+html::after{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:9990;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320'%3E%3Ctext x='150' y='210' text-anchor='middle' transform='rotate(-24 150 210)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%23092847' fill-opacity='0.05'%3ENamma Payroll%3C/text%3E%3Ctext x='420' y='100' text-anchor='middle' transform='rotate(-24 420 100)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%231f9348' fill-opacity='0.055'%3ENamma Payroll%3C/text%3E%3C/svg%3E");background-repeat:repeat;}
+@media print{html::after{display:none}}
+</style>
 </head>
 <body>
   <nav>
     <a class="brand" href="{% url 'home' %}">
-      <div class="logo">EP</div>
-      <div class="name">EDGEPRO PAYROLL</div>
+      <img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" style="height:44px;width:auto;display:block;">
+      <div class="name">NAMMA PAYROLL</div>
     </a>
     <div class="navlinks">
       <a href="{% url 'home' %}">Home</a>

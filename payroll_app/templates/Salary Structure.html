@@ -85,7 +85,7 @@
   new Chart(document.getElementById('salChart'), {
     type: 'bar',
     data: { labels: {{ chart_labels|safe }}, datasets: [
-      { label:'Basic', data: {{ chart_basic|safe }}, backgroundColor:'#4f46e5', borderRadius:5 },
+      { label:'Basic', data: {{ chart_basic|safe }}, backgroundColor:'#147d39', borderRadius:5 },
       { label:'HRA', data: {{ chart_hra|safe }}, backgroundColor:'#0f9d6a', borderRadius:5 }
     ]},
     options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } }, plugins:{ legend:{ position:'bottom' } } }

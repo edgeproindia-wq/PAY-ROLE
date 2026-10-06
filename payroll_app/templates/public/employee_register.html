@@ -1,5 +1,5 @@
 {% extends "public/marketing_base.html" %}
-{% block title %}Create Account - EDGEPRO Payroll{% endblock %}
+{% block title %}Create Account - Namma Payroll{% endblock %}
 {% block left %}
   <h1>Create your<br><span class="accent">employee account.</span></h1>
   <p class="desc">Verify your email, set your details, and an admin will assign you to your company and approve your access.</p>
@@ -8,11 +8,11 @@
     <div class="step"><div class="n">2</div>Set your name, mobile number, and choose a password</div>
     <div class="step"><div class="n">3</div>Wait for admin approval, then sign in</div>
   </div>
-  <div class="footer-note">EDGEPRO &copy; {% now "Y" %} — Payroll &amp; HR Management</div>
+  <div class="footer-note">Namma Payroll &copy; {% now "Y" %} — Payroll &amp; HR Management</div>
 {% endblock %}
 {% block right %}
   <h2>Create Account</h2>
-  <p class="sub">EDGEPRO Payroll — create your employee account</p>
+  <p class="sub">Namma Payroll — create your employee account</p>
 
   <form method="post" id="regForm" novalidate>
     {% csrf_token %}

@@ -32,7 +32,7 @@
 <script>
   new Chart(document.getElementById('deptChart'), {
     type:'bar',
-    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Employees', data:{{ chart_values|safe }}, backgroundColor:'#4f46e5', borderRadius:6 }] },
+    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Employees', data:{{ chart_values|safe }}, backgroundColor:'#147d39', borderRadius:6 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
   });
 </script>

@@ -134,7 +134,7 @@ def company_register(request):
             else:
                 code = f"{secrets.randbelow(1_000_000):06d}"
                 ok, err = send_email_safe(
-                    'Your EdgePro Payroll verification code',
+                    'Your Namma Payroll verification code',
                     f"Hello,\n\nYour verification code is {code}. It expires in {OTP_TTL_MINUTES} minutes.\n\n"
                     "If you did not start a registration, please ignore this email.",
                     [email],
@@ -261,7 +261,7 @@ def _issue_registration_otp(user):
         expires_at=timezone.now() + timezone.timedelta(minutes=OTP_TTL_MINUTES),
     )
     ok, err = send_email_safe(
-        'Your EdgePro Payroll verification code',
+        'Your Namma Payroll verification code',
         f"Hello {user.get_full_name() or user.username},\n\n"
         f"Your verification code is {code}. It expires in {OTP_TTL_MINUTES} minutes.\n\n"
         "If you did not register, please ignore this email.",
@@ -415,7 +415,7 @@ def admin_company_decide(request, pk):
                    details='Company registration approved' + (' (email unverified - admin override)' if unverified else ''))
         for owner in owners:
             Notification.objects.create(recipient=owner, message='Your company registration has been approved.', link='/')
-            send_email_safe('Your EdgePro Payroll account is approved',
+            send_email_safe('Your Namma Payroll account is approved',
                             f"Hello {owner.get_full_name() or owner.username},\n\n{company.name} has been approved. "
                             "You can now sign in with your username or email.", [owner.email])
         messages.success(request, f"{company.name} approved. The owner's account is now active.")
@@ -699,25 +699,37 @@ def employee_master(request):
 
 @company_owner_required
 def employee_edit(request, pk):
+    from .concurrency import remember_version, stale_warning
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
     is_admin = request.user.is_superuser or request.user.role == 'ADMIN'
     company_qs = Company.objects.all() if is_admin else None
+    form = None
     if request.method == 'POST':
-        form = EmployeeForm(request.POST, instance=employee, company_queryset=company_qs)
-        if form.is_valid():
-            changed = ', '.join(form.changed_data)[:300]
-            employee = form.save(commit=False)
-            if is_admin:
-                employee.company = form.cleaned_data['company']
-            employee.save()
-            # Keep the linked login's email in step with the employee record.
-            if employee.user_id and 'email' in form.changed_data:
-                User.objects.filter(pk=employee.user_id).update(email=employee.email)
-            log_action(request, 'UPDATE', employee, details=f'Employee updated: {changed}')
-            messages.success(request, f"{employee.full_name} updated.")
-            return redirect('employee_master')
-    else:
+        with transaction.atomic():
+            # Lock this one employee row until the request ends. A second person saving the
+            # same employee waits here, then is told what changed instead of overwriting it.
+            locked = Employee.objects.select_for_update().get(pk=employee.pk)
+            warning = stale_warning(request, locked, 'employee record')
+            if warning:
+                messages.warning(request, warning)
+            else:
+                form = EmployeeForm(request.POST, instance=locked, company_queryset=company_qs)
+                if form.is_valid():
+                    changed = ', '.join(form.changed_data)[:300]
+                    employee = form.save(commit=False)
+                    if is_admin:
+                        employee.company = form.cleaned_data['company']
+                    employee.save()
+                    # Keep the linked login's email in step with the employee record.
+                    if employee.user_id and 'email' in form.changed_data:
+                        User.objects.filter(pk=employee.user_id).update(email=employee.email)
+                    log_action(request, 'UPDATE', employee, details=f'Employee updated: {changed}')
+                    messages.success(request, f"{employee.full_name} updated.")
+                    return redirect('employee_master')
+            employee = locked
+    if form is None:
         form = EmployeeForm(instance=employee, company_queryset=company_qs)
+    remember_version(request, employee)
     paginator = Paginator(scope_employees(request, Employee.objects.all()), PAGE_SIZE)
     return render(request, 'Employee Master.html', {
         'employees': paginator.get_page(request.GET.get('page')), 'form': form, 'edit_employee': employee,
@@ -740,11 +752,19 @@ def employee_delete(request, pk):
 
 @company_owner_required
 def salary_structure(request):
+    from django.db import IntegrityError
     employees = scope_employees(request, Employee.objects.all())
     if request.method == 'POST':
         form = SalaryStructureForm(request.POST, employee_queryset=employees)
         if form.is_valid():
-            ss = form.save()
+            try:
+                with transaction.atomic():
+                    ss = form.save()
+            except IntegrityError:
+                # Two people saved the structure for the same employee at the same moment.
+                messages.warning(request, 'A salary structure for this employee was just saved by someone else. '
+                                          'Nothing was changed - the saved one is shown below.')
+                return redirect('salary_structure')
             log_action(request, 'CREATE', ss, details='Salary structure saved')
             return redirect('salary_structure')
     else:
@@ -883,24 +903,30 @@ def leave_decision(request, pk):
     leave = get_object_scoped(request, LeaveRequest, employee_field='employee', pk=pk)
     if request.method == 'POST':
         form = LeaveDecisionForm(request.POST)
-        if leave.status != 'PENDING':
-            messages.error(request, f"This leave request was already {leave.status.lower()}.")
-        elif leave.employee.user_id and leave.employee.user_id == request.user.pk:
-            raise PermissionDenied("You cannot approve your own leave.")
-        elif form.is_valid():
-            leave.status = form.cleaned_data['decision']
-            leave.decided_by = request.user
-            leave.decided_at = timezone.now()
-            leave.approver_comment = form.cleaned_data.get('comment', '').strip()
-            leave.save()
-            if leave.employee.user_id:
-                Notification.objects.create(recipient_id=leave.employee.user_id,
-                                            message=(f"Your {leave.get_leave_type_display()} request was {leave.status.lower()}."
-                                                     + (f" Comment: {leave.approver_comment}" if leave.approver_comment else ''))[:255],
-                                            link='/leave_management/')
-            log_action(request, 'APPROVE' if leave.status == 'APPROVED' else 'REJECT', leave,
-                       details=f'Leave request {leave.status}')
-            messages.success(request, f"Leave request {leave.status.lower()}.")
+        with transaction.atomic():
+            # Lock the request, then look at its CURRENT status: if another approver got here
+            # first, this person waits and is told, instead of both approvals going through.
+            leave = LeaveRequest.objects.select_for_update().get(pk=leave.pk)
+            if leave.status != 'PENDING':
+                who = leave.decided_by.get_username() if leave.decided_by_id else 'another user'
+                messages.warning(request, f"This leave request was already {leave.status.lower()} by {who}. "
+                                          "Your decision was NOT saved.")
+            elif leave.employee.user_id and leave.employee.user_id == request.user.pk:
+                raise PermissionDenied("You cannot approve your own leave.")
+            elif form.is_valid():
+                leave.status = form.cleaned_data['decision']
+                leave.decided_by = request.user
+                leave.decided_at = timezone.now()
+                leave.approver_comment = form.cleaned_data.get('comment', '').strip()
+                leave.save()
+                if leave.employee.user_id:
+                    Notification.objects.create(recipient_id=leave.employee.user_id,
+                                                message=(f"Your {leave.get_leave_type_display()} request was {leave.status.lower()}."
+                                                         + (f" Comment: {leave.approver_comment}" if leave.approver_comment else ''))[:255],
+                                                link='/leave_management/')
+                log_action(request, 'APPROVE' if leave.status == 'APPROVED' else 'REJECT', leave,
+                           details=f'Leave request {leave.status}')
+                messages.success(request, f"Leave request {leave.status.lower()}.")
     return redirect('leave_management')
 
 
@@ -942,24 +968,28 @@ def reimbursement_decision(request, pk):
     reimb = get_object_scoped(request, Reimbursement, employee_field='employee', pk=pk)
     if request.method == 'POST':
         form = LeaveDecisionForm(request.POST)
-        if reimb.status != 'PENDING':
-            messages.error(request, f"This claim was already {reimb.status.lower()}.")
-        elif reimb.employee.user_id and reimb.employee.user_id == request.user.pk:
-            raise PermissionDenied("You cannot approve your own claim.")
-        elif form.is_valid():
-            reimb.status = form.cleaned_data['decision']
-            reimb.decided_by = request.user
-            reimb.decided_at = timezone.now()
-            reimb.approver_comment = form.cleaned_data.get('comment', '').strip()
-            reimb.save()
-            if reimb.employee.user_id:
-                Notification.objects.create(recipient_id=reimb.employee.user_id,
-                                            message=(f"Your {reimb.get_category_display()} claim of {reimb.amount} was {reimb.status.lower()}."
-                                                     + (f" Comment: {reimb.approver_comment}" if reimb.approver_comment else ''))[:255],
-                                            link='/reimbursement/')
-            log_action(request, 'APPROVE' if reimb.status == 'APPROVED' else 'REJECT', reimb,
-                       details=f'Reimbursement {reimb.status}')
-            messages.success(request, f"Reimbursement claim {reimb.status.lower()}.")
+        with transaction.atomic():
+            reimb = Reimbursement.objects.select_for_update().get(pk=reimb.pk)
+            if reimb.status != 'PENDING':
+                who = reimb.decided_by.get_username() if reimb.decided_by_id else 'another user'
+                messages.warning(request, f"This claim was already {reimb.status.lower()} by {who}. "
+                                          "Your decision was NOT saved.")
+            elif reimb.employee.user_id and reimb.employee.user_id == request.user.pk:
+                raise PermissionDenied("You cannot approve your own claim.")
+            elif form.is_valid():
+                reimb.status = form.cleaned_data['decision']
+                reimb.decided_by = request.user
+                reimb.decided_at = timezone.now()
+                reimb.approver_comment = form.cleaned_data.get('comment', '').strip()
+                reimb.save()
+                if reimb.employee.user_id:
+                    Notification.objects.create(recipient_id=reimb.employee.user_id,
+                                                message=(f"Your {reimb.get_category_display()} claim of {reimb.amount} was {reimb.status.lower()}."
+                                                         + (f" Comment: {reimb.approver_comment}" if reimb.approver_comment else ''))[:255],
+                                                link='/reimbursement/')
+                log_action(request, 'APPROVE' if reimb.status == 'APPROVED' else 'REJECT', reimb,
+                           details=f'Reimbursement {reimb.status}')
+                messages.success(request, f"Reimbursement claim {reimb.status.lower()}.")
     return redirect('reimbursement')
 
 
@@ -1200,11 +1230,15 @@ def payroll_combined(request):
                 messages.error(request, 'Select the company to run payroll for.')
             elif form.is_valid():
                 month = form.cleaned_data['month']
-                if PayrollRun.objects.filter(company=company, month__iexact=month).exists():
-                    messages.error(request, f"A payroll run for {month} already exists for {company.name}. "
-                                            "Reprocess the existing run instead of creating a duplicate.")
-                else:
-                    with transaction.atomic():
+                payroll_run = None
+                with transaction.atomic():
+                    # Lock the company row so two people clicking "create" for the same month
+                    # cannot both pass the "already exists" check.
+                    Company.objects.select_for_update().get(pk=company.pk)
+                    if PayrollRun.objects.filter(company=company, month__iexact=month).exists():
+                        messages.error(request, f"A payroll run for {month} already exists for {company.name}. "
+                                                "Reprocess the existing run instead of creating a duplicate.")
+                    else:
                         payroll_run = form.save(commit=False)
                         payroll_run.company = company
                         payroll_run.created_by = request.user
@@ -1214,6 +1248,7 @@ def payroll_combined(request):
                         if period:   # BUG-06: people who join after this month are not in its run
                             emps = emps.filter(Q(date_of_joining__isnull=True) | Q(date_of_joining__lte=period[1]))
                         created, skipped = build_run_lines(payroll_run, emps)
+                if payroll_run is not None:
                     log_action(request, 'PROCESS_PAYROLL', payroll_run,
                                details=f'Payroll run created: {created} lines, {len(skipped)} skipped (no salary structure)')
                     messages.success(request, f"Payroll for {month} created with {created} employee(s).")
@@ -1225,56 +1260,61 @@ def payroll_combined(request):
             return redirect('payroll_combined')
 
         run = _get_run_scoped(request, request.POST.get('run_id'))
-        if action in RUN_TRANSITIONS:
-            required, target = RUN_TRANSITIONS[action]
-            if run.is_locked:
-                messages.error(request, f"'{run.month}' is locked. Unlock it first.")
-            elif run.status != required:
-                messages.error(request, f"Cannot {action} '{run.month}': it is {run.get_status_display()}, "
-                                        f"expected {dict(PayrollRun.STATUS_CHOICES)[required]}.")
-            elif not run.lines.exists():
-                messages.error(request, f"'{run.month}' has no payslip lines. Add salary structures and reprocess.")
-            else:
-                run.status = target
-                run.save(update_fields=['status'])
-                log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run status -> {target}')
-                if target == 'RELEASED':
-                    for line in run.lines.select_related('employee').exclude(employee__user__isnull=True):
-                        Notification.objects.create(recipient_id=line.employee.user_id,
-                                                    message=f"Your payslip for {run.month} is available.",
-                                                    link=reverse('payslip_detail', args=[line.pk]))
-                messages.success(request, f"'{run.month}' is now {run.get_status_display()}.")
-        elif action in ('lock', 'unlock'):
-            run.is_locked = action == 'lock'
-            run.save(update_fields=['is_locked'])
-            log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run {action}ed')
-        elif action == 'reject':
-            if run.status == 'RELEASED':
-                messages.error(request, 'A released payroll cannot be sent back to draft.')
-            elif run.is_locked:
-                messages.error(request, f"'{run.month}' is locked. Unlock it first.")
-            else:
-                run.status = 'DRAFT'
-                run.save(update_fields=['status'])
-                log_action(request, 'PROCESS_PAYROLL', run, details='Payroll run rejected back to draft')
-        elif action == 'reprocess':
-            if run.status == 'RELEASED':
-                messages.error(request, f"Cannot reprocess '{run.month}' - it has already been released.")
-            elif run.is_locked:
-                messages.error(request, f"Cannot reprocess '{run.month}' - it is locked. Unlock it first.")
-            else:
-                emps = Employee.objects.filter(company=run.company, employment_status='ACTIVE') if run.company \
-                    else Employee.objects.filter(pk__in=run.lines.values('employee'))
-                with transaction.atomic():
-                    release_claims(run, Employee.objects.filter(pk__in=run.lines.values('employee')))
-                    run.lines.all().delete()
-                    created, skipped = build_run_lines(run, emps)
+        with transaction.atomic():
+            # Lock this payroll run: two people pressing approve / release / reprocess at the
+            # same time are handled one after the other, each seeing the latest status.
+            run = PayrollRun.objects.select_for_update().get(pk=run.pk)
+            if action in RUN_TRANSITIONS:
+                required, target = RUN_TRANSITIONS[action]
+                if run.is_locked:
+                    messages.error(request, f"'{run.month}' is locked. Unlock it first.")
+                elif run.status != required:
+                    messages.error(request, f"Cannot {action} '{run.month}': it is {run.get_status_display()}, "
+                                            f"expected {dict(PayrollRun.STATUS_CHOICES)[required]}. "
+                                            "Someone else may have just changed it.")
+                elif not run.lines.exists():
+                    messages.error(request, f"'{run.month}' has no payslip lines. Add salary structures and reprocess.")
+                else:
+                    run.status = target
+                    run.save(update_fields=['status'])
+                    log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run status -> {target}')
+                    if target == 'RELEASED':
+                        for line in run.lines.select_related('employee').exclude(employee__user__isnull=True):
+                            Notification.objects.create(recipient_id=line.employee.user_id,
+                                                        message=f"Your payslip for {run.month} is available.",
+                                                        link=reverse('payslip_detail', args=[line.pk]))
+                    messages.success(request, f"'{run.month}' is now {run.get_status_display()}.")
+            elif action in ('lock', 'unlock'):
+                run.is_locked = action == 'lock'
+                run.save(update_fields=['is_locked'])
+                log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run {action}ed')
+            elif action == 'reject':
+                if run.status == 'RELEASED':
+                    messages.error(request, 'A released payroll cannot be sent back to draft.')
+                elif run.is_locked:
+                    messages.error(request, f"'{run.month}' is locked. Unlock it first.")
+                else:
                     run.status = 'DRAFT'
                     run.save(update_fields=['status'])
-                log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run reprocessed ({created} lines)')
-                messages.success(request, f"'{run.month}' reprocessed successfully.")
-        else:
-            messages.error(request, 'Unknown action.')
+                    log_action(request, 'PROCESS_PAYROLL', run, details='Payroll run rejected back to draft')
+            elif action == 'reprocess':
+                if run.status == 'RELEASED':
+                    messages.error(request, f"Cannot reprocess '{run.month}' - it has already been released.")
+                elif run.is_locked:
+                    messages.error(request, f"Cannot reprocess '{run.month}' - it is locked. Unlock it first.")
+                else:
+                    emps = Employee.objects.filter(company=run.company, employment_status='ACTIVE') if run.company \
+                        else Employee.objects.filter(pk__in=run.lines.values('employee'))
+                    with transaction.atomic():
+                        release_claims(run, Employee.objects.filter(pk__in=run.lines.values('employee')))
+                        run.lines.all().delete()
+                        created, skipped = build_run_lines(run, emps)
+                        run.status = 'DRAFT'
+                        run.save(update_fields=['status'])
+                    log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run reprocessed ({created} lines)')
+                    messages.success(request, f"'{run.month}' reprocessed successfully.")
+            else:
+                messages.error(request, 'Unknown action.')
         return redirect('payroll_combined')
 
     form = PayrollRunForm()
@@ -1367,11 +1407,18 @@ def bank_transfer(request):
                 if not emp.has_bank_details:
                     missing += 1
                     continue
-                payment = BankPayment.objects.create(
-                    payroll_line=line, company=emp.company, amount=line.net_pay,
-                    bank_name=emp.bank_name, account_holder_name=emp.account_holder_name or emp.full_name,
-                    account_no=emp.bank_account_no, ifsc_code=emp.ifsc_code,
+                # get_or_create: if another person prepared this payslip a moment ago, skip it
+                # instead of crashing on the one-payment-per-payslip rule.
+                payment, made = BankPayment.objects.get_or_create(
+                    payroll_line=line,
+                    defaults=dict(
+                        company=emp.company, amount=line.net_pay,
+                        bank_name=emp.bank_name, account_holder_name=emp.account_holder_name or emp.full_name,
+                        account_no=emp.bank_account_no, ifsc_code=emp.ifsc_code,
+                    ),
                 )
+                if not made:
+                    continue
                 log_action(request, 'PAYMENT_STATUS_CHANGE', payment, company=emp.company,
                            details=f'Payment prepared for {line.payslip_number}: {line.net_pay}')
                 created += 1
@@ -1410,6 +1457,7 @@ def bank_transfer(request):
 @company_owner_required
 @require_POST
 def bank_payment_update(request, pk):
+    from django.db import IntegrityError
     payment = get_object_or_404(BankPayment, pk=pk)
     if not _scope_payments(request).filter(pk=pk).exists():
         raise PermissionDenied("This payment does not belong to your company.")
@@ -1419,38 +1467,47 @@ def bank_payment_update(request, pk):
         messages.error(request, ' '.join(form.non_field_errors()) or 'Invalid payment update.')
         return redirect(back)
     action = form.cleaned_data['action']
-    old = payment.status
-    if payment.status == 'PAID':
-        messages.error(request, 'This payment is already marked paid and cannot be changed.')
-        return redirect(back)
-    if action == 'INITIATE' and payment.status == 'PENDING':
-        payment.status, payment.initiated_at = 'INITIATED', timezone.now()
-    elif action == 'PAID' and payment.status in ('PENDING', 'INITIATED'):
-        ref = form.cleaned_data['reference_number']
-        if BankPayment.objects.filter(reference_number=ref).exclude(pk=payment.pk).exists():
-            messages.error(request, f"Reference {ref} is already recorded against another payment.")
+    with transaction.atomic():
+        # Lock the payment row: a payment can be marked paid only once, even if two people
+        # type the UTR at the same moment.
+        payment = BankPayment.objects.select_for_update().get(pk=pk)
+        old = payment.status
+        if payment.status == 'PAID':
+            messages.error(request, 'This payment is already marked paid and cannot be changed.')
             return redirect(back)
-        payment.status, payment.reference_number = 'PAID', ref
-        payment.paid_at, payment.verified_by = timezone.now(), request.user
-        payment.failure_reason = ''
-    elif action == 'FAILED' and payment.status in ('PENDING', 'INITIATED'):
-        payment.status, payment.failure_reason = 'FAILED', form.cleaned_data['failure_reason'][:255]
-    elif action == 'RETRY' and payment.status == 'FAILED':
-        emp = payment.payroll_line.employee
-        if not emp.has_bank_details:
-            messages.error(request, f"{emp.full_name}: Missing Bank Details — update the employee record first.")
+        if action == 'INITIATE' and payment.status == 'PENDING':
+            payment.status, payment.initiated_at = 'INITIATED', timezone.now()
+        elif action == 'PAID' and payment.status in ('PENDING', 'INITIATED'):
+            ref = form.cleaned_data['reference_number']
+            if BankPayment.objects.filter(reference_number=ref).exclude(pk=payment.pk).exists():
+                messages.error(request, f"Reference {ref} is already recorded against another payment.")
+                return redirect(back)
+            payment.status, payment.reference_number = 'PAID', ref
+            payment.paid_at, payment.verified_by = timezone.now(), request.user
+            payment.failure_reason = ''
+        elif action == 'FAILED' and payment.status in ('PENDING', 'INITIATED'):
+            payment.status, payment.failure_reason = 'FAILED', form.cleaned_data['failure_reason'][:255]
+        elif action == 'RETRY' and payment.status == 'FAILED':
+            emp = payment.payroll_line.employee
+            if not emp.has_bank_details:
+                messages.error(request, f"{emp.full_name}: Missing Bank Details - update the employee record first.")
+                return redirect(back)
+            payment.status, payment.attempts = 'PENDING', payment.attempts + 1
+            payment.account_no, payment.ifsc_code = emp.bank_account_no, emp.ifsc_code
+            payment.bank_name, payment.account_holder_name = emp.bank_name, emp.account_holder_name or emp.full_name
+        else:
+            messages.error(request, f"Cannot {action.lower()} a payment that is {payment.get_status_display().lower()}.")
             return redirect(back)
-        payment.status, payment.attempts = 'PENDING', payment.attempts + 1
-        payment.account_no, payment.ifsc_code = emp.bank_account_no, emp.ifsc_code
-        payment.bank_name, payment.account_holder_name = emp.bank_name, emp.account_holder_name or emp.full_name
-    else:
-        messages.error(request, f"Cannot {action.lower()} a payment that is {payment.get_status_display().lower()}.")
-        return redirect(back)
-    payment.save()
-    log_action(request, 'PAYMENT_STATUS_CHANGE', payment, company=payment.company,
-               details=f'{payment.payroll_line.payslip_number}: {old} -> {payment.status}'
-                       + (f' ref={payment.reference_number}' if payment.status == 'PAID' else ''))
-    messages.success(request, f"Payment for {payment.payroll_line.employee.full_name} is now {payment.get_status_display()}.")
+        try:
+            with transaction.atomic():
+                payment.save()
+        except IntegrityError:
+            messages.error(request, 'That reference number was just recorded against another payment.')
+            return redirect(back)
+        log_action(request, 'PAYMENT_STATUS_CHANGE', payment, company=payment.company,
+                   details=f'{payment.payroll_line.payslip_number}: {old} -> {payment.status}'
+                           + (f' ref={payment.reference_number}' if payment.status == 'PAID' else ''))
+        messages.success(request, f"Payment for {payment.payroll_line.employee.full_name} is now {payment.get_status_display()}.")
     return redirect(back)
 
 
@@ -1533,20 +1590,30 @@ def user_roles_permissions(request):
 
 @company_owner_required
 def settings_view(request):
+    from .concurrency import remember_version, stale_warning
     company = get_user_company(request)
     if company is None and not (request.user.is_superuser or request.user.role == 'ADMIN'):
         raise PermissionDenied
     company_settings, _ = CompanySettings.objects.get_or_create(company=company) if company else (
         CompanySettings.objects.get_or_create(pk=1)
     )
+    form = None
     if request.method == 'POST':
-        form = CompanySettingsForm(request.POST, instance=company_settings)
-        if form.is_valid():
-            form.save()
-            log_action(request, 'UPDATE', company_settings, details='Company settings updated')
-            return redirect('settings')
-    else:
+        with transaction.atomic():
+            locked = CompanySettings.objects.select_for_update().get(pk=company_settings.pk)
+            warning = stale_warning(request, locked, 'company settings')
+            if warning:
+                messages.warning(request, warning)
+            else:
+                form = CompanySettingsForm(request.POST, instance=locked)
+                if form.is_valid():
+                    form.save()
+                    log_action(request, 'UPDATE', locked, details='Company settings updated')
+                    return redirect('settings')
+            company_settings = locked
+    if form is None:
         form = CompanySettingsForm(instance=company_settings)
+    remember_version(request, company_settings)
     return render(request, 'Settings.html', {'form': form})
 
 

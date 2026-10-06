@@ -39,7 +39,7 @@
 <script>
   new Chart(document.getElementById('raChart'), {
     type:'bar',
-    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Count', data:{{ chart_values|safe }}, backgroundColor:['#4f46e5','#0f9d6a','#0369a1','#f5a524'], borderRadius:8 }] },
+    data:{ labels:{{ chart_labels|safe }}, datasets:[{ label:'Count', data:{{ chart_values|safe }}, backgroundColor:['#147d39','#0f9d6a','#0369a1','#f5a524'], borderRadius:8 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
   });
 </script>

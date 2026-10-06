@@ -51,7 +51,7 @@
   new Chart(document.getElementById('scChart'), {
     type:'bar',
     data:{ labels:{{ chart_labels|safe }}, datasets:[
-      { label:'PF', data:{{ chart_pf|safe }}, backgroundColor:'#4f46e5', borderRadius:5 },
+      { label:'PF', data:{{ chart_pf|safe }}, backgroundColor:'#147d39', borderRadius:5 },
       { label:'ESI', data:{{ chart_esi|safe }}, backgroundColor:'#0f9d6a', borderRadius:5 }
     ]},
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}, scales:{ y:{beginAtZero:true, grid:{color:'#eef1f6'}}, x:{grid:{display:false}} } }
