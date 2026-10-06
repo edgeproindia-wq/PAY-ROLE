@@ -94,6 +94,56 @@ REG_VERIFIED_KEY = 'reg_verified_email'
 REG_VERIFIED_TTL_SECONDS = 30 * 60
 
 
+REG_PENDING_MESSAGE = (
+    'Registration successful. Your account is pending admin approval. '
+    'We will email you as soon as it is approved - you can sign in only after that.'
+)
+
+
+def _email_admins_new_registration(request, company, owner):
+    """Tell the platform admin(s) by email that a company is waiting for approval.
+
+    Sent only after the registration is safely saved. A mail problem is logged
+    and never stops or undoes the registration (the in-app bell notification is
+    created separately by the Company post_save signal)."""
+    from django.conf import settings
+
+    def _send():
+        recipients = []
+        configured = (getattr(settings, 'DEMO_NOTIFY_EMAIL', '') or '').replace(';', ',')
+        recipients += [e.strip() for e in configured.split(',') if e.strip()]
+        recipients += list(User.objects.filter(Q(role='ADMIN') | Q(is_superuser=True), is_active=True)
+                           .exclude(email='').values_list('email', flat=True))
+        seen, unique = set(), []
+        for e in recipients:
+            if e.lower() not in seen:
+                seen.add(e.lower())
+                unique.append(e)
+        if not unique:
+            logger.warning('New registration %r is waiting for approval but no admin email address is set.', company.name)
+            return
+        try:
+            link = request.build_absolute_uri(reverse('admin_company_approvals'))
+            ok, err = send_email_safe(
+                f'New registration waiting for approval: {company.name}',
+                f"A new company has registered on Namma Payroll and is waiting for your approval.\n\n"
+                f"Company : {company.name}\n"
+                f"Owner   : {owner.get_full_name() or owner.username} (username: {owner.username})\n"
+                f"Email   : {company.contact_email}\n"
+                f"Mobile  : {company.contact_phone or '-'}\n\n"
+                f"Review and approve here:\n{link}\n\n"
+                "The owner cannot sign in until you approve.",
+                unique,
+            )
+            if not ok:
+                logger.warning('Admin approval-needed email failed for %r: %s', company.name, err)
+        except Exception:
+            logger.exception('Admin approval-needed email crashed for %r', company.name)
+
+    transaction.on_commit(_send)
+
+
+
 def company_register(request):
     """Company sign-up in three steps: (1) email, (2) emailed 6-digit OTP,
     (3) company and login details. Step 3's email is locked to the address
@@ -193,10 +243,10 @@ def company_register(request):
                     email_verified=bool(verified),  # already verified in step 2 of the new flow
                 )
                 log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
+            _email_admins_new_registration(request, company, owner)
             if verified:
                 session.pop(REG_VERIFIED_KEY, None)
-                messages.success(request, 'Registration submitted. Your email is verified - you can sign in '
-                                          'once our team approves your company.')
+                messages.success(request, REG_PENDING_MESSAGE)
                 return redirect('login')
             _issue_registration_otp(owner)
             session['otp_user_id'] = owner.pk
@@ -246,7 +296,8 @@ def _company_register_single_step(request):
                 email_verified=True,  # verification switched off, nothing to wait for
             )
             log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
-        messages.success(request, 'Registration submitted. You can sign in once our team approves your company.')
+        _email_admins_new_registration(request, company, owner)
+        messages.success(request, REG_PENDING_MESSAGE)
         return redirect('login')
     return render(request, 'public/company_register.html', {'step': 3, 'form': form, 'simple': True})
 
@@ -391,8 +442,9 @@ def admin_company_approvals(request):
 
 
 @admin_required
+@transaction.atomic
 def admin_company_decide(request, pk):
-    company = get_object_or_404(Company, pk=pk)
+    company = get_object_or_404(Company.objects.select_for_update(), pk=pk)
     next_url = request.POST.get('next') or 'admin_company_approvals'
     if next_url not in ('admin_company_approvals', 'admin_company_list'):
         next_url = 'admin_company_approvals'
@@ -413,12 +465,25 @@ def admin_company_decide(request, pk):
         owners.update(is_active=True, email_verified=True)
         log_action(request, 'APPROVE', company,
                    details='Company registration approved' + (' (email unverified - admin override)' if unverified else ''))
+        login_link = request.build_absolute_uri(reverse('login'))
+        email_failed = []
         for owner in owners:
             Notification.objects.create(recipient=owner, message='Your company registration has been approved.', link='/')
-            send_email_safe('Your Namma Payroll account is approved',
-                            f"Hello {owner.get_full_name() or owner.username},\n\n{company.name} has been approved. "
-                            "You can now sign in with your username or email.", [owner.email])
+            to_addr = owner.email or company.contact_email
+            ok, err = send_email_safe(
+                'Your Namma Payroll account is approved',
+                f"Hello {owner.get_full_name() or owner.username},\n\n"
+                f"Good news - {company.name} has been approved on Namma Payroll.\n"
+                f"You can now sign in with your username ({owner.username}) or your email:\n{login_link}\n",
+                [to_addr],
+            ) if to_addr else (False, 'no email address on file')
+            if not ok:
+                logger.warning('Approval email to user #%s failed: %s', owner.pk, err)
+                email_failed.append(to_addr or owner.username)
         messages.success(request, f"{company.name} approved. The owner's account is now active.")
+        if email_failed:
+            messages.warning(request, 'The approval email could not be sent to: ' + ', '.join(email_failed)
+                             + '. The account IS active - please tell them they can sign in now.')
     elif decision == 'REJECTED' and company.status == 'PENDING_APPROVAL':
         company.status = 'REJECTED'
         company.rejection_reason = request.POST.get('reason', '')[:500]
