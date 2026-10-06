@@ -255,7 +255,7 @@
   @media print{ .sidebar, .topbar{ display:none !important; } .main{ margin-left:0 !important; } }
 </style>
 <style id="namma-watermark">
-html::after{content:"";position:fixed;top:0;right:0;bottom:0;left:0;z-index:9990;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='320'%3E%3Ctext x='150' y='210' text-anchor='middle' transform='rotate(-24 150 210)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%23092847' fill-opacity='0.05'%3ENamma Payroll%3C/text%3E%3Ctext x='420' y='100' text-anchor='middle' transform='rotate(-24 420 100)' font-family='Arial,Helvetica,sans-serif' font-size='30' font-weight='700' fill='%231f9348' fill-opacity='0.055'%3ENamma Payroll%3C/text%3E%3C/svg%3E");background-repeat:repeat;}
+html::after{content:"";position:fixed;top:-50%;left:-50%;width:200%;height:200%;z-index:9990;pointer-events:none;transform:rotate(-20deg);background-image:url("/static/img/namma-payroll-logo.png");background-repeat:repeat;background-size:520px auto;opacity:.045;mix-blend-mode:multiply;}
 @media print{html::after{display:none}}
 </style>
 </head>
