@@ -112,11 +112,54 @@ class AssignForm(forms.Form):
     employee = forms.ModelChoiceField(queryset=Employee.objects.none())
     shift = forms.ModelChoiceField(queryset=Shift.objects.none())
     effective_from = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    effective_to = forms.DateField(required=False, label='Effective to (optional)',
+                                   widget=forms.DateInput(attrs={'type': 'date'}))
 
     def __init__(self, company, *a, **kw):
         super().__init__(*a, **kw)
         self.fields['employee'].queryset = Employee.objects.filter(company=company)
         self.fields['shift'].queryset = Shift.objects.filter(company=company, active=True)
+
+    def clean(self):
+        data = super().clean()
+        start, end = data.get('effective_from'), data.get('effective_to')
+        if start and end and end < start:
+            self.add_error('effective_to', 'Effective to cannot be before Effective from.')
+        return data
+
+
+def _assign_shift(company, employee, shift, start, end=None):
+    """Give `employee` `shift` from `start` to `end` (open-ended when `end` is None).
+
+    Earlier assignments that run into the new period are ended the day before it
+    starts. If the new period is short (has an end date) and cuts into a longer
+    earlier assignment, that earlier shift resumes the day after `end`. With no end
+    date this behaves exactly as before."""
+    from django.db import transaction
+    one = datetime.timedelta(days=1)
+    with transaction.atomic():
+        Employee.objects.select_for_update().get(pk=employee.pk)   # two people editing one employee queue up
+        mine = ShiftAssignment.objects.filter(employee=employee)
+        earlier = mine.filter(effective_from__lt=start).filter(Q(effective_to__isnull=True) | Q(effective_to__gte=start))
+        for a in list(earlier):
+            old_to = a.effective_to
+            a.effective_to = start - one
+            a.save(update_fields=['effective_to'])
+            if end is not None and (old_to is None or old_to > end):
+                ShiftAssignment.objects.create(company=a.company, employee=employee, shift=a.shift,
+                                               effective_from=end + one, effective_to=old_to)
+        inside = mine.filter(effective_from__gte=start)
+        if end is None:
+            inside.delete()
+        else:
+            for b in list(inside.filter(effective_from__lte=end)):
+                if b.effective_to is not None and b.effective_to <= end:
+                    b.delete()
+                else:
+                    b.effective_from = end + one
+                    b.save(update_fields=['effective_from'])
+        return ShiftAssignment.objects.create(company=company, employee=employee, shift=shift,
+                                              effective_from=start, effective_to=end)
 
 
 @company_owner_required
@@ -140,15 +183,10 @@ def hr_shifts(request):
             return redirect('hr_shifts')
         if request.POST.get('form') == 'assign' and assign_form.is_valid():
             c = assign_form.cleaned_data
-            # close the previous assignment the day before the new one starts
-            ShiftAssignment.objects.filter(employee=c['employee'], effective_to__isnull=True,
-                                           effective_from__lt=c['effective_from']).update(
-                effective_to=c['effective_from'] - datetime.timedelta(days=1))
-            ShiftAssignment.objects.filter(employee=c['employee'], effective_from__gte=c['effective_from']).delete()
-            ShiftAssignment.objects.create(company=company, employee=c['employee'], shift=c['shift'],
-                                           effective_from=c['effective_from'])
-            log_action(request, 'UPDATE', c['employee'], details=f'Shift set to {c["shift"].name}')
-            messages.success(request, f'{c["employee"]} assigned to {c["shift"].name}.')
+            _assign_shift(company, c['employee'], c['shift'], c['effective_from'], c['effective_to'])
+            period = f"from {c['effective_from']:%d %b %Y}" + (f" to {c['effective_to']:%d %b %Y}" if c['effective_to'] else ' onwards')
+            log_action(request, 'UPDATE', c['employee'], details=f"Shift set to {c['shift'].name} {period}")
+            messages.success(request, f"{c['employee']} assigned to {c['shift'].name} {period}.")
             return redirect('hr_shifts')
     return render(request, 'features/hr_shifts.html', {
         'shift_form': shift_form, 'assign_form': assign_form,
