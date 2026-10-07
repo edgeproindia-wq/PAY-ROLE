@@ -489,7 +489,24 @@ def admin_company_decide(request, pk):
         company.rejection_reason = request.POST.get('reason', '')[:500]
         company.save()
         log_action(request, 'REJECT', company, details='Company registration rejected')
+        reject_failed = []
+        for owner in owners:
+            to_addr = owner.email or company.contact_email
+            reason_line = f"Reason: {company.rejection_reason}\n\n" if company.rejection_reason else "\n"
+            ok, err = send_email_safe(
+                'Your Namma Payroll registration was not approved',
+                f"Hello {owner.get_full_name() or owner.username},\n\n"
+                f"Sorry - the registration for {company.name} was not approved.\n"
+                f"{reason_line}"
+                "If you think this is a mistake, please contact us and we will look at it again.\n",
+                [to_addr],
+            ) if to_addr else (False, 'no email address on file')
+            if not ok:
+                logger.warning('Rejection email to user #%s failed: %s', owner.pk, err)
+                reject_failed.append(to_addr or owner.username)
         messages.success(request, f"{company.name} rejected.")
+        if reject_failed:
+            messages.warning(request, 'The rejection email could not be sent to: ' + ', '.join(reject_failed) + '.')
     elif decision == 'SUSPENDED' and company.status == 'APPROVED':
         company.status = 'SUSPENDED'
         company.save(update_fields=['status'])

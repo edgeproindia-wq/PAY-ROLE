@@ -153,3 +153,29 @@ class RegistrationApprovalFlowTests(TestCase):
             resp = self._register()
         self.assertContains(resp, 'pending admin approval')
         self.assertTrue(Company.objects.filter(name='Brand New Traders').exists())
+
+
+@override_settings(EMAIL_BACKEND=EMAIL_BACKEND, DEMO_NOTIFY_EMAIL='boss@example.com',
+                   REQUIRE_EMAIL_VERIFICATION=False)
+class RejectionEmailTests(TestCase):
+    def test_rejection_emails_the_registrant_with_reason(self):
+        User.objects.create_superuser('rejadmin', 'rejadmin@example.com', ADMIN_PW)
+        form = {'company_name': 'Nope Traders', 'owner_full_name': 'Sam Lee',
+                'contact_email': 'sam@nope.example', 'contact_phone': '9876543210',
+                'address': '', 'username': 'samnope', 'password1': NEW_PW, 'password2': NEW_PW}
+        self.client.post(reverse('company_register'), form)
+        company = Company.objects.get(name='Nope Traders')
+        boss = self.client_class()
+        boss.post(reverse('login'), {'username': 'rejadmin', 'password': ADMIN_PW})
+        mail.outbox.clear()
+        boss.post(reverse('admin_company_decide', args=[company.pk]),
+                  {'decision': 'REJECTED', 'reason': 'GST number could not be verified'}, follow=True)
+        company.refresh_from_db()
+        self.assertEqual(company.status, 'REJECTED')
+        sent = [m for m in mail.outbox if 'not approved' in m.subject]
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0].to, ['sam@nope.example'])
+        self.assertIn('GST number could not be verified', sent[0].body)
+        fresh = self.client_class()
+        fresh.post(reverse('login'), {'username': 'samnope', 'password': NEW_PW})
+        self.assertNotIn('_auth_user_id', fresh.session)
