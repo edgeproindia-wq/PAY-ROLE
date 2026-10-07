@@ -24,7 +24,8 @@ COLUMNS = [
     ('employee_code', 'Employee ID', True, ['employee id', 'emp code', 'employee code', 'emp id', 'code', 'empcode']),
     ('first_name', 'First Name', True, ['first name', 'firstname', 'name', 'employee name', 'emp name', 'full name']),
     ('last_name', 'Last Name', False, ['last name', 'lastname', 'surname']),
-    ('email', 'Email', True, ['email', 'email id', 'e-mail', 'mail id', 'official email']),
+    ('email', 'Email', True, ['email', 'email id', 'e-mail', 'mail id', 'official email', 'official mail id',
+                              'official mail', 'official e-mail', 'official email id', 'mail', 'work email']),
     ('phone', 'Phone', False, ['phone', 'mobile', 'mobile no', 'phone no', 'contact', 'contact no']),
     ('gender', 'Gender (M/F/O)', False, ['gender', 'gender (m/f/o)', 'sex']),
     ('date_of_birth', 'Date of Birth', False, ['date of birth', 'dob', 'birth date']),
@@ -45,7 +46,10 @@ SESSION_KEY = 'employee_import_rows'
 MAX_ROWS = 2000
 GENDER = {'m': 'M', 'male': 'M', 'f': 'F', 'female': 'F', 'o': 'O', 'other': 'O'}
 STATUS = {'active': 'ACTIVE', 'on leave': 'ON_LEAVE', 'on_leave': 'ON_LEAVE', 'resigned': 'RESIGNED',
-          'terminated': 'TERMINATED', 'inactive': 'RESIGNED'}
+          'terminated': 'TERMINATED', 'inactive': 'RESIGNED',
+          # words used in the company's own master list
+          'working': 'ACTIVE', 'existing': 'ACTIVE', 'in notice': 'ACTIVE', 'under notice': 'ACTIVE',
+          'notice period': 'ACTIVE', 'relieved': 'RESIGNED', 'left': 'RESIGNED'}
 
 
 def _norm(h):
