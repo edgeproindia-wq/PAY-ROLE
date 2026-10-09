@@ -102,7 +102,17 @@ def calculate_line(run, employee, period):
     gross = q(ss.gross_salary)
 
     days_in_month, lop_days = 0, Decimal('0')
+    cycle_values = None
     if period:
+        from .pay_cycle_calc import cycle_basis
+        cycle_values = cycle_basis(run, employee, period)     # None unless the run's pay cycle uses working days
+    if period and cycle_values is not None:
+        start, end = period
+        doj = employee.date_of_joining
+        if doj and doj > end:
+            return None
+        days_in_month, not_joined_days, lop_days = cycle_values
+    elif period:
         start, end = period
         days_in_month = (end - start).days + 1
         att = Attendance.objects.filter(employee=employee, date__range=(start, end))
@@ -174,7 +184,8 @@ def calculate_line(run, employee, period):
 def build_run_lines(run, employees):
     """Create one line per employee (idempotent: an existing line for the same
     employee in this run is replaced, never duplicated). Returns (created, skipped)."""
-    period = parse_month(run.month)
+    from .pay_cycle_calc import period_for_run
+    period = period_for_run(run)          # the pay cycle's own dates, or the month label for runs without one
     created, skipped = 0, []
     for emp in employees:
         values = calculate_line(run, emp, period)

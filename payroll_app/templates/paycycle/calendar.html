@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Working Calendar · Attendance{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">Working Calendar</h1><p class="page-subtitle">Weekly offs, holidays and special working days. Salary uses these to work out working days.</p></div>
+  <div class="page-actions"><a href="{% url 'pay_cycles' %}" class="btn btn-outline">Pay Cycle</a></div>
+</div>
+{% if using_default %}<div class="alert alert-info"><span>You have not saved a calendar yet. Until you do, Sunday is the weekly off and there are no holidays. Choose your weekly offs below and save.</span></div>{% endif %}
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Weekly offs</h3></div>
+    <div class="card-body">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="save_calendar">
+        <div class="field"><label>Calendar name</label>{{ form.name }}</div>
+        <div class="field"><label>Weekly offs</label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">{% for cb in form.weekly_offs %}<label style="text-transform:none;font-weight:500;font-size:14px">{{ cb.tag }} {{ cb.choice_label }}</label>{% endfor %}</div></div>
+        <div class="form-actions"><button class="btn btn-primary">Save calendar</button></div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div><h3>{{ month_label }}</h3><div class="sub">Working-day count salary will use for this month</div></div>
+      <form method="get" class="no-print"><input type="month" name="month" value="{{ month }}" onchange="this.form.submit()" style="width:auto"></form></div>
+    <div class="card-body"><div class="detail-list">
+      <div class="detail-item"><div class="k">Calendar days</div><div class="v">{{ summary.total_days }}</div></div>
+      <div class="detail-item"><div class="k">Working days</div><div class="v"><b>{{ summary.working_days }}</b></div></div>
+      <div class="detail-item"><div class="k">Weekly offs</div><div class="v">{{ summary.weekly_offs }}</div></div>
+      <div class="detail-item"><div class="k">Holidays</div><div class="v">{{ summary.holidays }}</div></div>
+      <div class="detail-item"><div class="k">Special working days</div><div class="v">{{ summary.special_working_days }}</div></div>
+      <div class="detail-item"><div class="k">Half working days</div><div class="v">{{ summary.half_days }}</div></div>
+    </div></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h3>Holidays and special days</h3></div>
+  {% if calendar %}
+  <form method="post" class="toolbar">{% csrf_token %}<input type="hidden" name="action" value="add_day">
+    <div style="min-width:170px">{{ day_form.date }}</div><div style="min-width:240px">{{ day_form.day_type }}</div><div style="min-width:200px">{{ day_form.name }}</div>
+    <button class="btn btn-primary" type="submit">Add</button>
+  </form>
+  {% endif %}
+  <div class="table-wrap">
+    {% if days %}
+    <table><thead><tr><th>Date</th><th>Type</th><th>Name</th><th class="no-print">Action</th></tr></thead><tbody>
+      {% for d in days %}<tr><td>{{ d.date|date:"d-M-Y (D)" }}</td><td>{{ d.get_day_type_display }}</td><td>{{ d.name|default:"-" }}</td>
+        <td class="no-print"><form method="post" onsubmit="return confirm('Remove this entry?');" style="display:inline">{% csrf_token %}<input type="hidden" name="action" value="delete_day"><input type="hidden" name="day_id" value="{{ d.pk }}"><button class="btn btn-danger btn-sm">Remove</button></form></td></tr>{% endfor %}
+    </tbody></table>
+    {% else %}<div class="empty-state"><div class="icon">&#127881;</div><div class="title">No holidays added</div><div class="desc">Save the calendar, then add public and company holidays here.</div></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

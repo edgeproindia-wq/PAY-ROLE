@@ -701,7 +701,35 @@ def dashboard(request):
     reimbursements = scope_by_employee_fk(request, Reimbursement.objects.select_related('employee'))
     declarations = scope_by_employee_fk(request, InvestmentDeclaration.objects.all())
 
+    # ---- attendance today / last 7 days and recent payroll cost: real data only
+    from datetime import timedelta
+    today = timezone.localdate()
+    active = employees.filter(employment_status='ACTIVE')
+    active_ids = set(active.values_list('id', flat=True))
+    todays = Attendance.objects.filter(employee_id__in=active_ids, date=today)
+    marked_ids = set(todays.values_list('employee_id', flat=True))
+    leave_ids = set(leaves.filter(status='APPROVED', from_date__lte=today, to_date__gte=today,
+                                  employee_id__in=active_ids).values_list('employee_id', flat=True))
+    present_today = todays.filter(status='PRESENT').count()
+    absent_today = todays.filter(status='ABSENT').count()
+    on_leave_today = len(leave_ids)
+    not_marked_today = len(active_ids - marked_ids - leave_ids)
+    trend_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    trend_present = dict(Attendance.objects.filter(employee_id__in=active_ids, date__in=trend_days, status='PRESENT')
+                         .values('date').annotate(c=Count('id')).values_list('date', 'c'))
+    trend_values = [trend_present.get(d, 0) for d in trend_days]
+    cost_runs = list(runs.filter(status='RELEASED', lines__isnull=False).distinct().order_by('-id')[:6])[::-1]
+    cost_by_run = dict(PayrollRunLine.objects.filter(payroll_run__in=cost_runs, employee__in=employees)
+                       .values('payroll_run').annotate(t=Sum('net_pay')).values_list('payroll_run', 't'))
+
     context = {
+        'present_today': present_today, 'absent_today': absent_today,
+        'on_leave_today': on_leave_today, 'not_marked_today': not_marked_today,
+        'attendance_trend_labels': _js([d.strftime('%d %b') for d in trend_days]),
+        'attendance_trend_values': _js(trend_values), 'attendance_has_data': any(trend_values),
+        'cost_labels': _js([r.month for r in cost_runs]),
+        'cost_values': _js([float(cost_by_run.get(r.pk, 0) or 0) for r in cost_runs]),
+        'cost_has_data': bool(cost_runs),
         'dept_labels': dept_labels, 'dept_values': dept_values,
         'status_labels': status_labels, 'status_values': status_values,
         'run_labels': run_labels, 'run_values': run_values,

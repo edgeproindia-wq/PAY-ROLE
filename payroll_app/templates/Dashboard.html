@@ -39,6 +39,29 @@
   </div>
 </div>
 
+<div class="kpi-row">
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:#fff;color:var(--accent);">&#9989;</span>
+    <div class="label">Present Today</div>
+    <div class="value">{{ present_today }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:#fff;color:var(--info);">&#127796;</span>
+    <div class="label">On Leave Today</div>
+    <div class="value">{{ on_leave_today }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:#fff;color:var(--warn);">&#128221;</span>
+    <div class="label">Attendance Not Marked</div>
+    <div class="value">{{ not_marked_today }}</div>
+  </div>
+  <div class="kpi-card">
+    <span class="icon-badge" style="background:#fff;color:var(--danger);">&#10060;</span>
+    <div class="label">Absent Today</div>
+    <div class="value">{{ absent_today }}</div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <div>
@@ -71,6 +94,23 @@
         <div class="desc">Start your first payroll run to see net payout and headcount here.</div>
       </div>
     {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div><h3>Attendance - Last 7 Days</h3><div class="sub">Employees marked present each day</div></div></div>
+    <div class="card-body">
+      {% if attendance_has_data %}<div class="chart-box sm"><canvas id="attTrendChart"></canvas></div>
+      {% else %}<div class="empty-state"><div class="icon">&#128197;</div><div class="title">No attendance marked in the last 7 days</div><div class="desc">Mark attendance to see the daily trend here.</div></div>{% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div><h3>Payroll Cost - Recent Releases</h3><div class="sub">Net pay of the last released runs</div></div></div>
+    <div class="card-body">
+      {% if cost_has_data %}<div class="chart-box sm"><canvas id="costChart"></canvas></div>
+      {% else %}<div class="empty-state"><div class="icon">&#128176;</div><div class="title">No released payroll yet</div><div class="desc">Release a payroll run to see its cost here.</div></div>{% endif %}
+    </div>
   </div>
 </div>
 
@@ -191,5 +231,20 @@
     },
     options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, grid:{color:'#eef1f6'} }, y:{ grid:{display:false} } } }
   });
+
+  {% if attendance_has_data %}
+  new Chart(document.getElementById('attTrendChart'), {
+    type: 'bar',
+    data: { labels: {{ attendance_trend_labels|safe }}, datasets: [{ label:'Present', data: {{ attendance_trend_values|safe }}, backgroundColor:'#147d39', borderRadius:6, maxBarThickness:36 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{precision:0}, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } } }
+  });
+  {% endif %}
+  {% if cost_has_data %}
+  new Chart(document.getElementById('costChart'), {
+    type: 'line',
+    data: { labels: {{ cost_labels|safe }}, datasets: [{ label:'Net pay', data: {{ cost_values|safe }}, borderColor:'#147d39', backgroundColor:'rgba(20,125,57,.12)', fill:true, tension:.3, pointRadius:4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, grid:{color:'#eef1f6'} }, x:{ grid:{display:false} } } }
+  });
+  {% endif %}
 </script>
 {% endblock %}

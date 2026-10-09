@@ -254,89 +254,128 @@
   canvas{ max-width:100%; }
   @media print{ .sidebar, .topbar{ display:none !important; } .main{ margin-left:0 !important; } }
 </style>
+<link rel="stylesheet" href="{% static 'css/namma-theme.css' %}">
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
     {% url 'employee_home' as u_brand_emp %}<a class="sb-brand" href="{% if is_admin_role %}{% url 'admin_dashboard' %}{% elif is_employee_role and u_brand_emp %}{{ u_brand_emp }}{% else %}{% url 'dashboard' %}{% endif %}">
-      <img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" style="height:40px;width:auto;display:block;background:#fff;border-radius:8px;padding:4px 8px;">
+      <img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" style="height:40px;width:auto;display:block;">
     </a>
-    <nav class="sb-nav">
+    <nav class="sb-nav" aria-label="Main menu">
     {% if is_admin_role %}
-      <div class="sb-section">Main</div>
-      {% url 'admin_dashboard' as u_admin1 %}{% if u_admin1 %}<a href="{{ u_admin1 }}"><span class="ic">&#9632;</span><span class="tx">Admin Dashboard</span></a>{% endif %}
-      <div class="sb-section">Platform</div>
-      {% url 'admin_company_list' as u_admin2 %}{% if u_admin2 %}<a href="{{ u_admin2 }}"><span class="ic">&#127970;</span><span class="tx">Client Management</span></a>{% endif %}
-      {% url 'admin_company_approvals' as u_admin3 %}{% if u_admin3 %}<a href="{{ u_admin3 }}"><span class="ic">&#9989;</span><span class="tx">Company Approvals</span></a>{% endif %}
-      {% url 'admin_demo_requests' as u_admin4 %}{% if u_admin4 %}<a href="{{ u_admin4 }}"><span class="ic">&#128197;</span><span class="tx">Demo Requests</span></a>{% endif %}
-      {% url 'admin_client_complaints' as u_admin5 %}{% if u_admin5 %}<a href="{{ u_admin5 }}"><span class="ic">&#128172;</span><span class="tx">Client Complaints</span></a>{% endif %}
-      {% url 'admin_client_requests' as u_admin6 %}{% if u_admin6 %}<a href="{{ u_admin6 }}"><span class="ic">&#128221;</span><span class="tx">Client Requests</span></a>{% endif %}
-      {% url 'admin_audit_log' as u_admin7 %}{% if u_admin7 %}<a href="{{ u_admin7 }}"><span class="ic">&#128269;</span><span class="tx">Audit Log</span></a>{% endif %}
-      {% url 'notifications' as u_admin8 %}{% if u_admin8 %}<a href="{{ u_admin8 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
+      {% url 'admin_dashboard' as u_admin1 %}{% if u_admin1 %}<a class="sb-top" href="{{ u_admin1 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">Dashboard</span></a>{% endif %}
+      <div class="sb-group" data-group="platform">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span class="tx">Platform</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'admin_company_list' as u_admin2 %}{% if u_admin2 %}<a href="{{ u_admin2 }}"><span class="tx">Client Management</span></a>{% endif %}
+          {% url 'admin_company_approvals' as u_admin3 %}{% if u_admin3 %}<a href="{{ u_admin3 }}"><span class="tx">Company Approvals</span></a>{% endif %}
+          {% url 'admin_demo_requests' as u_admin4 %}{% if u_admin4 %}<a href="{{ u_admin4 }}"><span class="tx">Demo Requests</span></a>{% endif %}
+          {% url 'admin_client_complaints' as u_admin5 %}{% if u_admin5 %}<a href="{{ u_admin5 }}"><span class="tx">Client Complaints</span></a>{% endif %}
+          {% url 'admin_client_requests' as u_admin6 %}{% if u_admin6 %}<a href="{{ u_admin6 }}"><span class="tx">Client Requests</span></a>{% endif %}
+          {% url 'admin_audit_log' as u_admin7 %}{% if u_admin7 %}<a href="{{ u_admin7 }}"><span class="tx">Audit Log</span></a>{% endif %}
+        </div>
+      </div>
+      {% url 'notifications' as u_admin8 %}{% if u_admin8 %}<a class="sb-top" href="{{ u_admin8 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">Notifications</span></a>{% endif %}
     {% elif is_employee_role %}
-      <div class="sb-section">Main</div>
-      {% url 'employee_home' as u_home %}{% if not u_home %}{% url 'dashboard' as u_home %}{% endif %}<a href="{{ u_home }}"><span class="ic">&#9632;</span><span class="tx">Dashboard</span></a>
-      <div class="sb-section">My Pay</div>
-      {% url 'payslips' as u_emp1 %}{% if u_emp1 %}<a href="{{ u_emp1 }}"><span class="ic">&#128196;</span><span class="tx">Payslips</span></a>{% endif %}
-      {% url 'investment_declaration' as u_emp2 %}{% if u_emp2 %}<a href="{{ u_emp2 }}"><span class="ic">&#128176;</span><span class="tx">Investment Declaration</span></a>{% endif %}
-      {% url 'reimbursement' as u_emp3 %}{% if u_emp3 %}<a href="{{ u_emp3 }}"><span class="ic">&#129534;</span><span class="tx">Reimbursements</span></a>{% endif %}
-      <div class="sb-section">Self Service</div>
-      {% url 'attendance' as u_emp4 %}{% if u_emp4 %}<a href="{{ u_emp4 }}"><span class="ic">&#128338;</span><span class="tx">Attendance</span></a>{% endif %}
-      {% url 'leave_management' as u_emp5 %}{% if u_emp5 %}<a href="{{ u_emp5 }}"><span class="ic">&#127796;</span><span class="tx">Leave</span></a>{% endif %}
-      {% url 'grievances' as u_emp6 %}{% if u_emp6 %}<a href="{{ u_emp6 }}"><span class="ic">&#128172;</span><span class="tx">Grievances</span></a>{% endif %}
-      {% url 'announcements' as u_emp7 %}{% if u_emp7 %}<a href="{{ u_emp7 }}"><span class="ic">&#128227;</span><span class="tx">Announcements</span></a>{% endif %}
-      {% url 'ess' as u_emp8 %}{% if u_emp8 %}<a href="{{ u_emp8 }}"><span class="ic">&#128100;</span><span class="tx">My Profile (ESS)</span></a>{% endif %}
-      {% url 'notifications' as u_emp9 %}{% if u_emp9 %}<a href="{{ u_emp9 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
+      {% url 'employee_home' as u_home %}{% if not u_home %}{% url 'dashboard' as u_home %}{% endif %}<a class="sb-top" href="{{ u_home }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">Dashboard</span></a>
+      <div class="sb-group" data-group="mypay">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">My Pay</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'payslips' as u_emp1 %}{% if u_emp1 %}<a href="{{ u_emp1 }}"><span class="tx">Payslips</span></a>{% endif %}
+          {% url 'investment_declaration' as u_emp2 %}{% if u_emp2 %}<a href="{{ u_emp2 }}"><span class="tx">Investment Declaration</span></a>{% endif %}
+          {% url 'reimbursement' as u_emp3 %}{% if u_emp3 %}<a href="{{ u_emp3 }}"><span class="tx">Reimbursements</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="selfservice">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span class="tx">Self Service</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'attendance' as u_emp4 %}{% if u_emp4 %}<a href="{{ u_emp4 }}"><span class="tx">Attendance</span></a>{% endif %}
+          {% url 'leave_management' as u_emp5 %}{% if u_emp5 %}<a href="{{ u_emp5 }}"><span class="tx">Leave</span></a>{% endif %}
+          {% url 'grievances' as u_emp6 %}{% if u_emp6 %}<a href="{{ u_emp6 }}"><span class="tx">Grievances</span></a>{% endif %}
+          {% url 'announcements' as u_emp7 %}{% if u_emp7 %}<a href="{{ u_emp7 }}"><span class="tx">Announcements</span></a>{% endif %}
+          {% url 'ess' as u_emp8 %}{% if u_emp8 %}<a href="{{ u_emp8 }}"><span class="tx">My Profile (ESS)</span></a>{% endif %}
+        </div>
+      </div>
+      {% url 'notifications' as u_emp9 %}{% if u_emp9 %}<a class="sb-top" href="{{ u_emp9 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">Notifications</span></a>{% endif %}
     {% elif user.is_authenticated %}
-      <div class="sb-section">Main</div>
-      {% url 'dashboard' as u_own1 %}{% if u_own1 %}<a href="{{ u_own1 }}"><span class="ic">&#9632;</span><span class="tx">Dashboard</span></a>{% endif %}
-      <div class="sb-section">People</div>
-      {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="ic">&#128101;</span><span class="tx">Employee Master</span></a>{% endif %}
-      {% url 'hr_employee_import' as u_import %}{% if u_import %}<a href="{{ u_import }}"><span class="ic">&#128229;</span><span class="tx">Import Employees</span></a>{% endif %}
-      {% url 'hr_employee_logins' as u_logins %}{% if u_logins %}<a href="{{ u_logins }}"><span class="ic">&#128272;</span><span class="tx">Employee Logins</span></a>{% endif %}
-      {% url 'attendance' as u_own3 %}{% if u_own3 %}<a href="{{ u_own3 }}"><span class="ic">&#128338;</span><span class="tx">Attendance</span></a>{% endif %}
-      {% url 'leave_management' as u_own4 %}{% if u_own4 %}<a href="{{ u_own4 }}"><span class="ic">&#127796;</span><span class="tx">Leave Management</span></a>{% endif %}
-      {% url 'hr_shifts' as u_own5 %}{% if u_own5 %}<a href="{{ u_own5 }}"><span class="ic">&#128336;</span><span class="tx">Shifts</span></a>{% endif %}
-      {% url 'hr_work_hours' as u_own6 %}{% if u_own6 %}<a href="{{ u_own6 }}"><span class="ic">&#9201;</span><span class="tx">Working Hours</span></a>{% endif %}
-      {% url 'grievances' as u_own7 %}{% if u_own7 %}<a href="{{ u_own7 }}"><span class="ic">&#128172;</span><span class="tx">Grievances</span></a>{% endif %}
-      {% url 'announcements' as u_own8 %}{% if u_own8 %}<a href="{{ u_own8 }}"><span class="ic">&#128227;</span><span class="tx">Announcements</span></a>{% endif %}
-      <div class="sb-section">Payroll</div>
-      {% url 'salary_structure' as u_own9 %}{% if u_own9 %}<a href="{{ u_own9 }}"><span class="ic">&#128200;</span><span class="tx">Salary Structure</span></a>{% endif %}
-      {% url 'payroll_processing' as u_own10 %}{% if u_own10 %}<a href="{{ u_own10 }}"><span class="ic">&#9881;</span><span class="tx">Payroll Processing</span></a>{% endif %}
-      {% url 'payslips' as u_own11 %}{% if u_own11 %}<a href="{{ u_own11 }}"><span class="ic">&#128196;</span><span class="tx">Payslips</span></a>{% endif %}
-      {% url 'bank_transfer' as u_own12 %}{% if u_own12 %}<a href="{{ u_own12 }}"><span class="ic">&#127974;</span><span class="tx">Bank Transfer</span></a>{% endif %}
-      {% url 'reimbursement' as u_own13 %}{% if u_own13 %}<a href="{{ u_own13 }}"><span class="ic">&#129534;</span><span class="tx">Reimbursements</span></a>{% endif %}
-      {% url 'hr_loans' as u_own14 %}{% if u_own14 %}<a href="{{ u_own14 }}"><span class="ic">&#128179;</span><span class="tx">Loans</span></a>{% endif %}
-      {% url 'hr_insurance' as u_own15 %}{% if u_own15 %}<a href="{{ u_own15 }}"><span class="ic">&#128737;</span><span class="tx">Insurance</span></a>{% endif %}
-      {% url 'hr_pay_components' as u_own16 %}{% if u_own16 %}<a href="{{ u_own16 }}"><span class="ic">&#10133;</span><span class="tx">Other Pay Items</span></a>{% endif %}
-      {% url 'arrears' as u_own17 %}{% if u_own17 %}<a href="{{ u_own17 }}"><span class="ic">&#8617;</span><span class="tx">Arrears</span></a>{% endif %}
-      {% url 'full_final_settlement' as u_own18 %}{% if u_own18 %}<a href="{{ u_own18 }}"><span class="ic">&#128075;</span><span class="tx">Full &amp; Final</span></a>{% endif %}
-      <div class="sb-section">Tax &amp; Compliance</div>
-      {% url 'statutory_compliance' as u_own19 %}{% if u_own19 %}<a href="{{ u_own19 }}"><span class="ic">&#127963;</span><span class="tx">Statutory Compliance</span></a>{% endif %}
-      {% url 'hr_professional_tax' as u_own20 %}{% if u_own20 %}<a href="{{ u_own20 }}"><span class="ic">&#128203;</span><span class="tx">Professional Tax</span></a>{% endif %}
-      {% url 'income_tax' as u_own21 %}{% if u_own21 %}<a href="{{ u_own21 }}"><span class="ic">&#129518;</span><span class="tx">Income Tax</span></a>{% endif %}
-      {% url 'investment_declaration' as u_own22 %}{% if u_own22 %}<a href="{{ u_own22 }}"><span class="ic">&#128176;</span><span class="tx">Investment Declaration</span></a>{% endif %}
-      {% url 'hr_declarations' as u_own23 %}{% if u_own23 %}<a href="{{ u_own23 }}"><span class="ic">&#128176;</span><span class="tx">Investment Proofs</span></a>{% endif %}
-      {% url 'hr_form16' as u_own24 %}{% if u_own24 %}<a href="{{ u_own24 }}"><span class="ic">&#128209;</span><span class="tx">Form 16</span></a>{% endif %}
-      {% url 'hr_documents' as u_own25 %}{% if u_own25 %}<a href="{{ u_own25 }}"><span class="ic">&#128193;</span><span class="tx">Tax Documents</span></a>{% endif %}
-      {% url 'compliance_reports' as u_own26 %}{% if u_own26 %}<a href="{{ u_own26 }}"><span class="ic">&#128202;</span><span class="tx">Compliance Reports</span></a>{% endif %}
-      <div class="sb-section">Company</div>
-      {% url 'reports_analytics' as u_own27 %}{% if u_own27 %}<a href="{{ u_own27 }}"><span class="ic">&#128201;</span><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
-      {% url 'ess' as u_own28 %}{% if u_own28 %}<a href="{{ u_own28 }}"><span class="ic">&#128100;</span><span class="tx">ESS</span></a>{% endif %}
-      {% url 'user_roles_permissions' as u_own29 %}{% if u_own29 %}<a href="{{ u_own29 }}"><span class="ic">&#128273;</span><span class="tx">User Roles</span></a>{% endif %}
-      {% url 'settings' as u_own30 %}{% if u_own30 %}<a href="{{ u_own30 }}"><span class="ic">&#9881;</span><span class="tx">Settings</span></a>{% endif %}
-      {% url 'client_complaints' as u_own31 %}{% if u_own31 %}<a href="{{ u_own31 }}"><span class="ic">&#9888;</span><span class="tx">Raise Complaint</span></a>{% endif %}
-      {% url 'client_requests' as u_own32 %}{% if u_own32 %}<a href="{{ u_own32 }}"><span class="ic">&#9993;</span><span class="tx">Raise Request</span></a>{% endif %}
-      {% url 'notifications' as u_own33 %}{% if u_own33 %}<a href="{{ u_own33 }}"><span class="ic">&#128276;</span><span class="tx">Notifications</span></a>{% endif %}
+      {% url 'dashboard' as u_own1 %}{% if u_own1 %}<a class="sb-top" href="{{ u_own1 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">Dashboard</span></a>{% endif %}
+      <div class="sb-group" data-group="people">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3.2-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2.2.6 4 2.2 4 5.2"/></svg><span class="tx">Employee Management</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="tx">Employee Master</span></a>{% endif %}
+          {% url 'hr_employee_import' as u_import %}{% if u_import %}<a href="{{ u_import }}"><span class="tx">Import Employees</span></a>{% endif %}
+          {% url 'hr_employee_logins' as u_logins %}{% if u_logins %}<a href="{{ u_logins }}"><span class="tx">Employee Logins</span></a>{% endif %}
+          {% url 'user_roles_permissions' as u_own29 %}{% if u_own29 %}<a href="{{ u_own29 }}"><span class="tx">User Roles</span></a>{% endif %}
+          {% url 'ess' as u_own28 %}{% if u_own28 %}<a href="{{ u_own28 }}"><span class="tx">ESS</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tx">Attendance</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'attendance' as u_own3 %}{% if u_own3 %}<a href="{{ u_own3 }}"><span class="tx">Attendance</span></a>{% endif %}
+          {% url 'working_calendar' as u_wc %}{% if u_wc %}<a href="{{ u_wc }}"><span class="tx">Working Calendar &amp; Holidays</span></a>{% endif %}
+          {% url 'hr_shifts' as u_own5 %}{% if u_own5 %}<a href="{{ u_own5 }}"><span class="tx">Shifts</span></a>{% endif %}
+          {% url 'hr_work_hours' as u_own6 %}{% if u_own6 %}<a href="{{ u_own6 }}"><span class="tx">Working Hours</span></a>{% endif %}
+        </div>
+      </div>
+      {% url 'leave_management' as u_own4 %}{% if u_own4 %}<a class="sb-top" href="{{ u_own4 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="tx">Leave Management</span></a>{% endif %}
+      <div class="sb-group" data-group="payroll">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">Salary &amp; Payroll</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'pay_cycles' as u_pc %}{% if u_pc %}<a href="{{ u_pc }}"><span class="tx">Pay Cycle</span></a>{% endif %}
+          {% url 'salary_structure' as u_own9 %}{% if u_own9 %}<a href="{{ u_own9 }}"><span class="tx">Salary Structure</span></a>{% endif %}
+          {% url 'hr_pay_components' as u_own16 %}{% if u_own16 %}<a href="{{ u_own16 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
+          {% url 'payroll_processing' as u_own10 %}{% if u_own10 %}<a href="{{ u_own10 }}"><span class="tx">Payroll Processing</span></a>{% endif %}
+          {% url 'arrears' as u_own17 %}{% if u_own17 %}<a href="{{ u_own17 }}"><span class="tx">Arrears</span></a>{% endif %}
+          {% url 'full_final_settlement' as u_own18 %}{% if u_own18 %}<a href="{{ u_own18 }}"><span class="tx">Full &amp; Final</span></a>{% endif %}
+          {% url 'payslips' as u_own11 %}{% if u_own11 %}<a href="{{ u_own11 }}"><span class="tx">Payslips</span></a>{% endif %}
+          {% url 'bank_transfer' as u_own12 %}{% if u_own12 %}<a href="{{ u_own12 }}"><span class="tx">Bank Transfer</span></a>{% endif %}
+        </div>
+      </div>
+      {% url 'reimbursement' as u_own13 %}{% if u_own13 %}<a class="sb-top" href="{{ u_own13 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span class="tx">Reimbursements</span></a>{% endif %}
+      <div class="sb-group" data-group="loans">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span class="tx">Loans &amp; Insurance</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'hr_loans' as u_own14 %}{% if u_own14 %}<a href="{{ u_own14 }}"><span class="tx">Loans</span></a>{% endif %}
+          {% url 'hr_insurance' as u_own15 %}{% if u_own15 %}<a href="{{ u_own15 }}"><span class="tx">Insurance</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="compliance">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/></svg><span class="tx">Compliance</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'statutory_compliance' as u_own19 %}{% if u_own19 %}<a href="{{ u_own19 }}"><span class="tx">Statutory Compliance</span></a>{% endif %}
+          {% url 'hr_professional_tax' as u_own20 %}{% if u_own20 %}<a href="{{ u_own20 }}"><span class="tx">Professional Tax</span></a>{% endif %}
+          {% url 'income_tax' as u_own21 %}{% if u_own21 %}<a href="{{ u_own21 }}"><span class="tx">Income Tax</span></a>{% endif %}
+          {% url 'investment_declaration' as u_own22 %}{% if u_own22 %}<a href="{{ u_own22 }}"><span class="tx">Investment Declaration</span></a>{% endif %}
+          {% url 'hr_declarations' as u_own23 %}{% if u_own23 %}<a href="{{ u_own23 }}"><span class="tx">Investment Proofs</span></a>{% endif %}
+          {% url 'hr_form16' as u_own24 %}{% if u_own24 %}<a href="{{ u_own24 }}"><span class="tx">Form 16</span></a>{% endif %}
+          {% url 'hr_documents' as u_own25 %}{% if u_own25 %}<a href="{{ u_own25 }}"><span class="tx">Tax Documents</span></a>{% endif %}
+          {% url 'compliance_reports' as u_own26 %}{% if u_own26 %}<a href="{{ u_own26 }}"><span class="tx">Compliance Reports</span></a>{% endif %}
+        </div>
+      </div>
+      {% url 'reports_analytics' as u_own27 %}{% if u_own27 %}<a class="sb-top" href="{{ u_own27 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
+      <div class="sb-group" data-group="engage">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="tx">Communication</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'grievances' as u_own7 %}{% if u_own7 %}<a href="{{ u_own7 }}"><span class="tx">Grievances</span></a>{% endif %}
+          {% url 'announcements' as u_own8 %}{% if u_own8 %}<a href="{{ u_own8 }}"><span class="tx">Announcements</span></a>{% endif %}
+          {% url 'notifications' as u_own33 %}{% if u_own33 %}<a href="{{ u_own33 }}"><span class="tx">Notifications</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="settings">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span class="tx">Settings</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'settings' as u_own30 %}{% if u_own30 %}<a href="{{ u_own30 }}"><span class="tx">Company Settings</span></a>{% endif %}
+          {% url 'client_complaints' as u_own31 %}{% if u_own31 %}<a href="{{ u_own31 }}"><span class="tx">Raise Complaint</span></a>{% endif %}
+          {% url 'client_requests' as u_own32 %}{% if u_own32 %}<a href="{{ u_own32 }}"><span class="tx">Raise Request</span></a>{% endif %}
+        </div>
+      </div>
     {% endif %}
     </nav>
-    {% if user.is_authenticated %}
-    <div class="sb-user">
-      <span class="sb-avatar">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
-      <div><b>{{ user.get_full_name|default:user.username }}</b><small>{% if is_admin_role %}Platform Admin{% else %}{{ user.get_role_display }}{% endif %}{% if user.company %} &middot; {{ user.company.name }}{% endif %}</small></div>
-    </div>
-    {% endif %}
     <button type="button" class="sb-collapse" id="sbCollapse">&lsaquo; <span class="tx">Collapse</span></button>
   </aside>
+
+
 
   <div class="main">
     <header class="topbar">
@@ -345,10 +384,20 @@
       {% if user.is_authenticated %}
       <div class="tb-actions">
         <a class="tb-btn tb-icon" href="{% url 'notifications' %}" title="Notifications" aria-label="Notifications">&#128276;</a>
-        <a class="tb-btn tb-icon" href="{% url 'password_change' %}" title="Change password" aria-label="Change password">&#128273;</a>
-        <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}
-          <button type="submit" class="tb-btn"><span>&#128682;</span><span class="tx">Logout</span></button>
-        </form>
+        <div class="pf" id="pfWrap">
+          <button type="button" class="pf-btn" id="pfBtn" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">
+            {% if user.profile_photo %}<img class="pf-img" src="{% url 'profile_photo' user.pk %}?v={{ user.profile_photo.updated_at|date:'U' }}" alt="">{% else %}<span class="pf-initials">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>{% endif %}
+          </button>
+          <div class="pf-menu" id="pfMenu" role="menu">
+            <div class="pf-head"><b>{{ user.get_full_name|default:user.username }}</b><small>{% if is_admin_role %}Platform Admin{% else %}{{ user.get_role_display }}{% endif %}{% if user.company %} &middot; {{ user.company.name }}{% endif %}</small></div>
+            <a href="{% url 'my_profile' %}" role="menuitem">My Profile</a>
+            {% if not is_admin_role and not is_employee_role %}{% url 'settings' as u_acc %}{% if u_acc %}<a href="{{ u_acc }}" role="menuitem">Account Settings</a>{% endif %}{% endif %}
+            <a href="{% url 'password_change' %}" role="menuitem">Change Password</a>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" role="menuitem">Logout</button></form>
+          </div>
+        </div>
+      </div>
+        </div>
       </div>
       {% endif %}
     </header>
@@ -397,5 +446,6 @@
     });
   })();
 </script>
+<script src="{% static 'js/namma-theme.js' %}"></script>
 </body>
 </html>

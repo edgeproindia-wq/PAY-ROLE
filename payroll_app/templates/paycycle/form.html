@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% if cycle %}Edit{% else %}New{% endif %} Pay Cycle · Payroll{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'pay_cycles' %}">Pay Cycle</a> / {% if cycle %}{{ cycle.name }}{% else %}New{% endif %}</div>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{% if cycle %}Edit Pay Cycle{% else %}New Pay Cycle{% endif %}</h1>
+    <p class="page-subtitle">Example: October 2026 Payroll, 01-Oct-2026 to 31-Oct-2026, processed 01-Nov-2026, paid 05-Nov-2026</p>
+  </div>
+</div>
+{% if cycle and cycle.payroll_run_id %}<div class="alert alert-info"><span>This pay cycle has been processed, so its period, policy and calendar are locked. You can still change the name and dates for processing and pay.</span></div>{% endif %}
+<div class="card">
+  <form method="post" novalidate>{% csrf_token %}
+    <div class="card-body">
+      {% if form.non_field_errors %}<div class="alert alert-error"><span>{% for e in form.non_field_errors %}{{ e }} {% endfor %}</span></div>{% endif %}
+      <div class="form-grid">
+        {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+          {% if field.field.widget.input_type == 'checkbox' %}<label style="text-transform:none;font-size:14px;font-weight:500">{{ field }} {{ field.help_text }}</label>{% else %}{{ field }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{% endif %}
+          {{ field.errors }}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="form-actions">
+        <a href="{% if cycle %}{% url 'pay_cycle_detail' cycle.pk %}{% else %}{% url 'pay_cycles' %}{% endif %}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save pay cycle</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

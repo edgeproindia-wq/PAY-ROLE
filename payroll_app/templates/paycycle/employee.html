@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.full_name }} · {{ cycle.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'pay_cycles' %}">Pay Cycle</a> / <a href="{% url 'pay_cycle_detail' cycle.pk %}">{{ cycle.name }}</a> / {{ employee.full_name }}</div>
+<div class="page-header">
+  <div><h1 class="page-title">{{ employee.full_name }}</h1><p class="page-subtitle">{{ employee.employee_code }} &middot; attendance and leave used for {{ cycle.name }}</p></div>
+  <div class="page-actions no-print"><a href="{% url 'pay_cycle_detail' cycle.pk %}" class="btn btn-dark">Back to pay cycle</a></div>
+</div>
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Working days</div><div class="value">{{ summary.working_days }}</div></div>
+  <div class="kpi-card"><div class="label">Present days</div><div class="value">{{ summary.present_days }}</div></div>
+  <div class="kpi-card"><div class="label">Absent days</div><div class="value">{{ summary.absent_days }}</div></div>
+  <div class="kpi-card"><div class="label">Loss of pay (LOP)</div><div class="value">{{ summary.lop_days|default_if_none:"-" }}</div></div>
+</div>
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>Attendance and leave</h3></div><div class="card-body"><div class="detail-list">
+    <div class="detail-item"><div class="k">Present</div><div class="v">{{ summary.present_days }}</div></div>
+    <div class="detail-item"><div class="k">Absent</div><div class="v">{{ summary.absent_days }}</div></div>
+    <div class="detail-item"><div class="k">Half days</div><div class="v">{{ summary.half_days }}</div></div>
+    <div class="detail-item"><div class="k">Paid leave</div><div class="v">{{ summary.paid_leave_days }}</div></div>
+    <div class="detail-item"><div class="k">Unpaid leave</div><div class="v">{{ summary.unpaid_leave_days }}</div></div>
+    <div class="detail-item"><div class="k">Work from home / late / permission</div><div class="v text-muted">Not tracked yet</div></div>
+  </div></div></div>
+  <div class="card"><div class="card-header"><h3>Calendar and pay</h3></div><div class="card-body"><div class="detail-list">
+    <div class="detail-item"><div class="k">Calendar days</div><div class="v">{{ summary.calendar_days }}</div></div>
+    <div class="detail-item"><div class="k">Weekly offs</div><div class="v">{{ summary.weekly_offs }}</div></div>
+    <div class="detail-item"><div class="k">Holidays</div><div class="v">{{ summary.holidays }}</div></div>
+    <div class="detail-item"><div class="k">Net pay</div><div class="v">{% if line %}&#8377;{{ line.net_pay|floatformat:2 }}{% else %}not calculated{% endif %}</div></div>
+  </div></div></div>
+</div>
+{% endblock %}

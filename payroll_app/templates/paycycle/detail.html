@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ cycle.name }} · Pay Cycle{% endblock %}
+{% block content %}
+<div class="breadcrumb no-print"><a href="{% url 'pay_cycles' %}">Pay Cycle</a> / {{ cycle.name }}</div>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ cycle.name }}</h1>
+    <p class="page-subtitle">
+      <span class="badge {% if cycle.status == 'LOCKED' %}badge-success{% elif cycle.status == 'PROCESSED' %}badge-info{% elif cycle.status == 'PROCESSING' %}badge-warn{% else %}badge-neutral{% endif %}">{{ cycle.get_status_display }}</span>
+      &nbsp;{{ cycle.start_date|date:"d-M-Y" }} to {{ cycle.end_date|date:"d-M-Y" }} &middot; processing {{ cycle.processing_date|date:"d-M-Y"|default:"not set" }} &middot; salary pay date {{ cycle.pay_date|date:"d-M-Y"|default:"not set" }}
+    </p>
+  </div>
+  <div class="page-actions no-print">
+    <a href="{% url 'pay_cycle_edit' cycle.pk %}" class="btn btn-outline">Edit</a>
+    <a href="{% url 'pay_cycle_export' cycle.pk %}" class="btn btn-outline">&#8681; Export</a>
+    {% if run %}<a href="{% url 'payroll_run_detail' run.pk %}" class="btn btn-outline">View payroll details</a>{% endif %}
+  </div>
+</div>
+
+<div class="card no-print"><div class="card-body" style="padding:16px 22px;">
+  <div class="steps">
+    {% with s=run.status %}
+    <div class="step {% if not run %}active{% else %}done{% endif %}"><span class="dot">{% if run %}&#10003;{% else %}1{% endif %}</span><span class="label">Processing</span><span class="line"></span></div>
+    <div class="step {% if s == 'DRAFT' %}active{% elif s == 'VALIDATED' or s == 'APPROVED' or s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'VALIDATED' or s == 'APPROVED' or s == 'RELEASED' %}&#10003;{% else %}2{% endif %}</span><span class="label">Review &amp; validate</span><span class="line"></span></div>
+    <div class="step {% if s == 'VALIDATED' %}active{% elif s == 'APPROVED' or s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'APPROVED' or s == 'RELEASED' %}&#10003;{% else %}3{% endif %}</span><span class="label">Approve</span><span class="line"></span></div>
+    <div class="step {% if s == 'APPROVED' %}active{% elif s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'RELEASED' %}&#10003;{% else %}4{% endif %}</span><span class="label">Release payslips</span><span class="line"></span></div>
+    <div class="step {% if cycle.status == 'LOCKED' %}done{% endif %}"><span class="dot">{% if cycle.status == 'LOCKED' %}&#10003;{% else %}5{% endif %}</span><span class="label">Lock</span></div>
+    {% endwith %}
+  </div>
+</div></div>
+
+<div class="card no-print">
+  <div class="card-header"><h3>Actions</h3><div class="sub">Nothing is finalised without your confirmation</div></div>
+  <div class="card-body">
+    <div class="row-actions" style="flex-wrap:wrap">
+      {% if not run %}
+        <form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" data-busy onsubmit="return confirm('Calculate payroll for {{ cycle.name|escapejs }} now?');">{% csrf_token %}<input type="hidden" name="action" value="process"><button class="btn btn-primary">Process payroll</button></form>
+        <form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" onsubmit="return confirm('Delete this pay cycle?');">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="btn btn-danger">Delete</button></form>
+      {% else %}
+        {% if cycle.status != 'LOCKED' and run.status != 'RELEASED' %}
+        <form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" data-busy onsubmit="return confirm('Recalculate payroll? Existing lines are replaced and the status goes back to draft.');">{% csrf_token %}<input type="hidden" name="action" value="recalculate"><button class="btn btn-outline">Recalculate</button></form>
+        {% endif %}
+        {% if run.status == 'DRAFT' and cycle.status != 'LOCKED' %}<form method="post" action="{% url 'pay_cycle_action' cycle.pk %}">{% csrf_token %}<input type="hidden" name="action" value="validate"><button class="btn btn-dark">Validate</button></form>{% endif %}
+        {% if run.status == 'VALIDATED' and cycle.status != 'LOCKED' %}
+          <form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" onsubmit="return confirm('Approve this payroll?');">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn btn-dark">Approve</button></form>
+          <form method="post" action="{% url 'pay_cycle_action' cycle.pk %}">{% csrf_token %}<input type="hidden" name="action" value="send_back"><button class="btn btn-outline">Send back to draft</button></form>
+        {% endif %}
+        {% if run.status == 'APPROVED' and cycle.status != 'LOCKED' %}<form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" onsubmit="return confirm('Release payslips to employees? This finalises the payroll.');">{% csrf_token %}<input type="hidden" name="action" value="release"><button class="btn btn-success">Release payslips</button></form>{% endif %}
+        {% if run.status == 'APPROVED' or run.status == 'RELEASED' %}
+          {% if cycle.status == 'LOCKED' %}<form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" onsubmit="return confirm('Unlock this pay cycle?');">{% csrf_token %}<input type="hidden" name="action" value="unlock"><button class="btn btn-outline">Unlock</button></form>
+          {% else %}<form method="post" action="{% url 'pay_cycle_action' cycle.pk %}" onsubmit="return confirm('Lock this pay cycle? After locking, salary cannot be changed directly.');">{% csrf_token %}<input type="hidden" name="action" value="lock"><button class="btn btn-dark">Lock pay cycle</button></form>{% endif %}
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if cycle.status == 'PROCESSING' or cycle.status == 'DRAFT' and run %}<p class="muted" style="margin-top:12px">If you corrected attendance, leave or the Working Calendar after processing, press <b>Recalculate</b> to use the corrections.</p>{% endif %}
+    {% if cycle.status == 'LOCKED' %}<p class="muted" style="margin-top:12px">This pay cycle is locked. Corrections go through <a href="{% url 'arrears' %}">Arrears / payroll adjustments</a> in a later month, and every action is recorded in the audit log.</p>{% endif %}
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Working Days</div><div class="value">{{ stats.working_days }}</div></div>
+  <div class="kpi-card"><div class="label">Employees</div><div class="value">{{ stats.eligible }}</div></div>
+  <div class="kpi-card"><div class="label">Processed</div><div class="value">{{ stats.processed }}</div></div>
+  <div class="kpi-card"><div class="label">Pending</div><div class="value">{{ stats.pending }}</div></div>
+  <div class="kpi-card"><div class="label">Gross Salary</div><div class="value">&#8377;{{ stats.gross|floatformat:2 }}</div></div>
+  <div class="kpi-card"><div class="label">Total Deductions</div><div class="value">&#8377;{{ stats.deductions|floatformat:2 }}</div></div>
+  <div class="kpi-card"><div class="label">Net Salary</div><div class="value">&#8377;{{ stats.net|floatformat:2 }}</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><div><h3>Working calendar for this period</h3><div class="sub">{{ cycle.get_salary_policy_display }}</div></div><a href="{% url 'working_calendar' %}" class="btn btn-outline btn-sm no-print">Edit calendar</a></div>
+    <div class="card-body">
+      <div class="detail-list">
+        <div class="detail-item"><div class="k">Calendar days</div><div class="v">{{ stats.total_days }}</div></div>
+        <div class="detail-item"><div class="k">Working days</div><div class="v">{{ stats.working_days }}</div></div>
+        <div class="detail-item"><div class="k">Weekly offs</div><div class="v">{{ stats.weekly_offs }}</div></div>
+        <div class="detail-item"><div class="k">Holidays</div><div class="v">{{ stats.holidays }}</div></div>
+        <div class="detail-item"><div class="k">Special working days</div><div class="v">{{ stats.special_working_days }}</div></div>
+        <div class="detail-item"><div class="k">Unmarked days as LOP</div><div class="v">{% if cycle.unmarked_as_lop %}Yes{% else %}No{% endif %}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Pending employees</h3></div>
+    <div class="card-body">
+      {% if pending %}
+        <p class="muted" style="margin-top:0">Eligible employees without a payroll line{% if not run %} (the cycle is not processed yet){% else %} (usually no salary structure){% endif %}:</p>
+        <p>{% for e in pending %}{{ e.employee_code }} {{ e.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+      {% else %}<div class="empty-state" style="padding:20px"><div class="title">Nobody is pending</div></div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <form method="get" class="toolbar">
+    <div class="search-box"><input type="text" name="q" value="{{ q }}" placeholder="Search employee..."></div>
+    <button class="btn btn-outline" type="submit">Search</button>
+    <div class="toolbar-spacer"></div><span class="text-sm text-muted">{{ page.paginator.count }} payroll line{{ page.paginator.count|pluralize }}</span>
+  </form>
+  <div class="table-wrap">
+    {% if page %}
+    <table>
+      <thead><tr><th>Employee</th><th>Working days</th><th>LOP days</th><th>Gross</th><th>Deductions</th><th>Net pay</th><th class="no-print">Details</th></tr></thead>
+      <tbody>
+        {% for l in page %}
+        <tr>
+          <td><span class="cell-title">{{ l.employee.full_name }}</span> <span class="cell-sub">{{ l.employee.employee_code }}</span></td>
+          <td>{{ l.days_in_month }}</td><td>{{ l.lop_days }}</td>
+          <td>&#8377;{{ l.total_earnings|floatformat:2 }}</td><td>&#8377;{{ l.total_deductions|floatformat:2 }}</td><td><b>&#8377;{{ l.net_pay|floatformat:2 }}</b></td>
+          <td class="no-print"><a href="{% url 'pay_cycle_employee' cycle.pk l.employee.pk %}" class="btn btn-outline btn-sm">Attendance summary</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128196;</div><div class="title">Payroll has not been processed</div><div class="desc">Press Process payroll to calculate salary for this pay cycle.</div></div>
+    {% endif %}
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pagination"><span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    <div class="pages">
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q|urlencode }}">&lsaquo; Prev</a>{% endif %}
+      <span class="current">{{ page.number }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q|urlencode }}">Next &rsaquo;</a>{% endif %}
+    </div></div>
+  {% endif %}
+</div>
+<script>
+  document.querySelectorAll('form[data-busy]').forEach(function (f) {
+    f.addEventListener('submit', function () {
+      var b = f.querySelector('button'); if (b) { setTimeout(function () { b.disabled = true; b.textContent = 'Calculating, please wait...'; }, 0); }
+    });
+  });
+</script>
+{% endblock %}

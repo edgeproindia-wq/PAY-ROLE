@@ -171,3 +171,9 @@ urlpatterns += [
     path('hr/employee-import/', _ei.hr_employee_import, name='hr_employee_import'),
     path('hr/employee-import/template.xlsx', _ei.hr_employee_import_template, name='hr_employee_import_template'),
 ]
+
+from . import pay_cycles as _pcy  # noqa: E402
+urlpatterns += _pcy.urlpatterns
+
+from . import profile_photo as _pfp  # noqa: E402
+urlpatterns += _pfp.urlpatterns

@@ -728,3 +728,6 @@ from .models_features import (Announcement, DemoRequestActivity, Grievance, Grie
                               InsurancePolicy, Loan, LoanRepayment, ProfessionalTaxSlab)
 from .models_phase4 import PayComponent, Shift, ShiftAssignment  # noqa: E402,F401
 from .models_phase5 import AnnouncementRead  # noqa: E402,F401
+
+from .pay_cycle_models import WorkingCalendar, CalendarDay, EmployeeCalendar, PayCycle  # noqa: E402,F401
+from .profile_photo_models import ProfilePhoto  # noqa: E402,F401

@@ -18,6 +18,17 @@
   </div>
 </div>
 
+<div class="card no-print"><div class="card-body" style="padding:16px 22px;">
+  <div class="steps">
+    {% with s=run.status %}
+    <div class="step {% if s == 'DRAFT' %}active{% else %}done{% endif %}"><span class="dot">{% if s == 'DRAFT' %}1{% else %}&#10003;{% endif %}</span><span class="label">Draft</span><span class="line"></span></div>
+    <div class="step {% if s == 'VALIDATED' %}active{% elif s == 'APPROVED' or s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'APPROVED' or s == 'RELEASED' %}&#10003;{% else %}2{% endif %}</span><span class="label">Validated</span><span class="line"></span></div>
+    <div class="step {% if s == 'APPROVED' %}active{% elif s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'RELEASED' %}&#10003;{% else %}3{% endif %}</span><span class="label">Approved</span><span class="line"></span></div>
+    <div class="step {% if s == 'RELEASED' %}done{% endif %}"><span class="dot">{% if s == 'RELEASED' %}&#10003;{% else %}4{% endif %}</span><span class="label">Released</span></div>
+    {% endwith %}
+  </div>
+</div></div>
+
 <div class="kpi-row">
   <div class="kpi-card"><div class="label">Employees</div><div class="value">{{ lines|length }}</div></div>
   <div class="kpi-card"><div class="label">Total Gross</div><div class="value">&#8377;{{ totals.gross|default:0|floatformat:2 }}</div></div>

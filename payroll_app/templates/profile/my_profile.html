@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}My Profile · Payroll{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">Your photo appears at the top right of every page</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Profile photo</h3></div>
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:36px;font-weight:700;flex:none;">
+          {% if user.profile_photo %}<img src="{% url 'profile_photo' user.pk %}?v={{ user.profile_photo.updated_at|date:'U' }}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ user.get_full_name|default:user.username|slice:":1"|upper }}{% endif %}
+        </div>
+        <form method="post" action="{% url 'profile_photo_upload' %}" enctype="multipart/form-data" data-busy style="flex:1;min-width:220px;">
+          {% csrf_token %}
+          <label for="photo">Choose a JPG or PNG picture (up to {{ max_mb }} MB)</label>
+          <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" required>
+          <div class="form-actions" style="justify-content:flex-start;border:0;padding-top:8px;margin-top:8px;">
+            <button class="btn btn-primary" type="submit">Upload photo</button>
+          </div>
+        </form>
+      </div>
+      {% if user.profile_photo %}
+      <form method="post" action="{% url 'profile_photo_remove' %}" onsubmit="return confirm('Remove your profile photo?');" style="margin-top:6px;">
+        {% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Remove photo</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Account</h3></div>
+    <div class="card-body">
+      <div class="detail-list">
+        <div class="detail-item"><div class="k">Name</div><div class="v">{{ user.get_full_name|default:user.username }}</div></div>
+        <div class="detail-item"><div class="k">Login</div><div class="v">{{ user.username }}</div></div>
+        <div class="detail-item"><div class="k">Email</div><div class="v">{{ user.email|default:"-" }}</div></div>
+        <div class="detail-item"><div class="k">Role</div><div class="v">{{ user.get_role_display }}</div></div>
+        {% if user.company %}<div class="detail-item"><div class="k">Company</div><div class="v">{{ user.company.name }}</div></div>{% endif %}
+      </div>
+      <div class="divider"></div>
+      <a href="{% url 'password_change' %}" class="btn btn-outline">Change password</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
