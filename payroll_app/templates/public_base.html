@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,5 +54,6 @@
       {% block content %}{% endblock %}
     </div>
   </div>
+<script src="{% static 'js/password-toggle.js' %}" defer></script>
 </body>
 </html>
