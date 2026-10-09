@@ -123,14 +123,27 @@ def read_rows(upload):
     return rows, ''
 
 
+# FAST-IMPORT: duplicates are checked once for the whole file (2 queries) instead of 2-3 queries per row.
+def _existing_keys(company):
+    codes = {c.lower() for c in Employee.objects.filter(company=company).values_list('employee_code', flat=True)}
+    emails = {e.lower() for e in Employee.objects.values_list('email', flat=True)}
+    return codes, emails
+
+
+class _ImportEmployeeForm(EmployeeForm):
+    def validate_unique(self):
+        pass                                   # uniqueness is checked for the whole file in validate_rows
+
+
 def validate_rows(rows, company):
     """Same rules as Add Employee + unique Employee ID per company + unique email."""
+    codes_in_db, emails_in_db = _existing_keys(company)
     report, seen_codes, seen_emails = [], set(), set()
     for n, d in enumerate(rows, start=2):
         data = {f: d.get(f, '') for f, *_ in COLUMNS}
         data['bank_status'] = 'UNVERIFIED'            # new bank details always start unverified
         data['employment_status'] = data.get('employment_status') or 'ACTIVE'
-        form = EmployeeForm(data=data)
+        form = _ImportEmployeeForm(data=data)
         errors = []
         if not form.is_valid():
             for field, errs in form.errors.items():
@@ -141,12 +154,14 @@ def validate_rows(rows, company):
         if code:
             if code.lower() in seen_codes:
                 errors.append('Employee ID repeated in the file')
-            elif Employee.objects.filter(company=company, employee_code__iexact=code).exists():
+            elif code.lower() in codes_in_db:
                 errors.append('Employee ID already exists in Employee Master')
             seen_codes.add(code.lower())
         if email:
             if email in seen_emails:
                 errors.append('Email repeated in the file')
+            elif email in emails_in_db:
+                errors.append('Email: Employee with this Email already exists.')
             seen_emails.add(email)
         report.append({'line': n, 'code': code, 'name': f"{d.get('first_name', '')} {d.get('last_name', '')}".strip(),
                        'errors': errors, 'data': data})
@@ -188,6 +203,8 @@ def _username(e):
 
 @company_owner_required
 def hr_employee_import(request):
+    import logging
+    from django.db import IntegrityError
     company = request.user.company
     upload = UploadForm()
     confirm = ConfirmForm(initial={'create_logins': True})
@@ -210,21 +227,43 @@ def hr_employee_import(request):
         if confirm.is_valid():
             fresh = validate_rows(rows, company)           # re-check: data may have changed since the preview
             good = [r['data'] for r in fresh if not r['errors']]
-            created = logins = 0
-            with transaction.atomic():
-                for data in good:
-                    form = EmployeeForm(data=data)
-                    form.is_valid()
-                    e = form.save(commit=False)
-                    e.company = company
-                    e.save()
-                    created += 1
-                    if confirm.cleaned_data['create_logins']:
-                        e.user = User.objects.create_user(
-                            username=_username(e), password=confirm.cleaned_data['password1'], role='EMPLOYEE',
-                            company=company, email=e.email, first_name=e.first_name, last_name=e.last_name)
-                        e.save(update_fields=['user'])
-                        logins += 1
+            people = []
+            for data in good:
+                form = _ImportEmployeeForm(data=data)
+                form.is_valid()
+                e = form.save(commit=False)
+                e.company = company
+                people.append(e)
+            logins = 0
+            try:
+                with transaction.atomic():
+                    if people and confirm.cleaned_data['create_logins']:
+                        from django.contrib.auth.hashers import make_password
+                        # hash the shared password ONCE (hashing is slow on purpose) and save all logins in one go
+                        shared_hash = make_password(confirm.cleaned_data['password1'])
+                        taken = {u.lower() for u in User.objects.filter(username__istartswith=f'emp{company.pk}-')
+                                 .values_list('username', flat=True)}
+                        users = []
+                        for e in people:
+                            base = f"emp{company.pk}-{e.employee_code}".lower().replace(' ', '')[:140]
+                            username, n = base, 1
+                            while username.lower() in taken:
+                                n += 1
+                                username = f"{base}-{n}"
+                            taken.add(username.lower())
+                            users.append(User(username=User.normalize_username(username), password=shared_hash, role='EMPLOYEE',
+                                              company=company, email=e.email, first_name=e.first_name, last_name=e.last_name))
+                        User.objects.bulk_create(users)
+                        for e, u in zip(people, users):
+                            e.user = u
+                        logins = len(users)
+                    Employee.objects.bulk_create(people)
+            except IntegrityError:
+                logging.getLogger(__name__).exception('Employee import failed on a duplicate')
+                messages.error(request, 'The import was cancelled because some of these employees were added by someone else '
+                                        'a moment ago. Nothing was saved. Please upload the file again.')
+                return redirect('hr_employee_import')
+            created = len(people)
             request.session.pop(SESSION_KEY, None)
             log_action(request, 'CREATE', company, details=f'Employee import: {created} employees, {logins} logins')
             skipped = len(rows) - len(good)

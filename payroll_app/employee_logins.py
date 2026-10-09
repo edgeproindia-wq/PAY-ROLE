@@ -2,6 +2,7 @@
 with their Employee ID), and reset one employee's password. Company-scoped."""
 from django import forms
 from django.contrib import messages
+from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from django.shortcuts import redirect, render
 
@@ -46,15 +47,27 @@ def hr_employee_logins(request):
     action = request.POST.get('action') if request.method == 'POST' else ''
     bulk = PasswordPairForm(request.POST if action == 'bulk' else None, prefix='bulk')
     reset = ResetForm(request.POST if action == 'reset' else None, prefix='reset')
-    if action == 'bulk' and bulk.is_valid():
-        created = 0
-        for e in Employee.objects.filter(company=company, user__isnull=True):
-            u = User.objects.create_user(username=_new_username(e), password=bulk.cleaned_data['password1'],
-                                         role='EMPLOYEE', company=company, email=e.email or '',
-                                         first_name=e.first_name, last_name=e.last_name)
-            e.user = u
-            e.save(update_fields=['user'])
-            created += 1
+    if action == 'bulk' and bulk.is_valid():                    # FAST-IMPORT: one password hash, bulk saves
+        from django.contrib.auth.hashers import make_password
+        pending_people = list(Employee.objects.filter(company=company, user__isnull=True))
+        shared_hash = make_password(bulk.cleaned_data['password1'])
+        taken = {u.lower() for u in User.objects.filter(username__istartswith=f'emp{company.pk}-').values_list('username', flat=True)}
+        users = []
+        for e in pending_people:
+            base = f"emp{company.pk}-{e.employee_code}".lower().replace(' ', '')[:140]
+            username, n = base, 1
+            while username.lower() in taken:
+                n += 1
+                username = f"{base}-{n}"
+            taken.add(username.lower())
+            users.append(User(username=User.normalize_username(username), password=shared_hash, role='EMPLOYEE', company=company,
+                              email=e.email or '', first_name=e.first_name, last_name=e.last_name))
+        with transaction.atomic():
+            User.objects.bulk_create(users)
+            for e, u in zip(pending_people, users):
+                e.user = u
+            Employee.objects.bulk_update(pending_people, ['user'])
+        created = len(users)
         log_action(request, 'CREATE', company, details=f'Bulk employee logins created: {created}')
         messages.success(request, f'{created} employee login(s) created. Employees sign in with their Employee ID.')
         return redirect('hr_employee_logins')
