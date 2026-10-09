@@ -214,3 +214,9 @@ body .pf-head b{ display:block; color:var(--nm-ink); font-size:14px; } body .pf-
 body .pf-menu a, body .pf-menu button{ display:block; width:100%; text-align:left; padding:9px 16px; background:none; border:0; color:#374151; font:inherit; font-size:13.5px; text-decoration:none; cursor:pointer; }
 body .pf-menu a:hover, body .pf-menu button:hover{ background:#f3f5f7; }
 body .pf-menu form{ margin:4px 0 0; border-top:1px solid var(--nm-line); padding-top:4px; }
+
+/* LAYOUT GUARD - keeps the page content beside the sidebar even if the page structure is off */
+body > .content{ margin-left:var(--nm-sb-w) !important; max-width:none; }
+body.sb-collapsed > .content{ margin-left:var(--nm-sb-w-collapsed) !important; }
+body .main{ min-height:0; }
+@media (max-width:900px){ body > .content, body.sb-collapsed > .content{ margin-left:0 !important; } }
