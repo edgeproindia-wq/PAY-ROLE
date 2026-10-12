@@ -177,3 +177,6 @@ urlpatterns += _pcy.urlpatterns
 
 from . import profile_photo as _pfp  # noqa: E402
 urlpatterns += _pfp.urlpatterns
+
+from . import notification_views as _nv  # noqa: E402
+urlpatterns += _nv.urlpatterns

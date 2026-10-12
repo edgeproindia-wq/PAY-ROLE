@@ -91,6 +91,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'payroll_app.context_processors.role_context',
+                'payroll_app.notification_sync.notification_context',
                 'payroll_app.context_public.public_contact',
             ],
         },

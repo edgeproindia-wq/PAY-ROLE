@@ -383,7 +383,7 @@
       <h1 class="tb-title" id="tbTitle">{% block page_title %}{% endblock %}</h1>
       {% if user.is_authenticated %}
       <div class="tb-actions">
-        <a class="tb-btn tb-icon" href="{% url 'notifications' %}" title="Notifications" aria-label="Notifications">&#128276;</a>
+        <a class="tb-btn tb-icon nb-wrap" href="{% url 'notifications' %}" title="Notifications" aria-label="Notifications{% if unread_notification_count %}, {{ unread_notification_count }} unread{% endif %}">&#128276;{% if unread_notification_count %}<span class="nb-badge">{% if unread_notification_count > 99 %}99+{% else %}{{ unread_notification_count }}{% endif %}</span>{% endif %}</a>
         <div class="pf" id="pfWrap">
           <button type="button" class="pf-btn" id="pfBtn" aria-haspopup="true" aria-expanded="false" aria-label="Profile menu">
             {% if user.profile_photo %}<img class="pf-img" src="{% url 'profile_photo' user.pk %}?v={{ user.profile_photo.updated_at|date:'U' }}" alt="">{% else %}<span class="pf-initials">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>{% endif %}

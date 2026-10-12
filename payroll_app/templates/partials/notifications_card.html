@@ -1,0 +1,38 @@
+<style>
+  .nc-item{display:flex;gap:10px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid #eef0f3;text-decoration:none;color:inherit}
+  .nc-item:last-child{border-bottom:0}
+  .nc-item:hover{background:#f8faf9}
+  .nc-dot{width:9px;height:9px;border-radius:50%;background:#d1d5db;margin-top:6px;flex:none}
+  .nc-item.unread .nc-dot{background:#1f9348}
+  .nc-item.unread .nc-msg{font-weight:700}
+  .nc-msg{font-size:13.5px;line-height:1.35}
+  .nc-time{font-size:12px;color:#6b7280;margin-top:2px}
+  .nc-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .nc-count{display:inline-block;min-width:20px;padding:1px 7px;border-radius:999px;background:#d9372b;color:#fff;font-size:11.5px;font-weight:700;text-align:center;margin-left:6px}
+  .nc-actions{display:flex;gap:8px;align-items:center}
+  .nc-link{font-size:13px;font-weight:600;color:#179042;text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
+</style>
+<div class="{% if variant == 'ep' %}ep-card{% else %}card{% endif %}" id="notificationCard">
+  <div class="{% if variant == 'ep' %}nc-head{% else %}card-header{% endif %}" {% if variant == 'ep' %}style="margin-bottom:8px"{% endif %}>
+    {% if variant == 'ep' %}<h2 style="margin:0">Notifications{% if unread_notification_count %}<span class="nc-count">{{ unread_notification_count }}</span>{% endif %}</h2>
+    {% else %}<h3>Notifications{% if unread_notification_count %}<span class="nc-count">{{ unread_notification_count }}</span>{% endif %}</h3>{% endif %}
+    <div class="nc-actions">
+      {% if unread_notification_count %}
+      <form method="post" action="{% url 'notification_mark_all_read' %}" style="margin:0">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button type="submit" class="nc-link">Mark all read</button></form>
+      {% endif %}
+      {% if request.resolver_match.url_name != 'notifications' %}<a class="nc-link" href="{% url 'notifications' %}">View all</a>{% endif %}
+    </div>
+  </div>
+  <div {% if variant != 'ep' %}class="card-body"{% endif %}>
+    {% with items=user_notifications|default:latest_notifications %}
+    {% for n in items %}
+    <a class="nc-item{% if not n.is_read %} unread{% endif %}" href="{% url 'notification_open' n.pk %}">
+      <span class="nc-dot"></span>
+      <span><span class="nc-msg">{{ n.message }}</span><br><span class="nc-time">{{ n.created_at|timesince }} ago</span></span>
+    </a>
+    {% empty %}
+    <p class="muted" style="margin:6px 0">You're all caught up - no notifications.</p>
+    {% endfor %}
+    {% endwith %}
+  </div>
+</div>
