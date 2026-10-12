@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Data check{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Data check</h1>
+  <p class="page-subtitle">What the database holds for your login. Send a screenshot of this page if something looks missing.</p></div></div>
+
+<div class="card"><div class="card-header"><h3>You are signed in as</h3></div><div class="card-body">
+  <div class="detail-list">
+    <div class="detail-item"><div class="k">Login</div><div class="v">{{ username }} ({{ role }})</div></div>
+    <div class="detail-item"><div class="k">Company</div><div class="v">{% if company %}{{ company.name }} (id {{ company_id }}){% else %}none - platform admin{% endif %}</div></div>
+  </div></div></div>
+
+{% if is_admin %}
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>Every company</h3></div><div class="table-wrap">
+  <table><thead><tr><th>Id</th><th>Company</th><th>Status</th><th>Employees</th><th>Logins</th></tr></thead><tbody>
+  {% for r in rows %}<tr><td>{{ r.id }}</td><td>{{ r.name }}</td><td>{{ r.status }}</td><td>{{ r.emp_count }}</td><td>{{ r.login_count }}</td></tr>{% empty %}<tr><td colspan="5">No companies.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<p class="muted" style="margin-top:10px">Logins that belong to no company (not platform admins): {{ no_company_users }}</p>
+{% else %}
+<div class="kpi-row" style="margin-top:16px">
+  <div class="kpi-card"><div class="label">Employees in your company</div><div class="value">{{ total }}</div></div>
+  <div class="kpi-card"><div class="label">With a login</div><div class="value">{{ with_login }}</div></div>
+  <div class="kpi-card"><div class="label">Without a login</div><div class="value">{{ without_login }}</div></div>
+  <div class="kpi-card"><div class="label">Payroll runs</div><div class="value">{{ runs }}</div></div>
+</div>
+<div class="card"><div class="card-header"><h3>By status</h3></div><div class="card-body">
+  {% for s in by_status %}<span class="badge">{{ s.employment_status }}: {{ s.n }}</span> {% empty %}<p class="muted">No employees saved for this company.</p>{% endfor %}</div></div>
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>First employees (this is what the dropdowns list)</h3></div><div class="card-body">
+  {% for e in sample %}<div>{{ e }}</div>{% empty %}<p class="muted">None. The Employee dropdowns will be empty until employees are imported or added for this company.</p>{% endfor %}</div></div>
+{% endif %}
+{% endblock %}

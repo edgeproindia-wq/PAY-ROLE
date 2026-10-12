@@ -180,3 +180,7 @@ urlpatterns += _pfp.urlpatterns
 
 from . import notification_views as _nv  # noqa: E402
 urlpatterns += _nv.urlpatterns
+
+
+from . import data_check as _dcx  # noqa: E402
+urlpatterns += _dcx.urlpatterns
