@@ -91,6 +91,31 @@
         {% endfor %}
         <p style="margin-top:10px"><a class="ep-btn ghost" href="{% url 'my_document_upload' %}">Upload a document</a></p>
       </div>
+
+      <!-- BALANCED-COLUMNS: these three cards moved to the left column so both columns are about the same height -->
+      <div class="ep-card">
+        <h2>Announcements{% if unread_announcements %} <span class="ep-tag wait">{{ unread_announcements }} new</span>{% endif %} <a href="{% url 'announcements' %}">All</a></h2>
+        {% for a in announcements %}<div class="ep-doc"><div><b>{{ a.title }}</b> <span class="muted">&middot; {{ a.publish_date|date:"d M Y" }}</span><br><span class="muted">{{ a.message|truncatechars:140 }}</span></div></div>
+        {% empty %}<p class="muted">No announcements.</p>{% endfor %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Recent leave <a href="{% url 'leave_management' %}">Open</a></h2>
+        {% if recent_leaves %}<table>{% for l in recent_leaves %}
+          <tr><td>{{ l.from_date|date:"d M" }} &ndash; {{ l.to_date|date:"d M Y" }}{% if l.approver_comment %}<br><span class="muted">&ldquo;{{ l.approver_comment }}&rdquo;</span>{% endif %}</td>
+              <td class="r"><span class="ep-tag {% if l.status == 'APPROVED' %}ok{% elif l.status == 'REJECTED' or l.status == 'CANCELLED' %}bad{% else %}wait{% endif %}">{{ l.get_status_display|default:l.status }}</span>
+              {% if l.status == 'PENDING' or l.status == 'APPROVED' and l.from_date > today %}
+                <form method="post" action="{% url 'leave_cancel' l.pk %}" style="display:inline" onsubmit="return confirm('Cancel this leave request?')">{% csrf_token %}<button class="ep-btn ghost" type="submit">Cancel</button></form>{% endif %}</td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No leave requests yet.</p>{% endif %}
+      </div>
+
+      <div class="ep-card">
+        <h2>Recent claims <a href="{% url 'reimbursement' %}">Open</a></h2>
+        {% if recent_claims %}<table>{% for c in recent_claims %}
+          <tr><td>{{ c.date|date:"d M Y" }}</td><td class="r">&#8377;{{ c.amount|floatformat:"2g" }}</td>
+              <td class="r"><span class="ep-tag {% if c.status == 'APPROVED' %}ok{% elif c.status == 'REJECTED' %}bad{% else %}wait{% endif %}">{{ c.get_status_display|default:c.status }}</span></td></tr>
+        {% endfor %}</table>{% else %}<p class="muted">No claims yet.</p>{% endif %}
+      </div>
     </div>
 
     <div>
@@ -121,11 +146,6 @@
           {% for c in pay_items %}<tr><td>{{ c.name }} <span class="muted">({{ c.get_kind_display }})</span></td><td class="r">&#8377;{{ c.amount }}/month</td></tr>{% endfor %}</table>{% endif %}
       </div>
 
-      <div class="ep-card">
-        <h2>Announcements{% if unread_announcements %} <span class="ep-tag wait">{{ unread_announcements }} new</span>{% endif %} <a href="{% url 'announcements' %}">All</a></h2>
-        {% for a in announcements %}<div class="ep-doc"><div><b>{{ a.title }}</b> <span class="muted">&middot; {{ a.publish_date|date:"d M Y" }}</span><br><span class="muted">{{ a.message|truncatechars:140 }}</span></div></div>
-        {% empty %}<p class="muted">No announcements.</p>{% endfor %}
-      </div>
 
       <div class="ep-card">
         <h2>My grievances <a href="{% url 'grievances' %}">Raise / track</a></h2>
@@ -149,23 +169,7 @@
               <td class="r">{% if d.proof_document %}<a class="ep-btn ghost" href="{% url 'declaration_proof' d.pk %}">Proof</a>{% endif %}</td></tr>
         {% endfor %}</table>{% else %}<p class="muted">No declarations yet.</p>{% endif %}
       </div>
-      <div class="ep-card">
-        <h2>Recent leave <a href="{% url 'leave_management' %}">Open</a></h2>
-        {% if recent_leaves %}<table>{% for l in recent_leaves %}
-          <tr><td>{{ l.from_date|date:"d M" }} &ndash; {{ l.to_date|date:"d M Y" }}{% if l.approver_comment %}<br><span class="muted">&ldquo;{{ l.approver_comment }}&rdquo;</span>{% endif %}</td>
-              <td class="r"><span class="ep-tag {% if l.status == 'APPROVED' %}ok{% elif l.status == 'REJECTED' or l.status == 'CANCELLED' %}bad{% else %}wait{% endif %}">{{ l.get_status_display|default:l.status }}</span>
-              {% if l.status == 'PENDING' or l.status == 'APPROVED' and l.from_date > today %}
-                <form method="post" action="{% url 'leave_cancel' l.pk %}" style="display:inline" onsubmit="return confirm('Cancel this leave request?')">{% csrf_token %}<button class="ep-btn ghost" type="submit">Cancel</button></form>{% endif %}</td></tr>
-        {% endfor %}</table>{% else %}<p class="muted">No leave requests yet.</p>{% endif %}
-      </div>
 
-      <div class="ep-card">
-        <h2>Recent claims <a href="{% url 'reimbursement' %}">Open</a></h2>
-        {% if recent_claims %}<table>{% for c in recent_claims %}
-          <tr><td>{{ c.date|date:"d M Y" }}</td><td class="r">&#8377;{{ c.amount|floatformat:"2g" }}</td>
-              <td class="r"><span class="ep-tag {% if c.status == 'APPROVED' %}ok{% elif c.status == 'REJECTED' %}bad{% else %}wait{% endif %}">{{ c.get_status_display|default:c.status }}</span></td></tr>
-        {% endfor %}</table>{% else %}<p class="muted">No claims yet.</p>{% endif %}
-      </div>
 
       <div class="ep-card">
         <h2>My profile</h2>
