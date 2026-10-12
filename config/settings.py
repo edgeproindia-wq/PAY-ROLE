@@ -231,6 +231,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False  # must remain readable by the CSRF JS if used; token itself isn't the session
+CSRF_FAILURE_VIEW = 'payroll_app.csrf_views.csrf_failed'   # friendly page + logs the exact reason
 X_FRAME_OPTIONS = 'DENY'
 
 SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', default=not DEBUG)
