@@ -334,6 +334,7 @@ class PayrollRun(VersionedModel):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['company', 'month'], name='unique_payroll_run_per_company_month')]
 
     def __str__(self):
         return f"{self.month} ({self.status})"
@@ -373,6 +374,9 @@ class PayrollRunLine(models.Model):
     other_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     net_pay = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['payroll_run', 'employee'], name='one_payroll_line_per_employee_per_run')]
 
     def __str__(self):
         return f"{self.payroll_run} - {self.employee}"
