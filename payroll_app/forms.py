@@ -232,7 +232,7 @@ class PayrollRunForm(forms.ModelForm):
         existing = {r.month.lower(): r.get_status_display() for r in PayrollRun.objects.filter(company=company)} if company is not None else {}
         today = _tz.localdate()
         choices = [('', '- Select payroll month -')]
-        for i in range(3, -61, -1):                      # next 3 months back to 5 years ago, newest first
+        for i in range(12, -61, -1):                      # next 3 months back to 5 years ago, newest first
             y, m = divmod(today.year * 12 + today.month - 1 + i, 12)
             label = _dt.date(y, m + 1, 1).strftime('%B %Y')
             choices.append((label, label + (f' - already created ({existing[label.lower()]})' if label.lower() in existing else '')))
