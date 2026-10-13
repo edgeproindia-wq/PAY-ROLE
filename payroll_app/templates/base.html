@@ -313,6 +313,7 @@
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tx">Attendance</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'attendance' as u_own3 %}{% if u_own3 %}<a href="{{ u_own3 }}"><span class="tx">Attendance</span></a>{% endif %}
+          {% url 'attendance_bulk' as u_bulk %}{% if u_bulk %}<a href="{{ u_bulk }}"><span class="tx">Bulk Attendance</span></a>{% endif %}
           {% url 'working_calendar' as u_wc %}{% if u_wc %}<a href="{{ u_wc }}"><span class="tx">Working Calendar &amp; Holidays</span></a>{% endif %}
           {% url 'hr_shifts' as u_own5 %}{% if u_own5 %}<a href="{{ u_own5 }}"><span class="tx">Shifts</span></a>{% endif %}
           {% url 'hr_work_hours' as u_own6 %}{% if u_own6 %}<a href="{{ u_own6 }}"><span class="tx">Working Hours</span></a>{% endif %}
@@ -327,6 +328,7 @@
           {% url 'salary_history' as u_sh %}{% if u_sh %}<a href="{{ u_sh }}"><span class="tx">Salary History</span></a>{% endif %}
           {% url 'hr_pay_components' as u_own16 %}{% if u_own16 %}<a href="{{ u_own16 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
           {% url 'payroll_processing' as u_own10 %}{% if u_own10 %}<a href="{{ u_own10 }}"><span class="tx">Payroll Processing</span></a>{% endif %}
+          {% url 'payroll_preview' as u_prev %}{% if u_prev %}<a href="{{ u_prev }}"><span class="tx">Payroll Preview</span></a>{% endif %}
           {% url 'arrears' as u_own17 %}{% if u_own17 %}<a href="{{ u_own17 }}"><span class="tx">Arrears</span></a>{% endif %}
           {% url 'full_final_settlement' as u_own18 %}{% if u_own18 %}<a href="{{ u_own18 }}"><span class="tx">Full &amp; Final</span></a>{% endif %}
           {% url 'payslips' as u_own11 %}{% if u_own11 %}<a href="{{ u_own11 }}"><span class="tx">Payslips</span></a>{% endif %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Payroll preview{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Payroll preview</h1>
+  <p class="page-subtitle">See every employee's gross, deductions and net for a month before creating the payroll. It uses the real payroll calculation, and nothing is saved.</p></div></div>
+
+<div class="card"><div class="card-body">
+  <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div class="field"><label>Payroll month</label>
+      <select name="month" onchange="this.form.submit()"><option value="">- Select payroll month -</option>{% for m in months %}<option value="{{ m }}"{% if m == month %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+    <noscript><button class="btn btn-primary" type="submit">Preview</button></noscript>
+  </form>
+  {% if error %}<div class="alert alert-error" style="margin-top:12px">{{ error }}</div>{% endif %}
+  {% if existing %}<div class="alert alert-warning" style="margin-top:12px">A payroll run for {{ existing.month }} already exists ({{ existing.get_status_display }}).
+    <a href="{% url 'payroll_run_detail' existing.pk %}">Open it</a> - reprocess it there if the inputs changed.</div>{% endif %}
+</div></div>
+
+{% if lines is not None %}
+<div class="kpi-row" style="margin-top:16px">
+  <div class="kpi-card"><div class="label">Employees ready</div><div class="value">{{ lines|length }}</div></div>
+  <div class="kpi-card"><div class="label">Total gross</div><div class="value">&#8377;{{ totals.gross }}</div></div>
+  <div class="kpi-card"><div class="label">Total deductions</div><div class="value">&#8377;{{ totals.deductions }}</div></div>
+  <div class="kpi-card"><div class="label">Total net pay</div><div class="value">&#8377;{{ totals.net }}</div></div>
+</div>
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>{{ month }} - preview</h3></div><div class="table-wrap">
+  <table><thead><tr><th>Employee</th><th>Gross</th><th>LOP days</th><th>Earnings</th><th>Deductions</th><th>Net pay</th><th>Status</th></tr></thead><tbody>
+  {% for l in lines %}<tr><td>{{ l.employee }}</td><td>&#8377;{{ l.gross_salary }}</td><td>{{ l.lop_days }}</td><td>&#8377;{{ l.total_earnings }}</td>
+    <td>&#8377;{{ l.total_deductions }}</td><td><b>&#8377;{{ l.net_pay }}</b></td><td><span class="badge badge-success">Ready</span></td></tr>
+  {% empty %}<tr><td colspan="7">No employees are ready for this month.</td></tr>{% endfor %}
+  {% for e in skipped %}<tr><td>{{ e }}</td><td colspan="5" class="muted">Not included: no salary saved for this employee</td><td><span class="badge badge-warning">Skipped</span></td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="card-body"><form method="post" action="{% url 'payroll_combined' %}">{% csrf_token %}<input type="hidden" name="action" value="create"><input type="hidden" name="month" value="{{ month }}">
+    <button class="btn btn-primary" type="submit"{% if not lines %} disabled{% endif %}>Create this payroll</button> <span class="muted">Creating it gives exactly these amounts.</span></form></div>
+</div>
+{% endif %}
+{% endblock %}

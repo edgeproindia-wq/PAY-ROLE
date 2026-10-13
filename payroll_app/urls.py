@@ -191,3 +191,6 @@ urlpatterns += _mvx.urlpatterns
 
 from . import salary_history as _sh  # noqa: E402
 urlpatterns += _sh.urlpatterns
+
+from . import stage2 as _s2  # noqa: E402
+urlpatterns += _s2.urlpatterns

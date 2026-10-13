@@ -102,6 +102,7 @@
           {{ form.month }}
           <div class="helptext">Lines are calculated for all active employees with a salary structure: gross, loss of pay (absent/half-day attendance), arrears, approved reimbursements, PF, ESI and TDS. One run per company per month.</div>
           {{ form.month.errors }}
+          <a class="btn btn-outline" href="{% url 'payroll_preview' %}" style="margin-top:8px">Preview before creating</a>
         </div>
       </div>
       <div class="modal-foot">

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Bulk attendance{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Bulk attendance</h1>
+  <p class="page-subtitle">Pick a date, mark everyone Present in one click, then change only the exceptions. Employees on approved leave are marked On leave automatically.</p></div></div>
+
+<div class="card"><div class="card-body">
+  <form method="get" class="toolbar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div class="field"><label>Date</label><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" onchange="this.form.submit()"></div>
+    <div class="field"><label>Search</label><input type="search" name="q" value="{{ q }}" placeholder="Employee ID, name or department"></div>
+    <button class="btn btn-outline" type="submit">Show</button>
+  </form>
+  <p style="margin:14px 0 0"><b>{{ total }}</b> eligible employees on {{ day|date:"d M Y" }} &middot; <b>{{ marked }}</b> marked
+    ({{ counts.PRESENT|default:0 }} present, {{ counts.ABSENT|default:0 }} absent, {{ counts.HALF_DAY|default:0 }} half day, {{ counts.LEAVE|default:0 }} on leave) &middot;
+    <b style="color:#b45309">{{ unmarked }} not marked yet</b></p>
+  {% if unmarked %}
+  <form method="post" style="margin-top:10px" onsubmit="return confirm('Mark all {{ unmarked }} unmarked employees for {{ day|date:'d M Y' }}? Present, or On leave where leave is approved. Existing records are not changed.');">{% csrf_token %}
+    <input type="hidden" name="action" value="present_all"><input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}"><input type="hidden" name="q" value="{{ q }}">
+    <button class="btn btn-primary" type="submit">Mark all {{ unmarked }} unmarked as Present</button></form>
+  {% endif %}
+</div></div>
+
+<form method="post" class="card" style="margin-top:16px">{% csrf_token %}
+  <input type="hidden" name="action" value="save_rows"><input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}"><input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="page" value="{{ page.number }}">
+  <div class="card-header"><h3>Employees (page {{ page.number }} of {{ page.paginator.num_pages }})</h3></div>
+  <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Department</th><th>Status</th><th>Remarks</th></tr></thead><tbody>
+    {% for r in rows %}<tr>
+      <td><input type="hidden" name="emp" value="{{ r.emp.pk }}">{{ r.emp }}{% if not r.rec %} <span class="badge badge-warning">not marked</span>{% endif %}</td>
+      <td>{{ r.emp.department }}</td>
+      <td><select name="status_{{ r.emp.pk }}">{% for key, label in statuses %}<option value="{{ key }}"{% if r.rec.status == key or not r.rec and key == 'PRESENT' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+      <td><input type="text" name="remarks_{{ r.emp.pk }}" maxlength="255" value="{{ r.rec.remarks|default:'' }}"></td></tr>
+    {% empty %}<tr><td colspan="4">No eligible employees found.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="card-body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-primary" type="submit">Save this page</button>
+    {% if page.has_previous %}<a class="btn btn-outline" href="?date={{ day|date:'Y-m-d' }}&q={{ q }}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a class="btn btn-outline" href="?date={{ day|date:'Y-m-d' }}&q={{ q }}&page={{ page.next_page_number }}">Next</a>{% endif %}
+    <span class="muted">Rows marked "not marked" are created as shown when you press Save.</span></div>
+</form>
+{% endblock %}
