@@ -184,3 +184,7 @@ urlpatterns += _nv.urlpatterns
 
 from . import data_check as _dcx  # noqa: E402
 urlpatterns += _dcx.urlpatterns
+
+
+from . import move_employees as _mvx  # noqa: E402
+urlpatterns += _mvx.urlpatterns

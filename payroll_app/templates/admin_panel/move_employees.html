@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Move employees{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Move employees to another company</h1>
+  <p class="page-subtitle">Use this when employees were imported into the wrong company. It moves every employee and their logins, and refuses if it would split any payroll, loan or shift records.</p></div></div>
+
+{% if problems %}<div class="alert alert-error"><ul style="margin:0;padding-left:18px">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>{% endif %}
+
+{% if preview %}
+<div class="card"><div class="card-header"><h3>Please confirm</h3></div><div class="card-body">
+  <p>Move <b>{{ n_emp }} employees</b> and <b>{{ n_login }} logins</b> from <b>{{ src.name }}</b> to <b>{{ dst.name }}</b>?</p>
+  <form method="post" data-busy>{% csrf_token %}
+    <input type="hidden" name="source" value="{{ src.id }}"><input type="hidden" name="target" value="{{ dst.id }}"><input type="hidden" name="confirm" value="1">
+    <button class="btn btn-primary" type="submit">Yes, move them</button> <a class="btn btn-outline" href="{% url 'admin_move_employees' %}">Cancel</a>
+  </form></div></div>
+{% else %}
+<div class="card"><div class="card-header"><h3>Choose the companies</h3></div><div class="card-body">
+  <form method="post">{% csrf_token %}
+    <div class="form-grid">
+      <div class="field"><label>Move FROM (the company that holds the employees now)</label>
+        <select name="source" required><option value="">- choose -</option>{% for c in companies %}<option value="{{ c.id }}">{{ c.name }} ({{ c.employees }} employees)</option>{% endfor %}</select></div>
+      <div class="field"><label>Move TO (the company you work in)</label>
+        <select name="target" required><option value="">- choose -</option>{% for c in companies %}<option value="{{ c.id }}">{{ c.name }} ({{ c.employees }} employees)</option>{% endfor %}</select></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-start"><button class="btn btn-primary" type="submit">Check</button></div>
+  </form></div></div>
+{% endif %}
+{% endblock %}
