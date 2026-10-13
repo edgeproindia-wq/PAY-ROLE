@@ -21,3 +21,13 @@ fixtures_prod*.json
 _mustfix_backup/
 
 backups/
+*_scope.zip
+python_scope.zip
+code_dump.txt
+core_part*.txt
+core_scope.txt
+scope_part*.txt
+employee_login_scope.txt
+*_test_log.txt
+health_report.txt
+_brand_backup*/
