@@ -851,6 +851,12 @@ def employee_delete(request, pk):
     employee = get_object_scoped(request, Employee, employee_field='', pk=pk)
     if request.method != 'POST':
         raise PermissionDenied("Delete requires a POST request.")
+    if PayrollRunLine.objects.filter(employee=employee).exists():
+        messages.error(request, f'{employee.employee_code} has payroll history, so the record cannot be deleted (payslips would be lost). '
+                                'Set the status to Resigned or Terminated instead.')
+        return redirect('employee_master')
+    if employee.user_id:
+        User.objects.filter(pk=employee.user_id).update(is_active=False)      # a deleted employee must not keep a working login
     log_action(request, 'DELETE', employee, details=f'Employee {employee.employee_code} deleted')
     employee.delete()
     return redirect('employee_master')
@@ -1415,6 +1421,9 @@ def payroll_combined(request):
                 else:
                     emps = Employee.objects.filter(company=run.company, employment_status='ACTIVE') if run.company \
                         else Employee.objects.filter(pk__in=run.lines.values('employee'))
+                    period = parse_month(run.month)
+                    if period and run.company:      # same rule as creating the run: people who join after this month are not in it
+                        emps = emps.filter(Q(date_of_joining__isnull=True) | Q(date_of_joining__lte=period[1]))
                     with transaction.atomic():
                         release_claims(run, Employee.objects.filter(pk__in=run.lines.values('employee')))
                         run.lines.all().delete()
@@ -1427,7 +1436,7 @@ def payroll_combined(request):
                 messages.error(request, 'Unknown action.')
         return redirect('payroll_combined')
 
-    form = PayrollRunForm()
+    form = PayrollRunForm(company=None if is_admin else request.user.company)
     all_runs = scope_runs(request).select_related('company').prefetch_related('lines__employee')
     released_lines = PayrollRunLine.objects.filter(payroll_run__in=scope_runs(request), payroll_run__status='RELEASED')
     summary = {

@@ -225,9 +225,18 @@ class PayrollRunForm(forms.ModelForm):
         model = PayrollRun
         fields = ['month']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['month'].widget = forms.TextInput(attrs={'placeholder': 'e.g. August 2026'})
+        import datetime as _dt
+        from django.utils import timezone as _tz
+        existing = {r.month.lower(): r.get_status_display() for r in PayrollRun.objects.filter(company=company)} if company is not None else {}
+        today = _tz.localdate()
+        choices = [('', '- Select payroll month -')]
+        for i in range(3, -61, -1):                      # next 3 months back to 5 years ago, newest first
+            y, m = divmod(today.year * 12 + today.month - 1 + i, 12)
+            label = _dt.date(y, m + 1, 1).strftime('%B %Y')
+            choices.append((label, label + (f' - already created ({existing[label.lower()]})' if label.lower() in existing else '')))
+        self.fields['month'] = forms.ChoiceField(choices=choices, label=self.fields['month'].label)
         _style(self.fields)
 
     def clean_month(self):

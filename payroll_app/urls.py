@@ -188,3 +188,6 @@ urlpatterns += _dcx.urlpatterns
 
 from . import move_employees as _mvx  # noqa: E402
 urlpatterns += _mvx.urlpatterns
+
+from . import salary_history as _sh  # noqa: E402
+urlpatterns += _sh.urlpatterns

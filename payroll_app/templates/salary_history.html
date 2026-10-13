@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Salary history{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Salary history</h1>
+  <p class="page-subtitle">Every salary change is kept with the month it starts. Payroll automatically uses the salary in force for the payroll month, and released payslips never change.</p></div></div>
+
+<div class="card"><div class="card-header"><h3>Choose an employee</h3></div><div class="card-body">
+  <form method="get" id="pickForm"><div class="form-grid"><div class="field"><label>Employee</label>
+    <select name="employee" onchange="document.getElementById('pickForm').submit()"><option value="">- Select an employee -</option>
+      {% for e in employees %}<option value="{{ e.pk }}"{% if chosen and chosen.pk == e.pk %} selected{% endif %}>{{ e }}</option>{% endfor %}</select></div></div>
+    <noscript><button class="btn btn-primary" type="submit">Show</button></noscript></form>
+  {% if not employees %}<div class="alert alert-warning" style="margin-top:10px">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}">Import employees</a> or add one in Employee Master.</div>{% endif %}
+</div></div>
+
+{% if chosen %}
+{% if errors %}<div class="alert alert-error" style="margin-top:16px"><ul style="margin:0;padding-left:18px">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>{{ chosen }} - salary timeline</h3></div><div class="table-wrap">
+  <table><thead><tr><th>Starts</th><th>Ends</th><th>Basic</th><th>HRA</th><th>Conveyance</th><th>Special</th><th>Gross</th><th>Note</th><th>Saved by</th></tr></thead><tbody>
+  {% for h in history %}<tr>
+    <td>{% if h.rev.effective_from.year < 2001 %}Opening salary{% else %}{{ h.rev.effective_from|date:"d M Y" }}{% endif %}{% if h.in_force %} <span class="badge badge-success">In force now</span>{% endif %}</td>
+    <td>{% if h.effective_to %}{{ h.effective_to|date:"d M Y" }}{% else %}Open{% endif %}</td>
+    <td>&#8377;{{ h.rev.basic }}</td><td>&#8377;{{ h.rev.hra }}</td><td>&#8377;{{ h.rev.conveyance }}</td><td>&#8377;{{ h.rev.special_allowance }}</td>
+    <td><b>&#8377;{{ h.rev.gross_salary }}</b></td><td>{{ h.rev.note|default:"-" }}</td>
+    <td>{{ h.rev.created_by.username|default:"-" }}{% if h.rev.created_at %} <span class="muted">{{ h.rev.created_at|date:"d M Y" }}</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="9">No salary saved for this employee yet. Add the first salary below.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>New salary for {{ chosen.employee_code }}</h3></div><div class="card-body">
+  <form method="post" onsubmit="return confirm('Save this salary change? Payroll for the starting month onward will use it.');">{% csrf_token %}
+    <input type="hidden" name="employee" value="{{ chosen.pk }}">
+    <div class="form-grid">
+      <div class="field"><label>Starts from (month) *</label>
+        <select name="effective_from" required><option value="">- Select the month -</option>{% for iso, label in months %}<option value="{{ iso }}"{% if post.effective_from == iso %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <div class="helptext">A salary change always starts on the 1st of a month. For a mid-month change use Arrears.</div></div>
+      <div class="field"><label>Basic *</label><input type="number" step="0.01" min="0" name="basic" value="{{ post.basic|default:current.basic }}" required></div>
+      <div class="field"><label>HRA</label><input type="number" step="0.01" min="0" name="hra" value="{{ post.hra|default:current.hra }}"></div>
+      <div class="field"><label>Conveyance</label><input type="number" step="0.01" min="0" name="conveyance" value="{{ post.conveyance|default:current.conveyance }}"></div>
+      <div class="field"><label>Special allowance</label><input type="number" step="0.01" min="0" name="special_allowance" value="{{ post.special_allowance|default:current.special_allowance }}"></div>
+      <div class="field"><label>Note (optional)</label><input type="text" name="note" maxlength="255" value="{{ post.note|default:'' }}" placeholder="e.g. Annual increment"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-start"><button class="btn btn-primary" type="submit">Save new salary</button></div>
+  </form></div></div>
+{% endif %}
+{% endblock %}

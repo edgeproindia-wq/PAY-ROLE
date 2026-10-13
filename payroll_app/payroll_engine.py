@@ -93,9 +93,9 @@ def _company_rates(company):
 def calculate_line(run, employee, period):
     """Return a dict of PayrollRunLine field values, or None when the employee
     has no salary structure (they are skipped, as before)."""
-    try:
-        ss = employee.salary_structure
-    except SalaryStructure.DoesNotExist:
+    from .salary_history import salary_for_period
+    ss = salary_for_period(employee, period)      # the salary in force for this payroll month
+    if ss is None:
         return None
 
     pf_rate, esi_rate = _company_rates(employee.company)

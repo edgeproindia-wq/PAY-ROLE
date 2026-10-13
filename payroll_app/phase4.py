@@ -70,7 +70,8 @@ def component_totals(employee, period, pay_factor):
              .filter(Q(effective_to__isnull=True) | Q(effective_to__gte=start)))
     earn = taxable = ded = Decimal('0')
     breakdown = []
-    basic = getattr(getattr(employee, 'salary_structure', None), 'basic', 0) or 0
+    from .salary_history import salary_for_period
+    basic = getattr(salary_for_period(employee, period), 'basic', 0) or 0
     for c in comps:
         monthly = q(Decimal(basic) * c.percent / 100) if c.calc_type == 'PERCENT_BASIC' else c.amount
         if c.kind == 'EARNING':

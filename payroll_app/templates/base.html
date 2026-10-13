@@ -324,6 +324,7 @@
         <div class="sb-sub">
           {% url 'pay_cycles' as u_pc %}{% if u_pc %}<a href="{{ u_pc }}"><span class="tx">Pay Cycle</span></a>{% endif %}
           {% url 'salary_structure' as u_own9 %}{% if u_own9 %}<a href="{{ u_own9 }}"><span class="tx">Salary Structure</span></a>{% endif %}
+          {% url 'salary_history' as u_sh %}{% if u_sh %}<a href="{{ u_sh }}"><span class="tx">Salary History</span></a>{% endif %}
           {% url 'hr_pay_components' as u_own16 %}{% if u_own16 %}<a href="{{ u_own16 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
           {% url 'payroll_processing' as u_own10 %}{% if u_own10 %}<a href="{{ u_own10 }}"><span class="tx">Payroll Processing</span></a>{% endif %}
           {% url 'arrears' as u_own17 %}{% if u_own17 %}<a href="{{ u_own17 }}"><span class="tx">Arrears</span></a>{% endif %}
