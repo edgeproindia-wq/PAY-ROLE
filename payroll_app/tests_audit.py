@@ -357,6 +357,7 @@ class EmployeeManagementTests(TestCase):
         self.assertEqual(e.ifsc_code, 'SBIN0001234')
         self.assertEqual(e.email, 'anu@ex.com')
         self.assertTrue(e.has_bank_details)
+        self.client.get(reverse('employee_edit', args=[e.pk]))   # open the edit page first, like a real user: the app remembers the version it showed
         resp = self.client.post(reverse('employee_edit', args=[e.pk]), {
             'employee_code': 'EPRO001', 'first_name': 'Anu', 'last_name': 'Kumar', 'email': 'anu@ex.com',
             'date_of_joining': '2025-01-01', 'department': 'Eng', 'designation': 'Lead', 'employment_status': 'ACTIVE',
