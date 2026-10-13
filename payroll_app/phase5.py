@@ -160,6 +160,8 @@ class PersonalDocForm(forms.Form):
             raise forms.ValidationError('Only PDF, JPG or PNG files are allowed.')
         if f.size > MAX_BYTES:
             raise forms.ValidationError('File must be 5 MB or smaller.')
+        from .upload_checks import check_file_matches_extension
+        check_file_matches_extension(f)
         return f
 
 

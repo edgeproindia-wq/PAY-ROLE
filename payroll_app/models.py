@@ -20,6 +20,8 @@ def validate_proof_document(file):
         raise _ValidationError('Only PDF, JPG, JPEG or PNG files are allowed.')
     if file.size > 5 * 1024 * 1024:
         raise _ValidationError('File size must be 5 MB or less.')
+    from .upload_checks import check_file_matches_extension
+    check_file_matches_extension(file)
 
 
 class Company(models.Model):

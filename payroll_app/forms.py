@@ -200,6 +200,8 @@ class ReimbursementForm(forms.ModelForm):
             raise forms.ValidationError(f"Unsupported file type. Allowed: {', '.join(allowed)}")
         if f.size > getattr(settings, 'FILE_UPLOAD_MAX_MEMORY_SIZE', 5 * 1024 * 1024):
             raise forms.ValidationError('File too large (max 5 MB).')
+        from .upload_checks import check_file_matches_extension
+        check_file_matches_extension(f)
         return f
 
     def clean_date(self):
@@ -266,12 +268,35 @@ class FullFinalSettlementForm(forms.ModelForm):
         model = FullFinalSettlement
         fields = ['employee', 'last_working_day', 'pending_salary', 'leave_encashment', 'deductions']
         widgets = {'last_working_day': forms.DateInput(attrs={'type': 'date'})}
+        labels = {'pending_salary': 'Pending salary (leave empty to calculate)'}
 
     def __init__(self, *args, employee_queryset=None, **kwargs):
         super().__init__(*args, **kwargs)
         if employee_queryset is not None:
             self.fields['employee'].queryset = employee_queryset
+        for name in ('pending_salary', 'leave_encashment', 'deductions'):
+            self.fields[name].required = False
         _style(self.fields)
+
+    def clean(self):
+        cleaned = super().clean()
+        employee, last_day = cleaned.get('employee'), cleaned.get('last_working_day')
+        if employee and last_day:
+            if FullFinalSettlement.objects.filter(employee=employee).exists():
+                self.add_error('employee', 'A settlement is already recorded for this employee.')
+            if employee.date_of_joining and last_day < employee.date_of_joining:
+                self.add_error('last_working_day', 'The last working day cannot be before the joining date.')
+            if last_day > timezone.localdate():
+                self.add_error('last_working_day', 'Record the settlement after the employee has left. The last working day cannot be in the future.')
+        if not self.errors:
+            from .settlement import suggest_pending_salary
+            self.suggestion_note = ''
+            if cleaned.get('pending_salary') in (None, ''):
+                cleaned['pending_salary'], self.suggestion_note = suggest_pending_salary(employee, last_day)
+            for name in ('leave_encashment', 'deductions'):
+                if cleaned.get(name) in (None, ''):
+                    cleaned[name] = 0
+        return cleaned
 
 
 class UserRoleAssignmentForm(forms.ModelForm):

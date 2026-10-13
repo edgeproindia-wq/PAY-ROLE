@@ -24,6 +24,15 @@ def professional_tax_for(company, monthly_gross, period):
     return q(slab.monthly_amount)
 
 
+def _released_recovered(loan, run):
+    """Amount of this loan already taken in RELEASED payroll runs (this run excluded)."""
+    from django.db.models import Sum
+    from .models_features import LoanRepayment
+    total = (LoanRepayment.objects.filter(loan=loan, line__payroll_run__status='RELEASED')
+             .exclude(line__payroll_run=run).aggregate(s=Sum('amount'))['s'])
+    return total or Decimal('0')
+
+
 def loan_deductions(employee, run, period):
     """[(loan, amount)] - the EMI, capped at what is still to be recovered. Amounts
     already taken in OTHER runs count; this run's own earlier draft does not."""
@@ -34,8 +43,11 @@ def loan_deductions(employee, run, period):
     for loan in Loan.objects.filter(employee=employee, status='ACTIVE', start_date__lte=period[1]):
         remaining = loan.loan_amount - loan.recovered(exclude_run=run)
         if remaining <= 0:
-            loan.status = 'CLOSED'                 # fully recovered: close it, never deduct again
-            loan.save(update_fields=['status'])
+            # Nothing more to deduct. Close the loan only when RELEASED payroll has recovered all of it: if the EMIs that
+            # cover it are still in draft runs, those drafts may be rejected or reprocessed, and the loan must then deduct again.
+            if _released_recovered(loan, run) >= loan.loan_amount:
+                loan.status = 'CLOSED'
+                loan.save(update_fields=['status'])
             continue
         amount = q(min(loan.emi_amount, max(remaining, Decimal('0'))))
         if amount > 0:

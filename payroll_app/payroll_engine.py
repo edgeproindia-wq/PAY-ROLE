@@ -59,6 +59,27 @@ TAX_RULES = {
 CURRENT_TAX_YEAR = '2025-26'
 
 
+def tax_year_for_period(period):
+    """Financial year (April-March) a payroll month belongs to: September 2026 -> '2026-27'.
+    If the rules for that year are not configured yet, the latest earlier year is used and a warning is logged,
+    so payroll is never blocked on 1 April. ADD THE NEW YEAR TO TAX_RULES (after your CA confirms it) every April."""
+    import logging
+    if not period:
+        return CURRENT_TAX_YEAR
+    d = period[0]
+    start_year = d.year if d.month >= 4 else d.year - 1
+    year = f'{start_year}-{(start_year + 1) % 100:02d}'
+    if year in TAX_RULES:
+        return year
+    earlier = sorted(y for y in TAX_RULES if y < year)
+    chosen = earlier[-1] if earlier else CURRENT_TAX_YEAR
+    warned = tax_year_for_period.__dict__.setdefault('_warned', set())
+    if year not in warned:                      # say it once per server start, not once per employee
+        warned.add(year)
+        logging.getLogger(__name__).warning('No tax rules configured for FY %s - using FY %s. Add the new year to TAX_RULES.', year, chosen)
+    return chosen
+
+
 def annual_tax(annual_gross, tax_year=CURRENT_TAX_YEAR):
     """Annual income tax incl. cess on salary income under the new regime."""
     rules = TAX_RULES[tax_year]
@@ -149,7 +170,8 @@ def calculate_line(run, employee, period):
 
     pf = q(earned_basic * pf_rate)
     esi = q(earned_gross * esi_rate) if gross <= ESI_GROSS_LIMIT else Decimal('0.00')
-    tds = monthly_tds(gross * 12)
+    tax_year = tax_year_for_period(period)
+    tds = monthly_tds(gross * 12, tax_year)
     # Optional deductions: all 0 unless HR configured PT slabs, loans or insurance.
     from .payroll_extras import insurance_deduction, loan_deductions, professional_tax_for
     pt = professional_tax_for(employee.company, earned_gross, period)

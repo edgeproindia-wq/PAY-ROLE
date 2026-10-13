@@ -64,6 +64,10 @@ class DeductionsInPayrollTests(TestCase):
         self.configure_everything()
         self.assertEqual(self.make_run('September 2026').loan_deduction, D('5000.00'))
         self.assertEqual(self.make_run('October 2026').loan_deduction, D('5000.00'))
+        for month in ('September 2026', 'October 2026'):          # a loan closes only once RELEASED payroll has recovered it
+            run = PayrollRun.objects.get(company=self.co, month=month)
+            for action in ('validate', 'approve', 'release'):
+                self.client.post(reverse('payroll_combined'), {'action': action, 'run_id': run.pk}, follow=True)
         self.assertEqual(self.make_run('November 2026').loan_deduction, D('0.00'))
         self.loan.refresh_from_db()
         self.assertEqual(self.loan.status, 'CLOSED')
