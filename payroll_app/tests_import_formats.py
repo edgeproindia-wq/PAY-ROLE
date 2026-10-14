@@ -45,13 +45,13 @@ class MasterListFormatTests(TestCase):
         d = datetime.datetime(2025, 6, 2)
         rows, err = read_rows(xlsx([
             ['EPRO911', 'No Mail', 'M', 'Hubli', 'Tekla', 'Tekla', 'Modeller', d, 'Working', None, None, None],
-            ['EPRO912', 'Ab Sconder', 'M', 'Hubli', 'Tekla', 'Tekla', 'Modeller', d, 'Abscond', None, 'ab912@example.com', None],
+            ['EPRO912', 'Ab Sconder', 'M', 'Hubli', 'Tekla', 'Tekla', 'Modeller', d, 'Suspended', None, 'ab912@example.com', None],
             ['EPRO913', 'Good One', 'M', 'Hubli', 'Tekla', 'Tekla', 'Modeller', d, 'Working', None, 'good913@example.com', None],
         ]))
         self.assertEqual(err, '')
         rep = validate_rows(rows, self.co)
         self.assertTrue(rep[0]['errors'])      # email missing
-        self.assertTrue(rep[1]['errors'])      # Abscond is not a status this system has
+        self.assertTrue(rep[1]['errors'])      # Suspended is not a status this system has
         self.assertFalse(rep[2]['errors'])
 
     def test_the_standard_template_still_works(self):

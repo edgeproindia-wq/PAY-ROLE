@@ -49,7 +49,10 @@ STATUS = {'active': 'ACTIVE', 'on leave': 'ON_LEAVE', 'on_leave': 'ON_LEAVE', 'r
           'terminated': 'TERMINATED', 'inactive': 'RESIGNED',
           # words used in the company's own master list
           'working': 'ACTIVE', 'existing': 'ACTIVE', 'in notice': 'ACTIVE', 'under notice': 'ACTIVE',
-          'notice period': 'ACTIVE', 'relieved': 'RESIGNED', 'left': 'RESIGNED'}
+          'notice period': 'ACTIVE', 'relieved': 'RESIGNED', 'left': 'RESIGNED',
+          # left without notice / has not started yet
+          'abscond': 'TERMINATED', 'absconded': 'TERMINATED', 'absconding': 'TERMINATED',
+          'yet to join': 'ACTIVE', 'to join': 'ACTIVE', 'joining': 'ACTIVE'}
 
 
 def _norm(h):
@@ -135,11 +138,25 @@ class _ImportEmployeeForm(EmployeeForm):
         pass                                   # uniqueness is checked for the whole file in validate_rows
 
 
-def validate_rows(rows, company):
+def validate_rows(rows, company, fill_gaps=False):
     """Same rules as Add Employee + unique Employee ID per company + unique email."""
     codes_in_db, emails_in_db = _existing_keys(company)
     report, seen_codes, seen_emails = [], set(), set()
     for n, d in enumerate(rows, start=2):
+        if fill_gaps:                          # optional: fill the common gaps instead of refusing the row
+            from django.core.exceptions import ValidationError as _VE
+            from django.core.validators import validate_email as _validate_email
+            d = dict(d)
+            _code = (d.get('employee_code') or '').strip().lower().replace(' ', '')
+            _mail = (d.get('email') or '').strip()
+            try:
+                _validate_email(_mail)
+            except _VE:
+                if _code:
+                    d['email'] = f'{_code}@no-email.invalid'           # a reserved, never-deliverable address
+            for _f in ('department', 'designation'):
+                if not (d.get(_f) or '').strip():
+                    d[_f] = 'Unassigned'
         data = {f: d.get(f, '') for f, *_ in COLUMNS}
         data['bank_status'] = 'UNVERIFIED'            # new bank details always start unverified
         data['employment_status'] = data.get('employment_status') or 'ACTIVE'
@@ -170,6 +187,8 @@ def validate_rows(rows, company):
 
 class UploadForm(forms.Form):
     file = forms.FileField(help_text='Excel (.xlsx) or CSV, first row = column headings')
+    fill_gaps = forms.BooleanField(required=False, label='Fill the gaps for me',
+                                   help_text='Missing or invalid email becomes EMPLOYEEID@no-email.invalid, and a missing department or designation becomes "Unassigned". You can correct them later.')
 
 
 class ConfirmForm(forms.Form):
@@ -216,7 +235,7 @@ def hr_employee_import(request):
             if err:
                 upload.add_error('file', err)
             else:
-                report = validate_rows(rows, company)
+                report = validate_rows(rows, company, fill_gaps=upload.cleaned_data.get('fill_gaps', False))
                 request.session[SESSION_KEY] = [r['data'] for r in report if not r['errors']]
     elif request.method == 'POST' and request.POST.get('step') == 'import':
         confirm = ConfirmForm(request.POST)
