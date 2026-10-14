@@ -194,3 +194,6 @@ urlpatterns += _sh.urlpatterns
 
 from . import stage2 as _s2  # noqa: E402
 urlpatterns += _s2.urlpatterns
+
+from . import readiness as _rd  # noqa: E402
+urlpatterns += _rd.urlpatterns

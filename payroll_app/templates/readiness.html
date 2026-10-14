@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Launch readiness{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Launch readiness</h1>
+  <p class="page-subtitle">What the live site is really using right now. No password or key is ever shown here.</p></div></div>
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Passed</div><div class="value">{{ summary.ok }}</div></div>
+  <div class="kpi-card"><div class="label">Action needed</div><div class="value">{{ summary.action }}</div></div>
+  <div class="kpi-card"><div class="label">Warnings</div><div class="value">{{ summary.warn }}</div></div>
+</div>
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>Automatic checks</h3></div><div class="table-wrap">
+<table><thead><tr><th>Check</th><th>Result</th><th>Details and what to do</th></tr></thead><tbody>
+{% for c in checks %}<tr><td style="white-space:normal"><b>{{ c.name }}</b></td>
+<td><span class="badge {% if c.status == 'PASS' %}badge-success{% elif c.status == 'WARNING' %}badge-warning{% else %}badge-danger{% endif %}">{{ c.status }}</span></td>
+<td style="white-space:normal;min-width:260px">{{ c.detail }}{% if c.fix %}<div style="margin-top:4px;color:#8a1c1c;font-weight:600">To fix: {{ c.fix }}</div>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>Email test</h3></div><div class="card-body">
+<p>Sends one test email to <b>{{ admin_email|default:"(your login has no email address)" }}</b> using the live settings, so you can see whether delivery really works.</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="test_email"><button class="btn btn-primary" type="submit">Send test email</button></form></div></div>
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>Only you can confirm these</h3></div><div class="card-body">
+<p class="muted">The site cannot see these from the inside. Tick them off yourself before the first real payroll.</p>
+<ul>{% for m in manual %}<li style="margin:6px 0">&#9744; {{ m }}</li>{% endfor %}</ul></div></div>
+{% endblock %}
