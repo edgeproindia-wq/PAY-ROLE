@@ -1,0 +1,37 @@
+{% extends "public_base.html" %}
+{% block title %}Privacy policy{% endblock %}
+{% block boxsize %}wide{% endblock %}
+{% block content %}
+<div style="line-height:1.65;text-align:left">
+<h1 style="margin-top:0">Privacy policy</h1>
+<p><b>Last updated:</b> {{ updated }}</p>
+<h3>Who we are</h3>
+<p>Namma Payroll is a payroll, attendance and leave service. It is operated by {{ legal_name }}{% if legal_address %}, {{ legal_address }}{% endif %}. Each company that uses Namma Payroll (your employer) decides which employee information is entered and why; we process it on the company's behalf to run payroll.</p>
+<h3>What information is processed</h3>
+<ul>
+<li><b>Identity and contact:</b> name, email address and phone number.</li>
+<li><b>Employment:</b> employee code, department, designation, joining date, employment status, shift and leave records.</li>
+<li><b>Attendance:</b> check-in and check-out times, attendance status and leave applications.</li>
+<li><b>Pay:</b> salary structure, payroll runs, payslips, loans, insurance, reimbursements, tax declarations and statutory deductions.</li>
+<li><b>Bank details:</b> account holder name, bank name, account number, IFSC code and branch, used to prepare salary payments.</li>
+<li><b>Documents:</b> files that you or your employer upload, such as identity or tax documents.</li>
+<li><b>Account and security:</b> username, a securely hashed password, sign-in activity and an audit trail of changes made in the system.</li>
+</ul>
+<h3>Why it is used</h3>
+<p>To calculate and release salaries, produce payslips and statutory reports, record attendance and leave, show each person their own information, send notifications, and keep the service secure.</p>
+<h3>Who can see it</h3>
+<p>Only authorised people at your own company can see your company's records, and each employee can see only their own information. Platform administrators may access limited account information to give support. We do not sell personal information and we do not show advertising.</p>
+<h3>Service providers</h3>
+<p>We use hosting, database and email delivery providers to run the service. They process data only to provide those services. Data is sent over encrypted HTTPS connections.</p>
+<h3>How long it is kept</h3>
+<p>Payroll, payslip and tax records are kept for the period your employer needs and the law requires. Other personal information is deleted or anonymised when it is no longer needed or when a valid deletion request is approved, except where a record must be kept by law.</p>
+<h3>Your choices</h3>
+<p>You can ask to see, correct or delete your information. Corrections to employment and pay details are made by your employer. To request deletion of your account, see <a href="/delete-account/">Delete my account</a>.</p>
+<h3>Children</h3>
+<p>Namma Payroll is for employees and employers. It is not directed at anyone under 18.</p>
+<h3>Changes to this policy</h3>
+<p>If this policy changes, the date above is updated.</p>
+<h3>Contact</h3>
+<p>{% if support_email %}Email <a href="mailto:{{ support_email }}">{{ support_email }}</a>.{% else %}Please contact your company administrator.{% endif %}</p>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "public_base.html" %}
+{% block title %}Delete my account{% endblock %}
+{% block boxsize %}wide{% endblock %}
+{% block content %}
+<div style="line-height:1.65;text-align:left">
+<h1 style="margin-top:0">Delete my account</h1>
+<p>You can ask for your Namma Payroll account and personal information to be deleted.</p>
+<h3>How to ask</h3>
+<ol>
+<li>Sign in and open <a href="/account/delete-request/">Request account deletion</a>, then confirm.</li>
+<li>If you cannot sign in, {% if support_email %}email <a href="mailto:{{ support_email }}">{{ support_email }}</a> from your registered email address{% else %}contact your company administrator{% endif %}.</li>
+</ol>
+<h3>What happens next</h3>
+<p>We confirm your identity, tell your employer, and respond within {{ deletion_days }} days.</p>
+<h3>What is deleted and what is kept</h3>
+<p>Your sign-in and personal profile information are deleted. Payroll, payslip, tax and statutory records that your employer is required by law to keep are retained for the legally required period and are then removed.</p>
+<h3>Companies</h3>
+<p>If a company wants its whole workspace deleted, the company owner makes the same request. The same record-keeping rules apply.</p>
+</div>
+{% endblock %}

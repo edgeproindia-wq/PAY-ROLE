@@ -197,3 +197,6 @@ urlpatterns += _s2.urlpatterns
 
 from . import readiness as _rd  # noqa: E402
 urlpatterns += _rd.urlpatterns
+
+from . import pwa as _pwa  # noqa: E402
+urlpatterns += _pwa.urlpatterns

@@ -80,6 +80,14 @@ def run_checks():
         add('Uploaded files are stored safely', WARN, f'MEDIA_ROOT is set to {settings.MEDIA_ROOT}.', 'Confirm that path is a Render Disk mount.')
     else:
         add('Uploaded files are stored safely', WARN, 'Not running on Render, so this cannot be judged here.', '')
+    legal_ok = bool(os.environ.get('LEGAL_ENTITY_NAME', '').strip() and os.environ.get('SUPPORT_EMAIL', '').strip())
+    add('Legal contact details are set', PASS if legal_ok else ACTION,
+        'The privacy policy shows your company name and support email.' if legal_ok else 'The privacy policy and account deletion pages have no company name or support email yet.',
+        '' if legal_ok else 'On Render set LEGAL_ENTITY_NAME and SUPPORT_EMAIL (and optionally LEGAL_ADDRESS).')
+    fp_ok = bool(os.environ.get('ANDROID_PACKAGE_NAME', '').strip() and os.environ.get('ANDROID_SHA256_FINGERPRINTS', '').strip())
+    add('Android app link (assetlinks) is set', PASS if fp_ok else WARN,
+        'Package name and signing fingerprint are set.' if fp_ok else 'Not set yet. Only needed once the Android app is built and signed.',
+        '' if fp_ok else 'After signing, set ANDROID_PACKAGE_NAME and ANDROID_SHA256_FINGERPRINTS on Render.')
     counts = dict(Employee.objects.order_by().values_list('company_id').annotate(n=Count('id')))
     empty = [c.name for c in Company.objects.all() if not counts.get(c.pk)]
     add('Every company has employees', PASS if not empty else WARN,

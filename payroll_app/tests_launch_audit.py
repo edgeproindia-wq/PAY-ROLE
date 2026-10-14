@@ -178,7 +178,7 @@ class RoleRoutingAudit(World):
     def test_anonymous_visitors_only_reach_public_pages(self):
         """Anonymous GET: any page that answers 200 must be on the public list"""
         public_words = ('home', 'login', 'register', 'features', 'about', 'demo', 'contact', 'pricing', 'privacy', 'terms', 'password', 'verify',
-                        'otp', 'logout', 'landing', 'faq', 'security', 'integrat', 'solution', 'blog', 'help', 'docs', 'support', 'robots', 'sitemap')
+                        'otp', 'logout', 'landing', 'faq', 'security', 'integrat', 'solution', 'blog', 'help', 'docs', 'support', 'robots', 'sitemap', 'public_')
         open_pages = []
         for route, name in all_routes():
             if '<' in route or route.startswith('sbx-'):

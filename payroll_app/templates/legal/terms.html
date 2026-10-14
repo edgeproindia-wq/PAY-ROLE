@@ -1,0 +1,20 @@
+{% extends "public_base.html" %}
+{% block title %}Terms of service{% endblock %}
+{% block boxsize %}wide{% endblock %}
+{% block content %}
+<div style="line-height:1.65;text-align:left">
+<h1 style="margin-top:0">Terms of service</h1>
+<p><b>Last updated:</b> {{ updated }}</p>
+<p>These terms apply when you use Namma Payroll, operated by {{ legal_name }}.</p>
+<h3>Using the service</h3>
+<p>Accounts are created for a company and its employees. Keep your password private and tell your administrator if you think someone else has used your account. You must not try to access another company's or person's information.</p>
+<h3>Accuracy of information</h3>
+<p>Each company is responsible for the accuracy of the employee, salary, attendance and tax information it enters, and for checking payroll results before releasing payments.</p>
+<h3>Availability</h3>
+<p>We work to keep the service available, but it may be unavailable for maintenance or reasons outside our control.</p>
+<h3>Privacy</h3>
+<p>How information is handled is described in the <a href="/privacy/">privacy policy</a>.</p>
+<h3>Contact</h3>
+<p>{% if support_email %}Email <a href="mailto:{{ support_email }}">{{ support_email }}</a>.{% else %}Please contact your company administrator.{% endif %}</p>
+</div>
+{% endblock %}

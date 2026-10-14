@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Request account deletion{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Request account deletion</h1>
+<p class="page-subtitle">We confirm your identity, tell your employer, and respond within {{ deletion_days }} days.</p></div></div>
+<div class="card"><div class="card-body">
+<p>Your sign-in and personal profile information will be deleted. Payroll, payslip and tax records that your employer must keep by law are retained for the required period. <a href="/delete-account/">Read more</a>.</p>
+<form method="post">{% csrf_token %}
+<div class="field"><label>Reason (optional)</label><input type="text" name="reason" maxlength="300"></div>
+<p><label><input type="checkbox" name="confirm" value="yes"> I understand and want my account deleted.</label></p>
+<button class="btn btn-primary" type="submit">Send request</button> <a class="btn btn-outline" href="/">Cancel</a>
+</form></div></div>
+{% endblock %}

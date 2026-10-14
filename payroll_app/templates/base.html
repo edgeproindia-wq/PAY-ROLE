@@ -255,6 +255,7 @@
   @media print{ .sidebar, .topbar{ display:none !important; } .main{ margin-left:0 !important; } }
 </style>
 <link rel="stylesheet" href="{% static 'css/namma-theme.css' %}">
+{% include "partials/pwa_head.html" %}
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -451,5 +452,6 @@
 </script>
 <script src="{% static 'js/namma-theme.js' %}"></script>
 <script src="{% static 'js/password-toggle.js' %}" defer></script>
+{% include "partials/legal_links.html" %}
 </body>
 </html>
