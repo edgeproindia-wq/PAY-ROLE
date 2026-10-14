@@ -31,3 +31,7 @@ employee_login_scope.txt
 *_test_log.txt
 health_report.txt
 _brand_backup*/
+automation_check_*.txt
+full_test_*.txt
+health_test_log.txt
+*.zip
