@@ -1,0 +1,36 @@
+<style>
+/* Number boxes: no up/down arrows (a stray click or scroll cannot change an amount) */
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+</style>
+<script>
+(function () {
+  function isNum(el) { return el && el.tagName === 'INPUT' && el.type === 'number'; }
+  // 1. numeric keypad on phones
+  function keypad(el) {
+    if (el.getAttribute('inputmode')) return;
+    var step = el.getAttribute('step') || '';
+    el.setAttribute('inputmode', (step === 'any' || step.indexOf('.') !== -1) ? 'decimal' : 'numeric');
+  }
+  // 2. a box that still shows its default 0 is selected on entry, so typing replaces it (no more "05000")
+  document.addEventListener('focusin', function (e) {
+    var el = e.target;
+    if (!isNum(el)) return;
+    keypad(el);
+    if (el.value !== '' && parseFloat(el.value) === 0) { setTimeout(function () { try { el.select(); } catch (x) {} }, 0); }
+  });
+  // 3. scrolling the mouse wheel over a number box never changes the amount
+  document.addEventListener('wheel', function (e) {
+    if (isNum(e.target) && document.activeElement === e.target) { e.target.blur(); }
+  }, {passive: true});
+  // 4. only digits and the decimal point: no e, E or +; a minus sign only where a negative amount is allowed
+  document.addEventListener('keydown', function (e) {
+    var el = e.target;
+    if (!isNum(el) || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'e' || k === 'E' || k === '+') { e.preventDefault(); return; }
+    if (k === '-' && el.min !== '' && parseFloat(el.min) >= 0) { e.preventDefault(); }
+  });
+  document.querySelectorAll('input[type=number]').forEach(keypad);
+})();
+</script>
