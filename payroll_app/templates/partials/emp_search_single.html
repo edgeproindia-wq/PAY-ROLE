@@ -1,0 +1,66 @@
+<script>
+(function () {
+  // Adds a search box to the Employee choice in the listed popups. The form still sends the same "employee" value as before.
+  ['addAttModal'].forEach(function (modalId) {
+    var modal = document.getElementById(modalId);
+    if (!modal) return;
+    var sel = modal.querySelector('select[name=employee]');
+    if (!sel) return;
+    var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; });
+    if (!opts.length) return;                        // no employees yet: keep the page's own message
+    var current = sel.value;
+    var wrap = document.createElement('div');
+    wrap.className = 'emp-search';
+    wrap.style.cssText = 'border:1px solid #d9dee5;border-radius:8px;padding:8px;background:#fff';
+    var search = document.createElement('input');
+    search.type = 'search'; search.placeholder = 'Search by name or ID...'; search.setAttribute('aria-label', 'Search employees');
+    search.style.cssText = 'width:100%;margin-bottom:6px';
+    var chosen = document.createElement('div');
+    chosen.style.cssText = 'font-size:13px;color:#6b7280;margin-bottom:4px';
+    var list = document.createElement('div');
+    list.style.cssText = 'max-height:180px;overflow:auto;border-top:1px solid #eef0f3;padding-top:4px';
+    var rows = opts.map(function (o) {
+      var row = document.createElement('label');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:4px 6px;border-radius:6px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;font-size:13.5px;color:#1f2937';
+      var rb = document.createElement('input');
+      rb.type = 'radio'; rb.name = 'employee'; rb.value = o.value;
+      rb.checked = (o.value === current);
+      row.appendChild(rb); row.appendChild(document.createTextNode(o.textContent));
+      list.appendChild(row);
+      return {row: row, rb: rb, text: o.textContent.toLowerCase(), label: o.textContent};
+    });
+    var none = document.createElement('div');
+    none.textContent = 'No employee matches your search.';
+    none.style.cssText = 'display:none;color:#6b7280;font-size:13px;padding:6px 2px';
+    list.appendChild(none);
+    wrap.appendChild(search); wrap.appendChild(chosen); wrap.appendChild(list);
+    sel.style.display = 'none';
+    sel.disabled = true;                             // the hidden dropdown must not send a value
+    sel.parentNode.insertBefore(wrap, sel.nextSibling);
+    function visible() { return rows.filter(function (r) { return r.row.style.display !== 'none'; }); }
+    function refresh() {
+      var pick = rows.filter(function (r) { return r.rb.checked; })[0];
+      rows.forEach(function (r) { r.row.style.background = r.rb.checked ? '#e8f5ec' : 'transparent'; });
+      chosen.textContent = pick ? 'Selected: ' + pick.label : 'No employee selected yet';
+      none.style.display = visible().length ? 'none' : 'block';
+    }
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      rows.forEach(function (r) { r.row.style.display = (!q || r.text.indexOf(q) !== -1) ? 'flex' : 'none'; });
+      refresh();
+    });
+    search.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {                       // Enter picks the first match instead of sending the form
+        e.preventDefault();
+        var v = visible();
+        if (v.length) { v[0].rb.checked = true; refresh(); }
+      }
+    });
+    rows.forEach(function (r) { r.rb.addEventListener('change', refresh); });
+    refresh();
+    sel.closest('form').addEventListener('submit', function (e) {
+      if (!rows.some(function (r) { return r.rb.checked; })) { e.preventDefault(); alert('Choose an employee.'); }
+    });
+  });
+})();
+</script>

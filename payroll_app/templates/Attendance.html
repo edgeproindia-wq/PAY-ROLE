@@ -124,4 +124,5 @@
   });
   {% if form.errors and not is_employee_role %}document.getElementById('addAttModal').classList.add('open');{% endif %}
 </script>
+{% include "partials/emp_search_single.html" %}
 {% endblock %}
