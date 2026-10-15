@@ -304,7 +304,6 @@
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3.2-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2.2.6 4 2.2 4 5.2"/></svg><span class="tx">Employee Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'employee_master' as u_own2 %}{% if u_own2 %}<a href="{{ u_own2 }}"><span class="tx">Employee Master</span></a>{% endif %}
-          {% url 'hr_employee_import' as u_import %}{% if u_import %}<a href="{{ u_import }}"><span class="tx">Import Employees</span></a>{% endif %}
           {% url 'hr_employee_logins' as u_logins %}{% if u_logins %}<a href="{{ u_logins }}"><span class="tx">Employee Logins</span></a>{% endif %}
           {% url 'user_roles_permissions' as u_own29 %}{% if u_own29 %}<a href="{{ u_own29 }}"><span class="tx">User Roles</span></a>{% endif %}
           {% url 'ess' as u_own28 %}{% if u_own28 %}<a href="{{ u_own28 }}"><span class="tx">ESS</span></a>{% endif %}
