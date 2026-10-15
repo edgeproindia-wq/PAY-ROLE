@@ -203,3 +203,6 @@ urlpatterns += _pwa.urlpatterns
 
 from . import employee_import_popup as _emppop  # noqa: E402
 urlpatterns += _emppop.urlpatterns
+
+from . import deploy_info as _depinfo  # noqa: E402
+urlpatterns += _depinfo.urlpatterns
