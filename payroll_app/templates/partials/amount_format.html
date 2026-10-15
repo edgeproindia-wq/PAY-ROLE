@@ -1,0 +1,55 @@
+<script>
+(function () {
+  // Salary amount boxes show Indian grouping while you type (25,00,000.50). A hidden twin sends the plain number to the server.
+  var NAMES = ['basic', 'hra', 'conveyance', 'special_allowance'];
+  function group(digits) {
+    if (digits.length <= 3) return digits;
+    return digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + digits.slice(-3);
+  }
+  function format(text, final) {
+    var cleaned = String(text).replace(/^\s*(rs\.?|inr|\u20b9)\s*/i, '').replace(/[^0-9.]/g, '');      // a pasted "Rs." or rupee sign is not a decimal point
+    var dot = cleaned.indexOf('.');
+    var intPart = (dot === -1 ? cleaned : cleaned.slice(0, dot)).replace(/^0+(?=\d)/, '');
+    var dec = dot === -1 ? null : cleaned.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    if (intPart === '' && dec !== null) intPart = '0';
+    if (intPart === '') return {text: '', raw: ''};
+    if (final) { dec = (dec || '').padEnd(2, '0'); }
+    return {text: group(intPart) + (dec !== null ? '.' + dec : ''), raw: intPart + (dec ? '.' + dec : '')};
+  }
+  function enhance(el) {
+    if (el.dataset.amountReady) return;
+    el.dataset.amountReady = '1';
+    var hidden = document.createElement('input');
+    hidden.type = 'hidden'; hidden.name = el.name;
+    el.removeAttribute('name');
+    el.type = 'text';
+    ['min', 'max', 'step'].forEach(function (a) { el.removeAttribute(a); });
+    el.setAttribute('inputmode', 'decimal'); el.setAttribute('autocomplete', 'off');
+    el.parentNode.insertBefore(hidden, el.nextSibling);
+    function sync(final) {
+      var r = format(el.value, final);
+      el.value = r.text;
+      if (hidden.value !== r.raw) { hidden.value = r.raw; hidden.dispatchEvent(new Event('input', {bubbles: true})); }
+    }
+    sync(true);
+    el.addEventListener('input', function () {
+      var pos = el.selectionStart, before = el.value.slice(0, pos).replace(/[^0-9.]/g, '').length;
+      sync(false);
+      var seen = 0, i = 0;
+      while (i < el.value.length && seen < before) { if (/[0-9.]/.test(el.value.charAt(i))) seen++; i++; }
+      try { el.setSelectionRange(i, i); } catch (x) {}
+    });
+    el.addEventListener('blur', function () { sync(true); });
+    var justFocused = false;
+    el.addEventListener('focus', function () {
+      if (hidden.value !== '' && parseFloat(hidden.value) === 0) {          // still showing the default 0: select it so typing replaces it
+        justFocused = true;
+        try { el.select(); } catch (x) {}
+        setTimeout(function () { try { el.select(); } catch (x) {} }, 0);
+      }
+    });
+    el.addEventListener('mouseup', function (e) { if (justFocused) { e.preventDefault(); justFocused = false; } });   // a click must not undo the selection
+  }
+  document.querySelectorAll('input[type=number]').forEach(function (el) { if (NAMES.indexOf(el.name) !== -1) enhance(el); });
+})();
+</script>
