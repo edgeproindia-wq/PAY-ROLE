@@ -60,7 +60,7 @@
       <div class="modal-body">
         <div class="form-grid">
           {% for field in form %}
-          <div class="field"><label>{{ field.label }}</label>{{ field }}{# NO-EMPLOYEES-NOTICE #}{% if field.name == 'employee' %}{% with qs=field.field.queryset %}{% if qs.exists == False %}<div style="margin-top:6px;padding:9px 12px;border-radius:6px;background:#fff4e0;border:1px solid #f7d9a1;color:#8a5200;font-size:13px;line-height:1.45">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}" style="font-weight:700;color:#8a5200">Import employees</a> or <a href="{% url 'employee_master' %}" style="font-weight:700;color:#8a5200">add one in Employee Master</a>, then come back here.</div>{% endif %}{% endwith %}{% endif %}{{ field.errors }}</div>
+          <div class="field"><label>{{ field.label }}</label>{{ field }}{# NO-EMPLOYEES-NOTICE #}{% if field.name == 'employee' %}{% with qs=field.field.queryset %}{% if qs.exists == False %}<div style="margin-top:6px;padding:9px 12px;border-radius:6px;background:#fff4e0;border:1px solid #f7d9a1;color:#8a5200;font-size:13px;line-height:1.45">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}" onclick="if(window.openEmpImport){openEmpImport();return false;}" style="font-weight:700;color:#8a5200">Import employees</a> or <a href="{% url 'employee_master' %}" style="font-weight:700;color:#8a5200">add one in Employee Master</a>, then come back here.</div>{% endif %}{% endwith %}{% endif %}{{ field.errors }}</div>
           {% endfor %}
         </div>
       </div>

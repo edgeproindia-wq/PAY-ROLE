@@ -200,3 +200,6 @@ urlpatterns += _rd.urlpatterns
 
 from . import pwa as _pwa  # noqa: E402
 urlpatterns += _pwa.urlpatterns
+
+from . import employee_import_popup as _emppop  # noqa: E402
+urlpatterns += _emppop.urlpatterns

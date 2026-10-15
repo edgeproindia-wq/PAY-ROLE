@@ -9,7 +9,7 @@
     <select name="employee" onchange="document.getElementById('pickForm').submit()"><option value="">- Select an employee -</option>
       {% for e in employees %}<option value="{{ e.pk }}"{% if chosen and chosen.pk == e.pk %} selected{% endif %}>{{ e }}</option>{% endfor %}</select></div></div>
     <noscript><button class="btn btn-primary" type="submit">Show</button></noscript></form>
-  {% if not employees %}<div class="alert alert-warning" style="margin-top:10px">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}">Import employees</a> or add one in Employee Master.</div>{% endif %}
+  {% if not employees %}<div class="alert alert-warning" style="margin-top:10px">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}" onclick="if(window.openEmpImport){openEmpImport();return false;}">Import employees</a> or add one in Employee Master.</div>{% endif %}
 </div></div>
 
 {% if chosen %}
