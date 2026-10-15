@@ -1,0 +1,38 @@
+/* ==========================================================================
+   styles.css - your own project-wide styles for Namma Payroll.
+
+   This file is loaded LAST on every page (after namma-theme.css and after each
+   page's own <style> block), so a rule written here overrides the same rule there.
+
+   How to use it:
+   1. Write your CSS below the "YOUR STYLES" line.
+   2. Save, then deploy as usual (git push). Render collects the static files itself.
+   3. Press Ctrl+F5 in the browser to see the change.
+
+   Names that start with np- (np = Namma Payroll) are safe: nothing else uses them.
+   ========================================================================== */
+
+:root {
+  --np-brand: #1f9347;
+  --np-brand-dark: #167a3a;
+  --np-text: #1f2937;
+  --np-muted: #6b7280;
+  --np-border: #d9dee5;
+  --np-warning-bg: #fff4e0;
+  --np-warning-border: #f7d9a1;
+  --np-warning-text: #8a5200;
+}
+
+/* Optional helper classes. Nothing uses them yet; add class="np-..." to an element to use one. */
+.np-muted { color: var(--np-muted); }
+.np-amount { text-align: right; font-variant-numeric: tabular-nums; }
+.np-notice-warning {
+  margin-top: 6px; padding: 9px 12px; border-radius: 6px; font-size: 13px; line-height: 1.45;
+  background: var(--np-warning-bg); border: 1px solid var(--np-warning-border); color: var(--np-warning-text);
+}
+.np-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* ============================ YOUR STYLES START HERE ============================ */
