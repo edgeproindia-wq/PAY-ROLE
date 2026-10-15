@@ -7,7 +7,7 @@ from .models import Employee, User
 from .tests import make_company, make_employee, make_user
 
 OWNER_LINKS = [
-    'dashboard', 'employee_master', 'hr_employee_import', 'hr_employee_logins', 'attendance', 'leave_management',
+    'dashboard', 'employee_master', 'hr_employee_logins', 'attendance', 'leave_management',
     'hr_shifts', 'hr_work_hours', 'grievances', 'announcements', 'salary_structure', 'payroll_processing',
     'payslips', 'bank_transfer', 'reimbursement', 'hr_loans', 'hr_insurance', 'hr_pay_components', 'arrears',
     'full_final_settlement', 'statutory_compliance', 'hr_professional_tax', 'income_tax', 'investment_declaration',

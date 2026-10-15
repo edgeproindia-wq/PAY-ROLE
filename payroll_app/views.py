@@ -1696,6 +1696,21 @@ def user_roles_permissions(request):
     from .models import UserRoleAssignment
     employees = scope_employees(request, Employee.objects.all())
     if request.method == 'POST':
+        picked = [i for i in request.POST.getlist('employee') if i.isdigit()]
+        if len(picked) > 1:                          # several employees ticked in the picker: give all of them the same role
+            role = request.POST.get('role', '')
+            if role in dict(UserRoleAssignment.ROLE_CHOICES):
+                chosen = list(employees.filter(pk__in=picked))              # only employees of this company
+                had = set(UserRoleAssignment.objects.filter(employee__in=chosen, role=role).values_list('employee_id', flat=True))
+                new = [UserRoleAssignment(employee=e, role=role) for e in chosen if e.pk not in had]
+                UserRoleAssignment.objects.bulk_create(new)
+                if new:
+                    log_action(request, 'UPDATE', None, details=f'Role {role} assigned to {len(new)} employees', company=get_user_company(request))
+                label = dict(UserRoleAssignment.ROLE_CHOICES)[role]
+                messages.success(request, f'{label} assigned to {len(new)} employee(s)' + (f'; {len(had)} already had it.' if had else '.'))
+            else:
+                messages.error(request, 'Choose a role.')
+            return redirect('user_roles_permissions')
         form = UserRoleAssignmentForm(request.POST, employee_queryset=employees)
         if form.is_valid():
             assignment = form.save()

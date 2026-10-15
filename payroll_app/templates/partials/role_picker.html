@@ -1,0 +1,72 @@
+<script>
+(function () {
+  var modal = document.getElementById('addRoleModal');
+  if (!modal) return;
+  var sel = modal.querySelector('select[name=employee]');
+  if (!sel) return;
+  var opts = Array.prototype.filter.call(sel.options, function (o) { return o.value; });
+  if (!opts.length) return;                          // no employees yet: keep the page's own message
+  var wrap = document.createElement('div');
+  wrap.className = 'emp-picker';
+  wrap.style.cssText = 'border:1px solid #d9dee5;border-radius:8px;padding:8px;background:#fff';
+  var search = document.createElement('input');
+  search.type = 'search'; search.placeholder = 'Search by name or ID...'; search.setAttribute('aria-label', 'Search employees');
+  search.style.cssText = 'width:100%;margin-bottom:6px';
+  var bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:4px';
+  var allLabel = document.createElement('label');
+  var all = document.createElement('input');
+  all.type = 'checkbox';
+  allLabel.style.cssText = 'text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:#1f2937';
+  allLabel.appendChild(all);
+  allLabel.appendChild(document.createTextNode(' Select all'));
+  var count = document.createElement('span');
+  count.style.color = '#6b7280';
+  bar.appendChild(allLabel); bar.appendChild(count);
+  var list = document.createElement('div');
+  list.style.cssText = 'max-height:210px;overflow:auto;border-top:1px solid #eef0f3;padding-top:4px';
+  var rows = opts.map(function (o) {
+    var row = document.createElement('label');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:3px 2px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;font-size:13.5px;color:#1f2937';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.name = 'employee'; cb.value = o.value;
+    var text = document.createTextNode(o.textContent);
+    row.appendChild(cb); row.appendChild(text);
+    list.appendChild(row);
+    return {row: row, cb: cb, text: o.textContent.toLowerCase()};
+  });
+  var none = document.createElement('div');
+  none.textContent = 'No employee matches your search.';
+  none.style.cssText = 'display:none;color:#6b7280;font-size:13px;padding:6px 2px';
+  list.appendChild(none);
+  wrap.appendChild(search); wrap.appendChild(bar); wrap.appendChild(list);
+  sel.style.display = 'none';
+  sel.disabled = true;                               // the hidden dropdown must not send a value
+  sel.parentNode.insertBefore(wrap, sel.nextSibling);
+  function visible() { return rows.filter(function (r) { return r.row.style.display !== 'none'; }); }
+  function refresh() {
+    var v = visible(), picked = rows.filter(function (r) { return r.cb.checked; }).length;
+    all.checked = v.length > 0 && v.every(function (r) { return r.cb.checked; });
+    count.textContent = picked + ' selected';
+    none.style.display = v.length ? 'none' : 'block';
+  }
+  search.addEventListener('input', function () {
+    var q = search.value.trim().toLowerCase();
+    rows.forEach(function (r) { r.row.style.display = (!q || r.text.indexOf(q) !== -1) ? 'flex' : 'none'; });
+    refresh();
+  });
+  all.addEventListener('change', function () {
+    visible().forEach(function (r) { r.cb.checked = all.checked; });          // only the employees currently shown
+    refresh();
+  });
+  rows.forEach(function (r) { r.cb.addEventListener('change', refresh); });
+  refresh();
+  var form = sel.closest('form');
+  form.addEventListener('submit', function (e) {
+    var picked = rows.filter(function (r) { return r.cb.checked; }).length;
+    if (!picked) { e.preventDefault(); alert('Choose at least one employee.'); return; }
+    var roleSel = form.querySelector('select[name=role]');
+    if (picked > 1 && roleSel && !confirm('Assign "' + roleSel.options[roleSel.selectedIndex].text + '" to ' + picked + ' employees?')) { e.preventDefault(); }
+  });
+})();
+</script>
