@@ -4,44 +4,61 @@
     <div class="modal-head"><h3>Import Employees from Excel</h3><button type="button" class="modal-close" onclick="closeEmpImport()">&times;</button></div>
     <div class="modal-body">
       {% csrf_token %}
-      <p><b>1.</b> <a href="{% url 'hr_employee_import_template' %}">Download the template</a> and fill one row per employee, or use your own sheet with the same headings.</p>
-      <p><b>2.</b> Choose the file and press <b>Check file</b>. Nothing is saved yet.</p>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="empFile" accept=".xlsx,.csv">
-        <button type="button" class="btn btn-outline" id="empCheckBtn" onclick="checkEmpFile()">Check file</button>
-      </div>
-      <p style="margin:10px 0 0"><label><input type="checkbox" id="empFill"> Fill the gaps for me</label>
-        <span style="color:#6b7280;font-size:12px">A missing or invalid email becomes EMPLOYEEID@no-email.invalid, and a missing department or designation becomes "Unassigned".</span></p>
-      <div id="empResult" style="margin-top:14px"></div>
-      <div id="empLoginBox" style="display:none;margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px">
-        <p style="margin-top:0"><label><input type="checkbox" id="empLogins" checked> Also create Employee ID logins</label></p>
-        <div class="form-grid">
-          <div class="field"><label>Login password for everyone</label><input type="password" id="empPw1" autocomplete="new-password"></div>
-          <div class="field"><label>Confirm password</label><input type="password" id="empPw2" autocomplete="new-password"></div>
+      <div id="empStepA">
+        <p><b>1.</b> <a href="{% url 'hr_employee_import_template' %}">Download the template</a> and fill one row per employee, or use your own sheet with the same headings.</p>
+        <p><b>2.</b> Choose the file and press <b>Check file</b>. Nothing is saved yet.</p>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="file" id="empFile" accept=".xlsx,.csv">
+          <button type="button" class="btn btn-outline" id="empCheckBtn" onclick="checkEmpFile()">Check file</button>
         </div>
+        <p style="margin:10px 0 0"><label><input type="checkbox" id="empFill"> Fill the gaps for me</label>
+          <span style="color:#6b7280;font-size:12px">A missing or invalid email becomes EMPLOYEEID@no-email.invalid, and a missing department or designation becomes "Unassigned".</span></p>
+      </div>
+      <div id="empFileLine" style="display:none;padding:8px 12px;border-radius:8px;background:#f3f4f6;font-size:13px">
+        File: <b id="empFileName"></b> &middot; Fill the gaps: <b id="empFillState"></b> &middot; <a href="#" id="empChange">Change file or options</a>
+      </div>
+      <div id="empResult" style="margin-top:14px"></div>
+      <div id="empActionBox" style="display:none;margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px">
+        <div id="empLoginBox">
+          <p style="margin-top:0"><label><input type="checkbox" id="empLogins" checked> Also create Employee ID logins</label></p>
+          <div class="form-grid">
+            <div class="field"><label>Login password for everyone</label><input type="password" id="empPw1" autocomplete="new-password"></div>
+            <div class="field"><label>Confirm password</label><input type="password" id="empPw2" autocomplete="new-password"></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" id="empConfirmBtn" onclick="confirmEmpImport()" disabled style="margin-top:8px;width:100%;padding:12px">Import</button>
       </div>
     </div>
     <div class="modal-foot">
       <button type="button" class="btn btn-outline" onclick="closeEmpImport()">Close</button>
-      <button type="button" class="btn btn-primary" id="empConfirmBtn" onclick="confirmEmpImport()" disabled>Import</button>
     </div>
   </div>
 </div>
 <script>
 (function () {
   var token = '', modal = document.getElementById('empImportModal');
-  function csrf() { var el = modal.querySelector('input[name=csrfmiddlewaretoken]'); return el ? el.value : ''; }
+  function el(id) { return document.getElementById(id); }
+  function csrf() { var e = modal.querySelector('input[name=csrfmiddlewaretoken]'); return e ? e.value : ''; }
   function box(text, kind) { var d = document.createElement('div'); d.className = 'alert alert-' + kind; d.textContent = text; return d; }
-  function show(node) { var r = document.getElementById('empResult'); r.textContent = ''; r.appendChild(node); }
+  function show(node) { var r = el('empResult'); r.textContent = ''; r.appendChild(node); }
   function json(r) { return r.json().catch(function () { return {ok: false, error: 'The server could not finish. Please try again.'}; }); }
+  function showStepA() {                             // back to choosing a file
+    el('empStepA').style.display = 'block'; el('empFileLine').style.display = 'none'; el('empActionBox').style.display = 'none';
+    el('empResult').textContent = ''; el('empConfirmBtn').disabled = true; token = '';
+  }
   window.openEmpImport = function () { modal.classList.add('open'); };
   window.closeEmpImport = function () { modal.classList.remove('open'); };
+  el('empChange').addEventListener('click', function (e) { e.preventDefault(); showStepA(); });
+  el('empFill').addEventListener('change', function () {   // the result must always match the box, so check again
+    if (el('empFile').files[0] && el('empResult').textContent) { window.checkEmpFile(); }
+  });
   window.checkEmpFile = function () {
-    var f = document.getElementById('empFile').files[0], btn = document.getElementById('empConfirmBtn');
-    btn.disabled = true; token = ''; document.getElementById('empLoginBox').style.display = 'none';
+    var f = el('empFile').files[0], btn = el('empConfirmBtn');
+    btn.disabled = true; token = ''; el('empActionBox').style.display = 'none';
     if (!f) { show(box('Choose a file first.', 'error')); return; }
     var fd = new FormData(); fd.append('file', f);
-    if (document.getElementById('empFill').checked) fd.append('fill_gaps', 'on');
+    var fill = el('empFill').checked;
+    if (fill) fd.append('fill_gaps', 'on');
     show(box('Checking...', 'info'));
     fetch("{% url 'emp_popup_check' %}", {method: 'POST', body: fd, headers: {'X-CSRFToken': csrf()}, credentials: 'same-origin'})
       .then(json)
@@ -49,33 +66,42 @@
         if (!d.ok) { show(box(d.error || 'The file could not be checked.', 'error')); return; }
         var wrap = document.createElement('div');
         wrap.appendChild(box(d.ready + ' ready, ' + d.errors + ' with problems (of ' + d.total + ' rows).', d.errors ? 'warning' : 'success'));
-        var t = document.createElement('table'), body = document.createElement('tbody');
-        d.rows.forEach(function (row) {
-          var tr = document.createElement('tr');
-          [row.line, row.code, row.name, row.ok ? 'Ready' : row.text].forEach(function (v) {
-            var td = document.createElement('td'); td.textContent = v; td.style.whiteSpace = 'normal'; if (!row.ok) td.style.color = '#8a1c1c'; tr.appendChild(td);
+        if (d.errors) {
+          var t = document.createElement('table'), body = document.createElement('tbody');
+          d.rows.forEach(function (row) {
+            var tr = document.createElement('tr');
+            [row.line, row.code, row.name, row.ok ? 'Ready' : row.text].forEach(function (v) {
+              var td = document.createElement('td'); td.textContent = v; td.style.whiteSpace = 'normal'; if (!row.ok) td.style.color = '#8a1c1c'; tr.appendChild(td);
+            });
+            body.appendChild(tr);
           });
-          body.appendChild(tr);
-        });
-        t.appendChild(body);
-        var holder = document.createElement('div'); holder.className = 'table-wrap'; holder.style.maxHeight = '240px'; holder.style.overflow = 'auto'; holder.appendChild(t);
-        wrap.appendChild(holder);
-        if (d.truncated) wrap.appendChild(box('Only the first 200 rows are shown, problems first.', 'info'));
+          t.appendChild(body);
+          var holder = document.createElement('div'); holder.className = 'table-wrap'; holder.style.maxHeight = '92px'; holder.style.overflow = 'auto'; holder.appendChild(t);
+          wrap.appendChild(holder);
+          if (d.truncated) wrap.appendChild(box('Only the first 200 rows are shown, problems first.', 'info'));
+        }
         show(wrap);
-        if (d.ready > 0) { token = d.token; btn.disabled = false; btn.textContent = 'Import ' + d.ready; document.getElementById('empLoginBox').style.display = 'block'; }
+        if (d.ready > 0) {
+          token = d.token;
+          el('empStepA').style.display = 'none';                      // the file is checked: the chooser is not needed any more
+          el('empFileName').textContent = f.name; el('empFillState').textContent = fill ? 'ON' : 'OFF';
+          el('empFileLine').style.display = 'block'; el('empActionBox').style.display = 'block';
+          btn.textContent = 'Import ' + d.ready + ' employees'; btn.disabled = false;
+        }
       })
       .catch(function () { show(box('Network problem. Please try again.', 'error')); });
   };
   window.confirmEmpImport = function () {
-    var btn = document.getElementById('empConfirmBtn'); btn.disabled = true;
+    var btn = el('empConfirmBtn'); btn.disabled = true;
     var fd = new FormData(); fd.append('token', token);
-    if (document.getElementById('empLogins').checked) { fd.append('create_logins', 'on'); }
-    fd.append('password1', document.getElementById('empPw1').value); fd.append('password2', document.getElementById('empPw2').value);
+    if (el('empLogins').checked) { fd.append('create_logins', 'on'); }
+    fd.append('password1', el('empPw1').value); fd.append('password2', el('empPw2').value);
     fetch("{% url 'emp_popup_confirm' %}", {method: 'POST', body: fd, headers: {'X-CSRFToken': csrf()}, credentials: 'same-origin'})
       .then(json)
       .then(function (d) {
         if (!d.ok) { show(box(d.error || 'Import failed.', 'error')); btn.disabled = false; return; }
         show(box('Imported ' + d.created + ' employee(s)' + (d.logins ? ', ' + d.logins + ' login(s) created' : '') + (d.skipped ? '. Skipped ' + d.skipped + ' that are no longer valid.' : '.') + ' Refreshing the page...', 'success'));
+        el('empActionBox').style.display = 'none';
         setTimeout(function () { window.location.reload(); }, 1300);
       })
       .catch(function () { show(box('Network problem. Please try again.', 'error')); btn.disabled = false; });
