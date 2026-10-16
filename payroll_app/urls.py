@@ -206,3 +206,6 @@ urlpatterns += _emppop.urlpatterns
 
 from . import deploy_info as _depinfo  # noqa: E402
 urlpatterns += _depinfo.urlpatterns
+
+from . import employee_reset as _empreset  # noqa: E402
+urlpatterns += _empreset.urlpatterns

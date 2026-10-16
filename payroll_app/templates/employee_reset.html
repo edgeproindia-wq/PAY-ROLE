@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Clear all employees{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Clear all employees and start fresh</h1>
+<p class="page-subtitle">Deletes every employee of <b>{{ company.name }}</b>, so you can import a clean list.</p></div></div>
+<div class="card"><div class="card-body">
+  <div style="padding:12px 14px;border-radius:8px;background:#fdecea;border:1px solid #f5b7b1;color:#7b1d14;line-height:1.5">
+    <b>This cannot be undone.</b> Take a database backup first (Aiven console, your service, Backups).
+  </div>
+  <h3 style="margin:18px 0 8px">What will be deleted</h3>
+  <table><tbody>
+    <tr><td><b>Employees</b></td><td>{{ info.employees }}</td></tr>
+    <tr><td><b>Employee logins</b> (owners and admins are never touched)</td><td>{{ info.logins }}</td></tr>
+    {% for name, n in info.related %}<tr><td>{{ name }} (attached to those employees)</td><td>{{ n }}</td></tr>{% endfor %}
+  </tbody></table>
+  <p style="color:#6b7280;font-size:13px">Everything attached to an employee is deleted together with them. Your own login, the company, and its settings stay.</p>
+  {% if info.blocked %}
+    <div style="padding:12px 14px;border-radius:8px;background:#fff4e0;border:1px solid #f7d9a1;color:#8a5200;line-height:1.5;margin-top:12px">
+      <b>Not allowed.</b> {% for r in info.reasons %}{{ r }} {% endfor %}
+    </div>
+  {% elif not info.employees %}
+    <p>There are no employees to delete. You can import a list from <a href="{% url 'employee_master' %}">Employee Master</a>.</p>
+  {% else %}
+    <form method="post" style="margin-top:14px">{% csrf_token %}
+      <div class="field"><label>Type the company name exactly to confirm: <b>{{ company.name }}</b></label><input type="text" name="confirm_name" autocomplete="off"></div>
+      <p><label><input type="checkbox" name="understand" value="yes"> I understand that all of this will be permanently deleted.</label></p>
+      <button class="btn" type="submit" style="background:#c0392b;color:#fff">Delete all employees and start fresh</button>
+      <a class="btn btn-outline" href="{% url 'employee_master' %}">Cancel</a>
+    </form>
+  {% endif %}
+</div></div>
+{% endblock %}
