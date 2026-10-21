@@ -35,3 +35,10 @@ automation_check_*.txt
 full_test_*.txt
 health_test_log.txt
 *.zip
+
+.venv/
+.venv_broken/
+audit_*.txt
+pagination_dump.txt
+*_out.txt
+*_err.txt
