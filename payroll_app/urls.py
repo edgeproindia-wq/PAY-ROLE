@@ -209,6 +209,3 @@ urlpatterns += _depinfo.urlpatterns
 
 from . import employee_reset as _empreset  # noqa: E402
 urlpatterns += _empreset.urlpatterns
-
-from . import shifts_four as _shiftsfour  # noqa: E402
-urlpatterns += _shiftsfour.urlpatterns
