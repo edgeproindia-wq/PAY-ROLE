@@ -1,0 +1,15 @@
+{% if rows %}<div class="fx-card"><h2>Add your shifts</h2>
+  <div class="muted">These shifts are not in this company yet. Check the times, set the unpaid break and the late grace time, then press <b>Add</b>. A shift that already exists is never changed.</div>
+  <form method="post" action="{% url 'shift_add_four' %}" style="margin-top:12px">{% csrf_token %}
+    <div class="fx-table"><table><tr><th>Add</th><th>Shift name</th><th>Starts</th><th>Ends</th><th title="Minutes that are not counted as working time. 0 = nothing is deducted.">Break (min)</th><th title="Minutes after the start before a check-in counts as late.">Grace (min)</th></tr>
+    {% for r in rows %}<tr><input type="hidden" name="row" value="{{ r.idx }}">
+      <td><input type="checkbox" name="add_{{ r.idx }}" checked style="width:18px;height:18px;min-height:0;margin:0;padding:0"></td>
+      <td><input type="text" name="name_{{ r.idx }}" value="{{ r.name }}" maxlength="60" style="min-width:150px"></td>
+      <td><input type="time" name="start_{{ r.idx }}" value="{{ r.start }}"></td>
+      <td><input type="time" name="end_{{ r.idx }}" value="{{ r.end }}">{% if r.next_day %}<div class="muted" style="font-size:11px">next day</div>{% endif %}</td>
+      <td><input type="number" name="break_{{ r.idx }}" value="{{ r.brk }}" min="0" max="600" style="width:90px"></td>
+      <td><input type="number" name="grace_{{ r.idx }}" value="{{ r.grace }}" min="0" max="240" style="width:90px"></td></tr>{% endfor %}
+    </table></div>
+    <p class="muted" style="margin:8px 0 12px">Break 0 means no time is deducted from the working hours. Grace 10 means a check-in up to 10 minutes after the start is not late.</p>
+    <button class="fx-btn" type="submit">Add the ticked shifts</button>
+  </form></div>{% endif %}

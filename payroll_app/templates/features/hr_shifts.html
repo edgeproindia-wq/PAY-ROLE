@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load four_shifts %}
 {% block title %}Shifts{% endblock %}
 {% block content %}{% include "features/_ui.html" %}
 <div class="fx">
   <div class="fx-card"><h1>Shifts &amp; working hours</h1><div class="muted">Define shifts and assign employees. Working hours, late check-ins and overtime hours are calculated from attendance check-in / check-out (overtime is shown, not paid automatically). <a href="{% url 'hr_work_hours' %}">Monthly working-hours report</a></div></div>
+  {% four_shifts_card %}
   <div class="fx-card"><h2>New shift</h2><form method="post" novalidate>{% csrf_token %}<input type="hidden" name="form" value="shift">{% with form=shift_form %}{% include "features/_form.html" %}{% endwith %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Create shift</button></p></form></div>
   <div class="fx-card"><h2>Assign shift</h2><form method="post" novalidate>{% csrf_token %}<input type="hidden" name="form" value="assign">{% with form=assign_form %}{% include "features/_form.html" %}{% endwith %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Assign</button></p></form></div>
   <div class="fx-card fx-table"><h2>Shifts</h2>{% if shifts %}<table><tr><th>Name</th><th>Time</th><th>Break</th><th>Grace</th><th>Scheduled</th><th>Status</th><th></th></tr>
