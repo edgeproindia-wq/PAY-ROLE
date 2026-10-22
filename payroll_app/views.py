@@ -385,7 +385,10 @@ def logout_view(request):
 
 @admin_required
 def admin_dashboard(request):
-    released = PayrollRunLine.objects.filter(payroll_run__status='RELEASED')
+    # Platform admin policy: this dashboard shows company-management data only
+    # (registrations, approvals, requests). Employee headcounts, payroll runs,
+    # net pay and bank payments belong to each company and are never summed
+    # across companies here.
     context = {
         'total_clients': Company.objects.count(),
         'active_clients': Company.objects.filter(status='APPROVED').count(),
@@ -396,13 +399,6 @@ def admin_dashboard(request):
         'open_complaints': ClientComplaint.objects.filter(status__in=['OPEN', 'IN_PROGRESS']).count(),
         'pending_client_requests': ClientRequest.objects.filter(status='PENDING').count(),
         'total_companies': Company.objects.filter(status='APPROVED').count(),
-        'total_employees': Employee.objects.count(),
-        'active_employees': Employee.objects.filter(employment_status='ACTIVE').count(),
-        'total_payroll_runs': PayrollRun.objects.count(),
-        'runs_awaiting_approval': PayrollRun.objects.filter(status='VALIDATED').count(),
-        'total_net_released': released.aggregate(t=Sum('net_pay'))['t'] or 0,
-        'payments_pending': BankPayment.objects.exclude(status='PAID').count(),
-        'payments_failed': BankPayment.objects.filter(status='FAILED').count(),
         'recent_demo_requests': DemoRequest.objects.all()[:5],
         'recent_companies': Company.objects.prefetch_related('users').all()[:5],
         'recent_notifications': Notification.objects.filter(recipient=request.user)[:6],
@@ -1728,9 +1724,20 @@ def settings_view(request):
     company = get_user_company(request)
     if company is None and not (request.user.is_superuser or request.user.role == 'ADMIN'):
         raise PermissionDenied
-    company_settings, _ = CompanySettings.objects.get_or_create(company=company) if company else (
+    # New settings rows start with the company's own registered name/address,
+    # not the model's generic 'My Company' placeholder.
+    company_settings, _ = CompanySettings.objects.get_or_create(
+        company=company, defaults={'company_name': company.name, 'address': company.address},
+    ) if company else (
         CompanySettings.objects.get_or_create(pk=1)
     )
+    # Rows created earlier still hold the placeholder: show the real name in the
+    # form (it is only saved if the owner presses Save).
+    form_initial = {}
+    if company and company_settings.company_name == 'My Company':
+        form_initial['company_name'] = company.name
+        if not company_settings.address:
+            form_initial['address'] = company.address
     form = None
     if request.method == 'POST':
         with transaction.atomic():
@@ -1746,7 +1753,7 @@ def settings_view(request):
                     return redirect('settings')
             company_settings = locked
     if form is None:
-        form = CompanySettingsForm(instance=company_settings)
+        form = CompanySettingsForm(instance=company_settings, initial=form_initial)
     remember_version(request, company_settings)
     return render(request, 'Settings.html', {'form': form})
 

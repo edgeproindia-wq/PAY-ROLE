@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1 class="page-title">Admin Dashboard</h1><p class="page-subtitle">Platform-wide overview &middot; live figures from the database</p></div></div>
+<div class="page-header"><div><h1 class="page-title">Admin Dashboard</h1><p class="page-subtitle">Registered companies and requests &middot; live figures from the database</p></div></div>
 <div class="kpi-row">
   <div class="kpi-card"><div class="label">Total Clients</div><div class="value">{{ total_clients }}</div></div>
   <div class="kpi-card"><div class="label">Active Clients</div><div class="value">{{ active_clients }}</div></div>
@@ -9,18 +9,7 @@
   <div class="kpi-card"><div class="label">Suspended / Rejected</div><div class="value">{{ suspended_clients }}</div></div>
 </div>
 <div class="kpi-row">
-  <div class="kpi-card"><div class="label">Total Employees</div><div class="value">{{ total_employees }}</div></div>
-  <div class="kpi-card"><div class="label">Active Employees</div><div class="value">{{ active_employees }}</div></div>
-  <div class="kpi-card"><div class="label">Payroll Runs</div><div class="value">{{ total_payroll_runs }}</div></div>
-  <div class="kpi-card"><div class="label">Runs Awaiting Approval</div><div class="value">{{ runs_awaiting_approval }}</div></div>
-</div>
-<div class="kpi-row">
-  <div class="kpi-card"><div class="label">Net Pay Released</div><div class="value">&#8377;{{ total_net_released|floatformat:2 }}</div></div>
-  <div class="kpi-card"><div class="label">Payments Not Yet Paid</div><div class="value">{{ payments_pending }}</div></div>
-  <div class="kpi-card"><div class="label">Failed Payments</div><div class="value">{{ payments_failed }}</div></div>
   <div class="kpi-card"><div class="label">Pending Demo Requests</div><div class="value">{{ pending_demo_requests }}</div></div>
-</div>
-<div class="kpi-row">
   <div class="kpi-card"><div class="label">Open Complaints</div><div class="value">{{ open_complaints }}</div></div>
   <div class="kpi-card"><div class="label">Pending Client Requests</div><div class="value">{{ pending_client_requests }}</div></div>
 </div>

@@ -318,7 +318,11 @@ class AdminDashboardTests(TestCase):
         self.assertEqual(ctx['active_clients'], 1)
         self.assertEqual(ctx['pending_clients'], 1)
         self.assertEqual(ctx['suspended_clients'], 1)
-        self.assertEqual(ctx['total_employees'], 1)
+        # Platform admin sees company-management figures only - never employee or payroll
+        # totals summed across companies.
+        for key in ('total_employees', 'active_employees', 'total_payroll_runs', 'runs_awaiting_approval',
+                    'total_net_released', 'payments_pending', 'payments_failed'):
+            self.assertNotIn(key, ctx, f'admin dashboard must not expose {key}')
 
     def test_client_and_employee_blocked_from_admin_pages(self):
         comp = company()
