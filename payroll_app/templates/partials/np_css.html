@@ -1,0 +1,20 @@
+{% if on %}<style id="np-nav-css">
+/* Sidebar: only the main items. The sub-menus and the dropdown arrows are hidden; a main item opens the first page of its section. */
+body .sidebar .sb-group > .sb-sub{display:none !important}
+body .sidebar .sb-caret{display:none !important}
+body .sidebar .sb-group[data-group="loans"]{display:none !important}{% if reimbursement_top %}
+body .sidebar a.sb-top[href="{{ reimbursement_top }}"]{display:none !important}{% endif %}
+body .sidebar .sb-nav a.sb-top.active:not(.np-active){background:transparent !important;color:inherit !important;font-weight:inherit}
+body .sidebar .sb-nav .np-active{background:var(--nm-primary,#1f9347) !important;color:#fff !important;font-weight:600}
+body .sidebar .sb-nav .np-active .svg-ic{stroke:currentColor}
+/* Footer: Previous / Next */
+.np-pager{margin:28px 0 4px;padding-top:14px;border-top:1px solid #e5e7eb}
+.np-pager .np-meta{margin:0 0 10px;font-size:12.5px;color:#6b7280;line-height:1.4}
+.np-pager .np-meta b{color:#1f2937;font-weight:600}
+.np-pager .np-btns{display:flex;justify-content:space-between;gap:10px}
+.np-pager .btn{display:inline-flex !important;align-items:center;justify-content:center;min-height:40px;min-width:120px;text-align:center}
+.np-pager .np-off{opacity:.45;pointer-events:none;cursor:default}
+.np-pager.np-busy .btn{opacity:.6;pointer-events:none}
+@media (max-width:560px){.np-pager .np-btns{display:grid;grid-template-columns:1fr 1fr}.np-pager .btn{min-width:0}}
+@media print{.np-pager{display:none}}
+</style>{% endif %}

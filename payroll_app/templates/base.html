@@ -1,4 +1,4 @@
-{% load static %}
+{% load static np_nav %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -257,6 +257,7 @@
 <link rel="stylesheet" href="{% static 'css/namma-theme.css' %}">
 {% include "partials/pwa_head.html" %}
 {% include "partials/styles_link.html" %}
+{% np_nav_css %}
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -345,7 +346,7 @@
         </div>
       </div>
       <div class="sb-group" data-group="compliance">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/></svg><span class="tx">Compliance</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/></svg><span class="tx">Tax &amp; Compliance</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'statutory_compliance' as u_own19 %}{% if u_own19 %}<a href="{{ u_own19 }}"><span class="tx">Statutory Compliance</span></a>{% endif %}
           {% url 'hr_professional_tax' as u_own20 %}{% if u_own20 %}<a href="{{ u_own20 }}"><span class="tx">Professional Tax</span></a>{% endif %}
@@ -415,6 +416,7 @@
       {% endfor %}
     {% endif %}
     {% block content %}{% endblock %}
+    {% np_nav %}
   </div>
   </div>
 <script data-submit-guard>

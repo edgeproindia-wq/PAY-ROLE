@@ -1,0 +1,65 @@
+{% if on %}{% if show %}<footer class="np-pager" id="np-pager" data-group="{{ group }}" data-main-href="{{ main_href }}" aria-label="Page navigation">
+  <div class="np-meta"><b>{{ section }}</b> &middot; Page {{ position }} of {{ total }}</div>
+  <div class="np-btns">
+    {% if prev %}<a class="btn btn-outline" href="{{ prev.url }}" data-np-go>&laquo; Previous</a>{% else %}<span class="btn btn-outline np-off" aria-disabled="true">&laquo; Previous</span>{% endif %}
+    {% if is_last %}<a class="btn btn-primary" href="{{ finish_url }}" data-np-go>Finish</a>{% else %}<a class="btn btn-primary" href="{{ next.url }}" data-np-go>Next &raquo;</a>{% endif %}
+  </div>
+</footer>{% endif %}
+<script data-np>
+(function () {
+  if (window.__npNav) { window.__npNav.sync(); return; }
+  var nav = window.__npNav = {};
+  nav.sync = function () {                                   // highlight the main item of the current section, in the same green as the active Dashboard
+    document.querySelectorAll('.sidebar .sb-nav .np-active').forEach(function (e) { e.classList.remove('np-active'); });
+    var p = document.getElementById('np-pager'), el = null;
+    if (!p) return;
+    var key = p.getAttribute('data-group'), href = p.getAttribute('data-main-href');
+    if (key) { el = document.querySelector('.sidebar .sb-group[data-group="' + key + '"] > .sb-group-head'); }
+    else { document.querySelectorAll('.sidebar a.sb-top').forEach(function (a) { if (a.getAttribute('href') === href) el = a; }); }
+    if (el) el.classList.add('np-active');
+  };
+  nav.sync();
+  // A main item that is a group opens the first page of that section (capture phase: runs before the theme's open/close handler).
+  document.addEventListener('click', function (e) {
+    var head = e.target.closest && e.target.closest('.sidebar .sb-group-head');
+    if (!head) return;
+    var first = head.parentNode.querySelector('.sb-sub a');
+    e.preventDefault(); e.stopPropagation();
+    if (first) window.location.assign(first.href);
+  }, true);
+  function head(doc) {                                       // everything a page adds to the <head>
+    return Array.prototype.map.call(doc.head.querySelectorAll('link[rel="stylesheet"], style, script'), function (n) { return n.outerHTML; });
+  }
+  function go(url) {                                         // swap the page content without a reload; anything unusual falls back to a normal page load
+    var bar = document.getElementById('np-pager');
+    if (bar) bar.classList.add('np-busy');
+    fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'np-nav'}}).then(function (r) {
+      var type = r.headers.get('content-type') || '';
+      if (!r.ok || type.indexOf('text/html') === -1 || new URL(r.url).pathname !== new URL(url, location.href).pathname) throw 0;
+      return r.text();
+    }).then(function (text) {
+      var doc = new DOMParser().parseFromString(text, 'text/html');
+      var oldC = document.querySelector('.content'), newC = doc.querySelector('.content');
+      if (!oldC || !newC || !doc.getElementById('np-pager')) throw 0;
+      if (newC.querySelector('script:not([data-np])')) throw 0;       // the page runs its own script: load it normally so it works exactly as before
+      var have = head(document);
+      if (head(doc).some(function (h) { return have.indexOf(h) === -1; })) throw 0;      // the page needs something extra in its <head>
+      oldC.innerHTML = newC.innerHTML;
+      document.title = doc.title;
+      var t = document.getElementById('tbTitle'), t2 = doc.getElementById('tbTitle');
+      if (t) t.textContent = (t2 && t2.textContent.trim()) || doc.title.split(/\s[|\u00b7\u2013-]\s/)[0].trim();
+      history.pushState({np: 1}, '', url);
+      nav.swapped = true;
+      nav.sync();
+      window.scrollTo(0, 0);
+    }).catch(function () { window.location.href = url; });
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[data-np-go]');
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    go(a.href);
+  });
+  window.addEventListener('popstate', function () { if (nav.swapped) window.location.reload(); });      // Back / Forward after a swap: load that address properly
+})();
+</script>{% endif %}
