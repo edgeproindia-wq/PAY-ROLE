@@ -2,41 +2,192 @@
 {% block title %}Notifications · Payroll{% endblock %}
 {% block content %}
 
+<style>
+  .nl-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #e5e7eb}
+  .nl-bar h2{margin:0;font-size:15px}
+  .nl-bar form{margin:0}
+  .nl-ask{margin-left:8px;color:#1f9347;font-weight:600;text-decoration:underline;cursor:pointer}
+  .nl-item{display:flex;align-items:flex-start;gap:12px;padding:12px 18px;border-bottom:1px solid #f0f2f5;text-decoration:none;color:inherit}
+  .nl-item:last-child{border-bottom:0}
+  .nl-item:hover{background:#f8faf9}
+  .nl-item.is-unread{background:#f3faf5}
+  .nl-dot{flex:0 0 9px;height:9px;margin-top:6px;border-radius:50%;background:transparent}
+  .nl-item.is-unread .nl-dot{background:#1f9347}
+  .nl-msg{flex:1;min-width:0;overflow-wrap:anywhere}
+  .nl-item.is-unread .nl-msg{font-weight:600}
+  .nl-when{font-size:12px;color:#6b7280;white-space:nowrap}
+  tr.nl-new td,.nl-item.nl-new{animation:nl-flash 3.5s ease-out}
+  @keyframes nl-flash{0%{background:#d8f1e0}100%{background:transparent}}
+  #nlToasts{position:fixed;right:18px;bottom:18px;z-index:2147483000;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 36px));pointer-events:none}
+  .nl-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-left:4px solid #1f9347;border-radius:10px;padding:11px 12px;box-shadow:0 10px 28px rgba(15,23,42,.18);animation:nl-in .22s ease-out}
+  .nl-toast b{display:block;font-size:13px;color:#111827}
+  .nl-toast span{display:block;font-size:13px;color:#374151;overflow-wrap:anywhere}
+  .nl-toast button{margin-left:auto;background:none;border:0;color:#6b7280;font-size:18px;line-height:1;cursor:pointer}
+  @keyframes nl-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){tr.nl-new td,.nl-item.nl-new,.nl-toast{animation:none}}
+</style>
+
 <div class="page-header">
   <div>
     <h1 class="page-title">Notifications</h1>
-    <p class="page-subtitle">Pending leave, reimbursements and payroll approvals</p>
+    <p class="page-subtitle">Pending leave, reimbursements and payroll approvals<a id="nlAsk" class="nl-ask" hidden>Turn on desktop alerts</a></p>
   </div>
 </div>
 
-{% include "partials/notifications_card.html" %}
+<div id="nlLive">
 
-<div class="card">
-  <div class="card-body flush">
-    {% if notices %}
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th style="width:110px;">Type</th><th class="wrap">Message</th><th style="width:130px;">Date</th></tr></thead>
-        <tbody>
-          {% for n in notices %}
-          <tr>
-            <td>
-              <span class="badge {% if n.type == 'Leave' %}badge-warn{% elif n.type == 'Reimbursement' %}badge-info{% else %}badge-neutral{% endif %}">{{ n.type }}</span>
-            </td>
-            <td class="wrap">{{ n.message }}</td>
-            <td class="text-sm text-muted">{{ n.date }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  {# ---- Recent notifications: the ones the bell counts ---- #}
+  <div class="card" style="margin-bottom:16px;">
+    <div class="nl-bar">
+      <h2>Recent notifications{% if unread_notification_count %} <span class="badge badge-warn">{{ unread_notification_count }} new</span>{% endif %}</h2>
+      {% if unread_notification_count %}
+      <form method="post" action="{% url 'notification_mark_all_read' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'notifications' %}"><button type="submit" class="btn btn-outline">Mark all as read</button></form>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="empty-state">
-      <div class="icon">&#128276;</div>
-      <div class="title">You're all caught up</div>
-      <div class="desc">No pending notifications right now.</div>
+    <div class="card-body flush">
+      {% if user_notifications %}
+        {% for n in user_notifications %}
+        <a class="nl-item{% if not n.is_read %} is-unread{% endif %}" href="{% url 'notification_open' n.pk %}" data-nk="n|{{ n.pk }}" data-nm="{{ n.message }}">
+          <span class="nl-dot" aria-hidden="true"></span>
+          <span class="nl-msg">{{ n.message }}</span>
+          <span class="nl-when">{{ n.created_at|timesince }} ago</span>
+        </a>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state">
+        <div class="icon">&#128276;</div>
+        <div class="title">You're all caught up</div>
+        <div class="desc">No notifications yet.</div>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
+
+  {# ---- Pending approvals: your original list, unchanged ---- #}
+  <div class="card">
+    <div class="card-body flush">
+      {% if notices %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:110px;">Type</th><th class="wrap">Message</th><th style="width:130px;">Date</th></tr></thead>
+          <tbody>
+            {% for n in notices %}
+            <tr data-nk="p|{{ n.type }}|{{ n.message }}|{{ n.date|date:'Y-m-d' }}" data-nm="{{ n.type }}: {{ n.message }}">
+              <td>
+                <span class="badge {% if n.type == 'Leave' %}badge-warn{% elif n.type == 'Reimbursement' %}badge-info{% else %}badge-neutral{% endif %}">{{ n.type }}</span>
+              </td>
+              <td class="wrap">{{ n.message }}</td>
+              <td class="text-sm text-muted">{{ n.date }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="icon">&#128276;</div>
+        <div class="title">You're all caught up</div>
+        <div class="desc">No pending notifications right now.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
 </div>
+
+<div id="nlToasts" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  if (window.__nlPage) return;
+  window.__nlPage = true;
+  var URL_ = '{% url "notifications" %}';
+  var BASE = 20000, HIDDEN = 60000, MAXWAIT = 300000, SHOW_MS = 9000, MAXTOASTS = 3;
+  var wrap = document.getElementById('nlLive'), box = document.getElementById('nlToasts'), ask = document.getElementById('nlAsk');
+  var known = null, failures = 0, stopped = false, inflight = false, timer = null, polledAt = 0, away = 0;
+  var baseTitle = document.title.replace(/^\(\d+\+?\)\s*/, '');
+
+  function keysOf(root) {                                    // every item carries a key (data-nk) and its text (data-nm); a second identical item gets its own key (#2)
+    var out = {}, seen = {};
+    root.querySelectorAll('[data-nk]').forEach(function (el) {
+      var base = el.getAttribute('data-nk'); seen[base] = (seen[base] || 0) + 1;
+      out[base + '#' + seen[base]] = el.getAttribute('data-nm') || el.textContent.trim();
+    });
+    return out;
+  }
+  function setBadge(text) {                                  // keep the bell in the top bar in step with this page
+    var b = document.querySelector('a.nb-wrap'); if (!b) return;
+    var badge = b.querySelector('.nb-badge');
+    if (text) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'nb-badge'; b.appendChild(badge); }
+      badge.textContent = text;
+    } else if (badge) { badge.remove(); }
+  }
+  function setTitle(unreadText) {
+    var n = parseInt(unreadText, 10) || 0;
+    document.title = (n > 0 ? '(' + (unreadText) + ') ' : '') + baseTitle;
+  }
+  function toast(text) {
+    while (box.children.length >= MAXTOASTS) box.removeChild(box.firstChild);
+    var el = document.createElement('div'); el.className = 'nl-toast';
+    el.innerHTML = '<div><b>New notification</b><span></span></div><button type="button" aria-label="Dismiss">&times;</button>';
+    el.querySelector('span').textContent = text;                                   // text only: a message can never inject HTML
+    var gone = function () { if (el.parentNode) el.parentNode.removeChild(el); };
+    var t = setTimeout(gone, SHOW_MS);
+    el.addEventListener('mouseenter', function () { clearTimeout(t); });
+    el.addEventListener('mouseleave', function () { t = setTimeout(gone, 4000); });
+    el.querySelector('button').addEventListener('click', function () { clearTimeout(t); gone(); });
+    box.appendChild(el);
+  }
+  function desktop(text) {
+    try { new Notification('New notification', {body: text, tag: 'nl-' + text.slice(0, 40)}); } catch (e) {}
+  }
+  function canDesktop() { return 'Notification' in window && Notification.permission === 'granted'; }
+  function schedule() {
+    clearTimeout(timer); if (stopped) return;
+    timer = setTimeout(poll, Math.min((document.hidden ? HIDDEN : BASE) * Math.pow(2, failures), MAXWAIT) + Math.random() * 1500);
+  }
+  function apply(doc) {
+    var fresh = doc.getElementById('nlLive');
+    if (!fresh) { stopped = true; return; }                                         // not the page we expected (signed out): stop quietly
+    var now = keysOf(fresh), added = [];
+    if (known !== null) Object.keys(now).forEach(function (k) { if (!(k in known)) added.push(k); });
+    var freshBadge = doc.querySelector('a.nb-wrap .nb-badge'), unread = freshBadge ? freshBadge.textContent.trim() : '';
+    wrap.innerHTML = fresh.innerHTML;                                               // both lists are replaced by the up-to-date ones
+    var seen = {};
+    wrap.querySelectorAll('[data-nk]').forEach(function (el) { var b = el.getAttribute('data-nk'); seen[b] = (seen[b] || 0) + 1; if (added.indexOf(b + '#' + seen[b]) !== -1) el.classList.add('nl-new'); });
+    setBadge(unread);
+    known = now;
+    var globalLive = !!window.__npLive;                                             // the site-wide live popup (if installed) already announces stored notifications and keeps the tab title
+    if (!added.length) { if (!document.hidden && !globalLive) setTitle(unread); return; }
+    added.forEach(function (k) {
+      if (document.hidden) { if (canDesktop() && !(globalLive && k.indexOf('n|') === 0)) desktop(now[k]); away++; }
+      else if (!(globalLive && k.indexOf('n|') === 0)) { toast(now[k]); }
+    });
+    if (!globalLive) { setTitle(unread); if (document.hidden && away) document.title = '(' + away + ' new) ' + baseTitle; }
+  }
+  function poll() {
+    if (stopped || inflight) return;
+    if (navigator.onLine === false) { schedule(); return; }
+    inflight = true; polledAt = Date.now();
+    fetch(URL_, {credentials: 'same-origin', cache: 'no-store', headers: {'X-Requested-With': 'np-notifications-page'}}).then(function (r) {
+      if (!r.ok || new URL(r.url).pathname !== new URL(URL_, location.href).pathname) { stopped = true; throw 'signed-out'; }
+      return r.text();
+    }).then(function (text) {
+      failures = 0; apply(new DOMParser().parseFromString(text, 'text/html'));
+    }).catch(function (e) { if (e !== 'signed-out') failures = Math.min(failures + 1, 5); }).then(function () { inflight = false; schedule(); });
+  }
+  known = keysOf(wrap);                                                             // what is on the page now: nothing in it counts as new
+  if ('Notification' in window && Notification.permission === 'default') {
+    ask.hidden = false;
+    ask.addEventListener('click', function (e) { e.preventDefault(); try { Notification.requestPermission().then(function () { ask.hidden = true; }); } catch (x) {} });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { away = 0; if (!window.__npLive) document.title = baseTitle; if (Date.now() - polledAt > 5000) poll(); }
+  });
+  window.addEventListener('online', function () { failures = 0; poll(); });
+  window.__nlPoll = poll;                                                           // lets a test (or you, in the console) check for news at once
+  schedule();
+})();
+</script>
 {% endblock %}
