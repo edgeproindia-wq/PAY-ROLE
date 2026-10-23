@@ -1,0 +1,101 @@
+{% if user.is_authenticated %}{% url 'notification_poll' as np_poll_url %}{% url 'notifications' as np_page_url %}{% if np_poll_url %}<style data-np-live>
+#npToasts{position:fixed;right:18px;bottom:18px;z-index:2147483000;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 36px));pointer-events:none}
+.np-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-left:4px solid #1f9347;border-radius:10px;padding:11px 12px;box-shadow:0 10px 28px rgba(15,23,42,.18);text-decoration:none;animation:np-toast-in .22s ease-out}
+.np-toast:hover{box-shadow:0 12px 32px rgba(15,23,42,.24)}
+.np-toast-ic{font-size:18px;line-height:1.2}
+.np-toast-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.4}
+.np-toast-tx b{font-size:13px;color:#111827}
+.np-toast-msg{color:#374151;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.np-toast-ask{margin-top:4px;align-self:flex-start;background:none;border:0;padding:0;color:#1f9347;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline}
+.np-toast-x{background:none;border:0;color:#6b7280;font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+.np-toast-x:hover{color:#111827}
+@keyframes np-toast-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.np-toast{animation:none}}
+@media print{#npToasts{display:none}}
+</style>
+<div id="npToasts" role="status" aria-live="polite"></div>
+<script data-np-live>
+(function () {
+  if (window.__npLive) return;
+  var live = window.__npLive = {};
+  var URL_ = '{{ np_poll_url|escapejs }}', PAGE_ = '{{ np_page_url|escapejs }}';
+  var BASE = 20000, HIDDEN = 60000, MAXWAIT = 300000, SHOW_MS = 9000, MAXTOASTS = 3;
+  var last = null, unread = 0, failures = 0, stopped = false, inflight = false, timer = null, polledAt = 0, asked = false;
+  function bell() { return document.querySelector('a.nb-wrap'); }
+  function setBadge(n) {                                     // the same badge the page already draws, kept up to date
+    var b = bell(); if (!b) return;
+    var badge = b.querySelector('.nb-badge');
+    if (n > 0) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'nb-badge'; b.appendChild(badge); }
+      badge.textContent = n > 99 ? '99+' : String(n);
+    } else if (badge) { badge.remove(); }
+    b.setAttribute('aria-label', 'Notifications' + (n ? ', ' + n + ' unread' : ''));
+  }
+  function applyTitle() {                                    // "(3) Payroll" in the browser tab, like Teams
+    var t = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    var want = (unread > 0 ? '(' + (unread > 99 ? '99+' : unread) + ') ' : '') + t;
+    if (document.title !== want) document.title = want;
+  }
+  var titleEl = document.querySelector('title');
+  if (titleEl && window.MutationObserver) new MutationObserver(applyTitle).observe(titleEl, {childList: true});      // a page swapped in without a reload keeps the count
+  function canDesktop() { return 'Notification' in window && Notification.permission === 'granted'; }
+  function desktop(n) {                                      // when the tab is in the background and the person allowed it
+    try {
+      var d = new Notification('New notification', {body: n.message, tag: 'np-n-' + n.id});
+      d.onclick = function () { window.focus(); window.location.href = n.url; d.close(); };
+    } catch (e) {}
+  }
+  function toast(n, summary) {
+    var box = document.getElementById('npToasts'); if (!box) return;
+    while (box.children.length >= MAXTOASTS) box.removeChild(box.firstChild);
+    var el = document.createElement('a'); el.className = 'np-toast'; el.href = n.url;
+    el.innerHTML = '<span class="np-toast-ic" aria-hidden="true">&#128276;</span><span class="np-toast-tx"><b></b><span class="np-toast-msg"></span></span><button type="button" class="np-toast-x" aria-label="Dismiss">&times;</button>';
+    el.querySelector('b').textContent = summary ? 'New notifications' : 'New notification';
+    el.querySelector('.np-toast-msg').textContent = n.message;                                // text only: a message can never inject HTML
+    if (!asked && 'Notification' in window && Notification.permission === 'default') {
+      asked = true;
+      var ask = document.createElement('button'); ask.type = 'button'; ask.className = 'np-toast-ask'; ask.textContent = 'Turn on desktop alerts';
+      ask.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); try { Notification.requestPermission(); } catch (x) {} });
+      el.querySelector('.np-toast-tx').appendChild(ask);
+    }
+    var gone = function () { if (el.parentNode) el.parentNode.removeChild(el); };
+    var t = setTimeout(gone, SHOW_MS);
+    el.addEventListener('mouseenter', function () { clearTimeout(t); });
+    el.addEventListener('mouseleave', function () { t = setTimeout(gone, 4000); });
+    el.querySelector('.np-toast-x').addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); clearTimeout(t); gone(); });
+    box.appendChild(el);
+  }
+  function show(d) {
+    var items = d.items.slice().reverse();                   // oldest first, so the newest ends up on top of the stack
+    var extra = Math.max((d.new_total || 0) - d.items.length, 0);
+    items.forEach(function (n) { if (document.hidden) { if (canDesktop()) desktop(n); } else { toast(n, false); } });      // in the background: the tab title count and, if allowed, a desktop alert
+    if (extra > 0 && !document.hidden) toast({id: 0, message: '+ ' + extra + ' more. Open Notifications to see them all.', url: PAGE_ || '/'}, true);
+  }
+  function schedule() {
+    clearTimeout(timer); if (stopped) return;
+    var wait = Math.min((document.hidden ? HIDDEN : BASE) * Math.pow(2, failures), MAXWAIT) + Math.random() * 1500;
+    timer = setTimeout(poll, wait);
+  }
+  function poll() {
+    if (stopped || inflight) return;
+    if (navigator.onLine === false) { schedule(); return; }
+    inflight = true; polledAt = Date.now();
+    fetch(URL_ + (last === null ? '' : '?after=' + last), {credentials: 'same-origin', cache: 'no-store', headers: {'Accept': 'application/json', 'X-Requested-With': 'np-live'}}).then(function (r) {
+      var type = r.headers.get('content-type') || '';
+      if (type.indexOf('json') === -1) { stopped = true; throw 'signed-out'; }       // sent to the login page: stop quietly
+      if (!r.ok) throw 'bad';
+      return r.json();
+    }).then(function (d) {
+      failures = 0; unread = d.unread; setBadge(unread); applyTitle();
+      if (last === null) { last = d.latest; }                                           // the first answer only sets the starting point: no popups for old notifications
+      else { if (d.latest > last) last = d.latest; if (d.items && d.items.length) show(d); }
+    }).catch(function (e) { if (e !== 'signed-out') failures = Math.min(failures + 1, 5); }).then(function () { inflight = false; schedule(); });
+  }
+  live.poll = poll;
+  live.state = function () { return {last: last, unread: unread, failures: failures, stopped: stopped}; };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - polledAt > 5000) poll(); });
+  window.addEventListener('online', function () { failures = 0; poll(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) poll(); });
+  setTimeout(poll, 1500);                                    // the first look, just after the page is up
+})();
+</script>{% endif %}{% endif %}

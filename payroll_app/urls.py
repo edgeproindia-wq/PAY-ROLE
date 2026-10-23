@@ -209,3 +209,6 @@ urlpatterns += _depinfo.urlpatterns
 
 from . import employee_reset as _empreset  # noqa: E402
 urlpatterns += _empreset.urlpatterns
+
+from . import live_notifications as _livenotify  # noqa: E402
+urlpatterns += _livenotify.urlpatterns
