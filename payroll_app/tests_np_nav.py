@@ -113,12 +113,25 @@ class FooterTests(TestCase):
         self.assertIn('Previous', h)
         self.assertIn('Next &raquo;', h)
 
-    def test_the_first_page_has_no_previous_and_next_goes_to_the_next_page(self):
+    def test_the_dashboard_has_no_previous_or_next_but_the_second_page_leads_back_to_it(self):
         h = self.get('dashboard')
-        self.assertIn('Page 1 of %d' % self.total, h)
-        self.assertIn('np-off', h)
-        self.assertNotIn('<a class="btn btn-outline" href', h.split('class="np-pager"')[1].split('</footer>')[0])     # Previous is not a link here
-        self.assertIn(f'href="{reverse("employee_master")}" data-np-go>Next', h)
+        footer = h.split('class="np-pager"')[1].split('</footer>')[0]
+        self.assertIn('hidden', footer.split('>')[0])                          # only a hidden marker: the sidebar still highlights the Dashboard
+        self.assertIn('data-main-href="%s"' % reverse('dashboard'), footer)
+        for piece in ('data-np-go', 'Next', 'Previous', 'Page 1 of'):
+            self.assertNotIn(piece, footer, piece)
+        h2 = self.get('employee_master')
+        self.assertIn(f'href="{reverse("dashboard")}" data-np-go>&laquo; Previous', h2)
+        self.assertIn(f'href="{reverse("hr_employee_logins")}" data-np-go>Next', h2)
+
+    def test_every_role_hides_the_bar_on_its_first_page_only(self):
+        for role in ('COMPANY_OWNER', 'EMPLOYEE', 'ADMIN'):
+            pages = flat_pages(role)
+            user = self.owner if role == 'COMPANY_OWNER' else make_user('dash' + role.lower(), role, self.co if role == 'EMPLOYEE' else None)
+            for idx in (0, 1):
+                request = RequestFactory().get(pages[idx]['url'])
+                request.user, request.resolver_match = user, SimpleNamespace(url_name=pages[idx]['name'])
+                self.assertEqual(np_nav(dict(request=request))['hide_bar'], idx == 0, (role, idx))
 
     def test_next_continues_into_the_next_section_and_previous_goes_back_across_it(self):
         last_att = names(OWNER, 'attendance')[-1]
@@ -135,7 +148,7 @@ class FooterTests(TestCase):
         self.assertNotIn('Next &raquo;', h)
 
     def test_walking_next_visits_every_page_once_in_order(self):
-        order = [p['name'] for p in self.pages]
+        order = [p['name'] for p in self.pages][1:]                             # the Dashboard has no Next; the walk starts at the second page
         seen, name = [], order[0]
         while True:
             seen.append(name)

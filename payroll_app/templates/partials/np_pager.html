@@ -1,10 +1,10 @@
-{% if on %}{% if show %}<footer class="np-pager" id="np-pager" data-group="{{ group }}" data-main-href="{{ main_href }}" aria-label="Page navigation">
-  <div class="np-meta"><b>{{ section }}</b> &middot; Page {{ position }} of {{ total }}</div>
+{% if on %}{% if show %}<footer class="np-pager" id="np-pager" data-group="{{ group }}" data-main-href="{{ main_href }}" aria-label="Page navigation"{% if hide_bar %} hidden{% endif %}>
+{% if not hide_bar %}  <div class="np-meta"><b>{{ section }}</b> &middot; Page {{ position }} of {{ total }}</div>
   <div class="np-btns">
     {% if prev %}<a class="btn btn-outline" href="{{ prev.url }}" data-np-go>&laquo; Previous</a>{% else %}<span class="btn btn-outline np-off" aria-disabled="true">&laquo; Previous</span>{% endif %}
     {% if is_last %}<a class="btn btn-primary" href="{{ finish_url }}" data-np-go>Finish</a>{% else %}<a class="btn btn-primary" href="{{ next.url }}" data-np-go>Next &raquo;</a>{% endif %}
   </div>
-</footer>{% endif %}
+{% endif %}</footer>{% endif %}
 <script data-np>
 (function () {
   if (window.__npNav) { window.__npNav.sync(); return; }

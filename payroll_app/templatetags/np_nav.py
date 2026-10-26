@@ -119,4 +119,5 @@ def np_nav(context):
     page, last = pages[i], i == len(pages) - 1
     return {'on': True, 'show': True, 'section': page['section'], 'group': page['group'], 'main_href': page['main_href'],
             'position': i + 1, 'total': len(pages), 'prev': pages[i - 1] if i > 0 else None, 'next': pages[i + 1] if not last else None,
-            'is_last': last, 'finish_url': pages[0]['url']}
+            'is_last': last, 'finish_url': pages[0]['url'],
+            'hide_bar': i == 0}                                     # the Dashboard has no Previous / Next: the bar is only a hidden marker so the sidebar still highlights it
