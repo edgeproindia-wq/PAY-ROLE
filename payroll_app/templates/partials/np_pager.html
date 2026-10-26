@@ -2,7 +2,7 @@
 {% if not hide_bar %}  <div class="np-meta"><b>{{ section }}</b> &middot; Page {{ position }} of {{ total }}</div>
   <div class="np-btns">
     {% if prev %}<a class="btn btn-outline" href="{{ prev.url }}" data-np-go>&laquo; Previous</a>{% else %}<span class="btn btn-outline np-off" aria-disabled="true">&laquo; Previous</span>{% endif %}
-    {% if is_last %}<a class="btn btn-primary" href="{{ finish_url }}" data-np-go>Finish</a>{% else %}<a class="btn btn-primary" href="{{ next.url }}" data-np-go>Next &raquo;</a>{% endif %}
+    {% if at_end %}<span class="btn btn-primary np-off" aria-disabled="true" title="This is the last page of {{ section }}">Next &raquo;</span>{% else %}<a class="btn btn-primary" href="{{ next.url }}" data-np-go>Next &raquo;</a>{% endif %}
   </div>
 {% endif %}</footer>{% endif %}
 <script data-np>

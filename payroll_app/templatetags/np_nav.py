@@ -117,7 +117,8 @@ def np_nav(context):
     if i is None:
         return {'on': True, 'show': False}                    # not a page of the menu (and not under one): no footer, the sidebar script still runs
     page, last = pages[i], i == len(pages) - 1
+    at_end = last or pages[i + 1]['key'] != page['key']        # Next stays inside the section: on its last page Next is switched off
     return {'on': True, 'show': True, 'section': page['section'], 'group': page['group'], 'main_href': page['main_href'],
             'position': i + 1, 'total': len(pages), 'prev': pages[i - 1] if i > 0 else None, 'next': pages[i + 1] if not last else None,
-            'is_last': last, 'finish_url': pages[0]['url'],
+            'is_last': last, 'at_end': at_end, 'finish_url': pages[0]['url'],
             'hide_bar': i == 0}                                     # the Dashboard has no Previous / Next: the bar is only a hidden marker so the sidebar still highlights it

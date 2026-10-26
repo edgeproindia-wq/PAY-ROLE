@@ -133,31 +133,41 @@ class FooterTests(TestCase):
                 request.user, request.resolver_match = user, SimpleNamespace(url_name=pages[idx]['name'])
                 self.assertEqual(np_nav(dict(request=request))['hide_bar'], idx == 0, (role, idx))
 
-    def test_next_continues_into_the_next_section_and_previous_goes_back_across_it(self):
+    def test_next_stays_inside_its_section_and_previous_still_goes_back_across_it(self):
         last_att = names(OWNER, 'attendance')[-1]
-        self.assertIn(f'href="{reverse("leave_management")}" data-np-go>Next', self.get(last_att))
+        footer = self.get(last_att).split('class="np-pager"')[1].split('</footer>')[0]
+        self.assertNotIn(reverse('leave_management'), footer)
+        self.assertNotIn('Finish', footer)
+        self.assertRegex(footer, r'<span class="btn btn-primary np-off"[^>]*>Next &raquo;</span>')
         self.assertIn(f'href="{reverse(last_att)}" data-np-go>&laquo; Previous', self.get('leave_management'))
         first_pay = names(OWNER, 'payroll')[0]
         self.assertIn(f'href="{reverse("leave_management")}" data-np-go>&laquo; Previous', self.get(first_pay))
+        att = names(OWNER, 'attendance')
+        self.assertIn(f'href="{reverse(att[1])}" data-np-go>Next', self.get(att[0]))
 
-    def test_the_last_page_says_finish_and_goes_back_to_the_start(self):
-        last = self.pages[-1]['name']
-        h = self.get(last)
-        self.assertIn('Page %d of %d' % (self.total, self.total), h)
-        self.assertIn(f'href="{reverse("dashboard")}" data-np-go>Finish', h)
-        self.assertNotIn('Next &raquo;', h)
+    def test_every_section_of_every_role_ends_with_a_switched_off_next(self):
+        for role in ('COMPANY_OWNER', 'EMPLOYEE', 'ADMIN'):
+            pages = flat_pages(role)
+            user = self.owner if role == 'COMPANY_OWNER' else make_user('ends' + role.lower(), role, self.co if role == 'EMPLOYEE' else None)
+            for idx, page in enumerate(pages):
+                request = RequestFactory().get(page['url'])
+                request.user, request.resolver_match = user, SimpleNamespace(url_name=page['name'])
+                expected = idx == len(pages) - 1 or pages[idx + 1]['key'] != page['key']
+                self.assertEqual(np_nav(dict(request=request))['at_end'], expected, (role, page['name']))
 
-    def test_walking_next_visits_every_page_once_in_order(self):
-        order = [p['name'] for p in self.pages][1:]                             # the Dashboard has no Next; the walk starts at the second page
-        seen, name = [], order[0]
-        while True:
-            seen.append(name)
-            h = self.get(name)
-            m = re.search(r'href="([^"]+)" data-np-go>(Next|Finish)', h)
-            if m.group(2) == 'Finish':
-                break
-            name = next(p['name'] for p in self.pages if p['url'] == m.group(1))
-        self.assertEqual(seen, order)
+    def test_walking_next_inside_each_section_visits_its_pages_once_and_stops_at_the_end(self):
+        for key in sorted({p['key'] for p in self.pages}):
+            section = [p for p in self.pages if p['key'] == key]
+            if section[0] is self.pages[0]:
+                continue                                                        # the Dashboard has no bar
+            seen, name = [], section[0]['name']
+            while True:
+                seen.append(name)
+                m = re.search(r'href="([^"]+)" data-np-go>Next', self.get(name))
+                if not m:
+                    break
+                name = next(p['name'] for p in self.pages if p['url'] == m.group(1))
+            self.assertEqual(seen, [p['name'] for p in section], key)
 
     def test_the_footer_belongs_to_logged_in_pages_only(self):
         self.client.logout()
