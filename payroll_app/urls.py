@@ -212,3 +212,7 @@ urlpatterns += _empreset.urlpatterns
 
 from . import live_notifications as _livenotify  # noqa: E402
 urlpatterns += _livenotify.urlpatterns
+
+# ---- Overview page of each numbered section of the payroll structure ----
+from . import structure_pages as _sp  # noqa: E402
+urlpatterns += _sp.urlpatterns

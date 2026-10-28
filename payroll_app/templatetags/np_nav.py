@@ -8,33 +8,14 @@ A test checks this list against the sidebar in base.html, so a page can never be
 from django import template
 from django.urls import NoReverseMatch, reverse
 
+from ..payroll_structure import owner_sections
 from ..permissions import effective_role
 
 register = template.Library()
 
 # (key, label shown in the sidebar and the footer, sidebar data-group or None for a plain link, [(url name, label), ...])
 SECTIONS = {
-    'COMPANY_OWNER': [
-        ('dashboard', 'Dashboard', None, [('dashboard', 'Dashboard')]),
-        ('people', 'Employee Management', 'people', [('employee_master', 'Employee Master'), ('hr_employee_logins', 'Employee Logins'),
-                                                      ('user_roles_permissions', 'User Roles'), ('ess', 'ESS')]),
-        ('attendance', 'Attendance', 'attendance', [('attendance', 'Attendance'), ('attendance_bulk', 'Bulk Attendance'),
-                                                    ('working_calendar', 'Working Calendar & Holidays'), ('hr_shifts', 'Shifts'),
-                                                    ('shift_assign', 'Assign Shifts'), ('hr_work_hours', 'Working Hours'), ('hr_day_hours', 'Daily Working Hours')]),
-        ('leave', 'Leave Management', None, [('leave_management', 'Leave Management')]),
-        ('payroll', 'Salary & Payroll', 'payroll', [('pay_cycles', 'Pay Cycle'), ('salary_structure', 'Salary Structure'), ('salary_history', 'Salary History'),
-                                                    ('hr_pay_components', 'Other Pay Items'), ('payroll_processing', 'Payroll Processing'),
-                                                    ('payroll_preview', 'Payroll Preview'), ('arrears', 'Arrears'), ('full_final_settlement', 'Full & Final'),
-                                                    ('payslips', 'Payslips'), ('bank_transfer', 'Bank Transfer'),
-                                                    ('reimbursement', 'Reimbursements'), ('hr_loans', 'Loans'), ('hr_insurance', 'Insurance')]),
-        ('compliance', 'Tax & Compliance', 'compliance', [('statutory_compliance', 'Statutory Compliance'), ('hr_professional_tax', 'Professional Tax'),
-                                                          ('income_tax', 'Income Tax'), ('investment_declaration', 'Investment Declaration'),
-                                                          ('hr_declarations', 'Investment Proofs'), ('hr_form16', 'Form 16'),
-                                                          ('hr_documents', 'Tax Documents'), ('compliance_reports', 'Compliance Reports')]),
-        ('reports', 'Reports & Analytics', None, [('reports_analytics', 'Reports & Analytics')]),
-        ('engage', 'Communication', 'engage', [('grievances', 'Grievances'), ('announcements', 'Announcements'), ('notifications', 'Notifications')]),
-        ('settings', 'Settings', 'settings', [('settings', 'Company Settings'), ('client_complaints', 'Raise Complaint'), ('client_requests', 'Raise Request')]),
-    ],
+    'COMPANY_OWNER': owner_sections(),          # the 20 numbered sections of payroll_structure.py
     'EMPLOYEE': [
         ('dashboard', 'Dashboard', None, [('employee_home', 'Dashboard'), ('dashboard', 'Dashboard')]),   # whichever of the two this project has
         ('mypay', 'My Pay', 'mypay', [('payslips', 'Payslips'), ('investment_declaration', 'Investment Declaration'), ('reimbursement', 'Reimbursements')]),

@@ -13,8 +13,18 @@ from .tests import make_company, make_user
 
 OWNER = 'COMPANY_OWNER'
 ADDED_LATER = {'shift_assign', 'hr_day_hours'}          # pages from later packs: in the order when they exist, skipped when they do not
-MAIN_ITEMS = ['Dashboard', 'Employee Management', 'Attendance', 'Leave Management', 'Salary & Payroll', 'Tax & Compliance',
-              'Reports & Analytics', 'Communication', 'Settings']
+MAIN_ITEMS = ['1. Dashboard', '2. Organisation & Payroll Configuration', '3. Employee Payroll Master', '4. Salary Component Master',
+              '5. Salary Structure & CTC Management', '6. Attendance & Payable Days', '7. Monthly Payroll Processing', '8. Statutory Compliance',
+              '9. Arrears & Adjustments', '10. Loan & Advance Management', '11. Payslip Management', '12. Bank Payment Management',
+              '13. Full & Final Settlement', '14. Accounting Integration', '15. Payroll Reports & Analytics', '16. Approval & Workflow Management',
+              '17. User Management & Security', '18. Notifications & Automation', '19. System Administration', '20. HRMS & External System Integration']
+# every page the owner's sidebar had before the 20-section structure: none of them may become unreachable
+OLD_OWNER_PAGES = ['dashboard', 'employee_master', 'hr_employee_logins', 'user_roles_permissions', 'ess', 'attendance', 'attendance_bulk',
+                   'working_calendar', 'hr_shifts', 'hr_work_hours', 'leave_management', 'pay_cycles', 'salary_structure', 'salary_history',
+                   'hr_pay_components', 'payroll_processing', 'payroll_preview', 'arrears', 'full_final_settlement', 'payslips', 'bank_transfer',
+                   'reimbursement', 'hr_loans', 'hr_insurance', 'statutory_compliance', 'hr_professional_tax', 'income_tax',
+                   'investment_declaration', 'hr_declarations', 'hr_form16', 'hr_documents', 'compliance_reports', 'reports_analytics',
+                   'grievances', 'announcements', 'notifications', 'settings', 'client_complaints', 'client_requests']
 
 
 def base_source():
@@ -35,29 +45,32 @@ def names(role, section_key):
 
 
 class OrderTests(TestCase):
-    def test_the_main_items_are_exactly_the_nine_asked_for_in_that_order(self):
+    def test_the_main_items_are_the_twenty_numbered_sections_in_that_order(self):
         self.assertEqual([s[1] for s in SECTIONS[OWNER]], MAIN_ITEMS)
-        self.assertIn('Tax &amp; Compliance', base_source())
+        self.assertIn('2. Organisation &amp; Payroll Configuration', base_source())
+        self.assertIn('15. Payroll Reports &amp; Analytics', base_source())
 
-    def test_every_group_of_the_old_sidebar_keeps_its_pages_in_the_same_order(self):
+    def test_every_sidebar_group_lists_exactly_the_pages_of_its_section_in_order(self):
         groups = sidebar_groups()
-        for key in ('people', 'attendance', 'compliance', 'engage', 'settings'):
-            self.assertEqual([n for n in names(OWNER, key) if n not in ADDED_LATER], groups[key], key)
-        self.assertEqual(names(OWNER, 'payroll'), groups['payroll'] + ['reimbursement'] + groups['loans'])   # pages that lost their own menu item move here
+        owner_groups = [s[2] for s in SECTIONS[OWNER] if s[2]]
+        self.assertEqual(len(owner_groups), 19)
+        for key in owner_groups:
+            self.assertEqual(names(OWNER, key), [n for n in groups[key] if n not in ADDED_LATER or n in names(OWNER, key)], key)
 
     def test_no_page_of_the_old_sidebar_can_become_unreachable(self):
-        everything = set(names(OWNER, 'dashboard')) | {p['name'] for p in flat_pages(OWNER)}
+        everything = {p['name'] for p in flat_pages(OWNER)}
+        for name in OLD_OWNER_PAGES:
+            self.assertIn(name, everything, f'{name} was in the old sidebar but is not in the new page order')
         for key, pages in sidebar_groups().items():
             if key in ('mypay', 'selfservice', 'platform'):
                 continue                                                          # those belong to the employee and admin menus
             for name in pages:
-                self.assertIn(name, everything, f'{name} is in the sidebar group "{key}" but not in the page order')
-        for name in ('dashboard', 'leave_management', 'reimbursement', 'reports_analytics'):
-            self.assertIn(name, everything, name)
+                if name not in ADDED_LATER:
+                    self.assertIn(name, everything, f'{name} is in the sidebar group "{key}" but not in the page order')
 
     def test_a_main_item_opens_the_first_page_of_its_section(self):
         groups = sidebar_groups()
-        for key in ('people', 'attendance', 'payroll', 'compliance', 'engage', 'settings'):
+        for key in [s[2] for s in SECTIONS[OWNER] if s[2]]:
             self.assertEqual(names(OWNER, key)[0], groups[key][0], key)           # the sidebar button goes to its first sub-link: that is the first page
 
     def test_pages_are_listed_once_and_all_are_real_addresses(self):
@@ -108,7 +121,7 @@ class FooterTests(TestCase):
     def test_the_footer_shows_the_section_and_page_x_of_n(self):
         i = [p['name'] for p in self.pages].index('attendance_bulk')
         h = self.get('attendance_bulk')
-        self.assertIn('<b>Attendance</b> &middot; Page %d of %d' % (i + 1, self.total), h)
+        self.assertIn('<b>6. Attendance &amp; Payable Days</b> &middot; Page %d of %d' % (i + 1, self.total), h)
         self.assertLess(h.index('class="np-meta"'), h.index('data-np-go'))              # the text is above the buttons
         self.assertIn('Previous', h)
         self.assertIn('Next &raquo;', h)
@@ -120,9 +133,10 @@ class FooterTests(TestCase):
         self.assertIn('data-main-href="%s"' % reverse('dashboard'), footer)
         for piece in ('data-np-go', 'Next', 'Previous', 'Page 1 of'):
             self.assertNotIn(piece, footer, piece)
-        h2 = self.get('employee_master')
+        second, third = self.pages[1]['name'], self.pages[2]['name']
+        h2 = self.get(second)
         self.assertIn(f'href="{reverse("dashboard")}" data-np-go>&laquo; Previous', h2)
-        self.assertIn(f'href="{reverse("hr_employee_logins")}" data-np-go>Next', h2)
+        self.assertIn(f'href="{reverse(third)}" data-np-go>Next', h2)
 
     def test_every_role_hides_the_bar_on_its_first_page_only(self):
         for role in ('COMPANY_OWNER', 'EMPLOYEE', 'ADMIN'):
@@ -134,15 +148,12 @@ class FooterTests(TestCase):
                 self.assertEqual(np_nav(dict(request=request))['hide_bar'], idx == 0, (role, idx))
 
     def test_next_stays_inside_its_section_and_previous_still_goes_back_across_it(self):
-        last_att = names(OWNER, 'attendance')[-1]
-        footer = self.get(last_att).split('class="np-pager"')[1].split('</footer>')[0]
-        self.assertNotIn(reverse('leave_management'), footer)
+        att, pay = names(OWNER, 'attendance-payable-days'), names(OWNER, 'monthly-payroll-processing')
+        footer = self.get(att[-1]).split('class="np-pager"')[1].split('</footer>')[0]
+        self.assertNotIn(reverse(pay[0]), footer)
         self.assertNotIn('Finish', footer)
         self.assertRegex(footer, r'<span class="btn btn-primary np-off"[^>]*>Next &raquo;</span>')
-        self.assertIn(f'href="{reverse(last_att)}" data-np-go>&laquo; Previous', self.get('leave_management'))
-        first_pay = names(OWNER, 'payroll')[0]
-        self.assertIn(f'href="{reverse("leave_management")}" data-np-go>&laquo; Previous', self.get(first_pay))
-        att = names(OWNER, 'attendance')
+        self.assertIn(f'href="{reverse(att[-1])}" data-np-go>&laquo; Previous', self.get(pay[0]))
         self.assertIn(f'href="{reverse(att[1])}" data-np-go>Next', self.get(att[0]))
 
     def test_every_section_of_every_role_ends_with_a_switched_off_next(self):
