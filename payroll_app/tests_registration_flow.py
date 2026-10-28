@@ -23,7 +23,7 @@ def _logged_in(client):
 
 
 @override_settings(EMAIL_BACKEND=EMAIL_BACKEND, DEMO_NOTIFY_EMAIL='boss@example.com',
-                   REQUIRE_EMAIL_VERIFICATION=False)
+                   REQUIRE_EMAIL_VERIFICATION=False, REQUIRE_ADMIN_APPROVAL=True)
 class RegistrationApprovalFlowTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser('flowadmin', 'flowadmin@example.com', ADMIN_PW)
@@ -156,7 +156,7 @@ class RegistrationApprovalFlowTests(TestCase):
 
 
 @override_settings(EMAIL_BACKEND=EMAIL_BACKEND, DEMO_NOTIFY_EMAIL='boss@example.com',
-                   REQUIRE_EMAIL_VERIFICATION=False)
+                   REQUIRE_EMAIL_VERIFICATION=False, REQUIRE_ADMIN_APPROVAL=True)
 class RejectionEmailTests(TestCase):
     def test_rejection_emails_the_registrant_with_reason(self):
         User.objects.create_superuser('rejadmin', 'rejadmin@example.com', ADMIN_PW)

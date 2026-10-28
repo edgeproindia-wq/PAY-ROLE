@@ -204,6 +204,9 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@edgepro-payr
 # Company sign-up email OTP. OFF by default: registration is one step and no
 # email is needed. Set REQUIRE_EMAIL_VERIFICATION=true once real email works.
 REQUIRE_EMAIL_VERIFICATION = env_bool('REQUIRE_EMAIL_VERIFICATION', default=False)
+# Company self-registration. False (default): a new company is approved at once and its owner can sign in right away.
+# True: a platform admin must approve each new company first (the previous behaviour).
+REQUIRE_ADMIN_APPROVAL = env_bool('REQUIRE_ADMIN_APPROVAL', default=False)
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))  # never hang a request on a dead SMTP server
 
 # Demo-request alert recipients (not secrets; override per environment).

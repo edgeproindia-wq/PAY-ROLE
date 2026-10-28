@@ -1,6 +1,6 @@
 import datetime
 
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from .models import (
@@ -30,6 +30,7 @@ def make_employee(company, code='EPRO001', email='e1@example.com'):
     )
 
 
+@override_settings(REQUIRE_ADMIN_APPROVAL=True)          # these tests describe the admin-approval rule
 class RegistrationAndDemoWorkflowTests(TestCase):
     def test_demo_request_public_submit(self):
         resp = self.client.post(reverse('request_demo'), {

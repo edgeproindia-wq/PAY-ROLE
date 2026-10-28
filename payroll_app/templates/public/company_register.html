@@ -2,7 +2,7 @@
 {% block title %}Register your Company{% endblock %}
 {% block nav_register %}on{% endblock %}
 {% block hero_title %}Start running <span class="hl">Smarter Payroll</span> for your company{% endblock %}
-{% block hero_text %}Verify your email, add your company details, and once our team approves it you can add employees and run your first payroll.{% endblock %}
+{% block hero_text %}Add your company details, create your login and start adding employees and running your first payroll.{% endblock %}
 {% block content %}
 <style>
   .steps{display:flex;gap:8px;margin-top:22px}
@@ -17,7 +17,7 @@
 </style>
 
 <h2>Register Your Company</h2>
-<p class="sub">{% if simple %}Fill in your details. Your account is activated after our team approves the registration.{% elif step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Your account is activated after our team approves the registration.{% endif %}</p>
+<p class="sub">{% if simple %}Fill in your details to create your company account.{% elif step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Add your company details and choose a login.{% endif %}</p>
 
 {% if not simple %}<div class="steps">
   <div class="{% if step == 1 %}on{% else %}done{% endif %}"><b>{% if step > 1 %}&#10003;{% else %}1{% endif %}</b>Email</div>

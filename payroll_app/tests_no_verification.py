@@ -17,7 +17,7 @@ def payload(**over):
     return data
 
 
-@override_settings(REQUIRE_EMAIL_VERIFICATION=False)
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, REQUIRE_ADMIN_APPROVAL=True)
 class RegistrationWithoutEmailVerificationTests(TestCase):
     def test_form_is_one_step_without_otp(self):
         resp = self.client.get(reverse('company_register'))

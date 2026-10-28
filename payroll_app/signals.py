@@ -34,7 +34,10 @@ def on_demo_request_created(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Company)
 def on_company_registered(sender, instance, created, **kwargs):
     if created and not kwargs.get('raw'):
-        _notify_admins(f"New company registration pending approval: {instance.name}", link='/admin-panel/company-approvals/')
+        if instance.status == 'PENDING_APPROVAL':
+            _notify_admins(f"New company registration pending approval: {instance.name}", link='/admin-panel/company-approvals/')
+        else:
+            _notify_admins(f"New company registered: {instance.name}", link='/admin-panel/companies/')
 
 
 @receiver(post_save, sender=LeaveRequest)

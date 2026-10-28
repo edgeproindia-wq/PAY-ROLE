@@ -100,6 +100,19 @@ REG_PENDING_MESSAGE = (
 )
 
 
+REG_APPROVED_MESSAGE = 'Registration successful. You can sign in now.'
+
+
+def _new_company_state():
+    """(company status, owner is_active, success message) for a self-registered company.
+    REQUIRE_ADMIN_APPROVAL=True keeps the old rule: a platform admin must approve the company first.
+    The default (False) approves it at once so the owner can sign in right away."""
+    from django.conf import settings
+    if getattr(settings, 'REQUIRE_ADMIN_APPROVAL', False):
+        return 'PENDING_APPROVAL', False, REG_PENDING_MESSAGE
+    return 'APPROVED', True, REG_APPROVED_MESSAGE
+
+
 def _email_admins_new_registration(request, company, owner):
     """Tell the platform admin(s) by email that a company is waiting for approval.
 
@@ -107,6 +120,9 @@ def _email_admins_new_registration(request, company, owner):
     and never stops or undoes the registration (the in-app bell notification is
     created separately by the Company post_save signal)."""
     from django.conf import settings
+
+    if company.status != 'PENDING_APPROVAL':
+        return                      # nothing to approve: no "waiting for approval" email
 
     def _send():
         recipients = []
@@ -228,7 +244,7 @@ def company_register(request):
                     contact_email=data['contact_email'],
                     contact_phone=data['contact_phone'],
                     address=data['address'],
-                    status='PENDING_APPROVAL',
+                    status=_new_company_state()[0],
                 )
                 name_parts = data['owner_full_name'].strip().split(' ', 1)
                 owner = User.objects.create_user(
@@ -239,14 +255,14 @@ def company_register(request):
                     last_name=name_parts[1] if len(name_parts) > 1 else '',
                     role='COMPANY_OWNER',
                     company=company,
-                    is_active=False,               # cannot log in until the company is approved
+                    is_active=_new_company_state()[1],   # False only while admin approval is required
                     email_verified=bool(verified),  # already verified in step 2 of the new flow
                 )
                 log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
             _email_admins_new_registration(request, company, owner)
             if verified:
                 session.pop(REG_VERIFIED_KEY, None)
-                messages.success(request, REG_PENDING_MESSAGE)
+                messages.success(request, _new_company_state()[2])
                 return redirect('login')
             _issue_registration_otp(owner)
             session['otp_user_id'] = owner.pk
@@ -281,7 +297,7 @@ def _company_register_single_step(request):
                 contact_email=data['contact_email'],
                 contact_phone=data['contact_phone'],
                 address=data['address'],
-                status='PENDING_APPROVAL',
+                status=_new_company_state()[0],
             )
             name_parts = data['owner_full_name'].strip().split(' ', 1)
             owner = User.objects.create_user(
@@ -292,12 +308,12 @@ def _company_register_single_step(request):
                 last_name=name_parts[1] if len(name_parts) > 1 else '',
                 role='COMPANY_OWNER',
                 company=company,
-                is_active=False,      # cannot log in until the company is approved
+                is_active=_new_company_state()[1],   # False only while admin approval is required
                 email_verified=True,  # verification switched off, nothing to wait for
             )
             log_action(request, 'REGISTER', company, details=f'Company self-registered, owner={owner.username}')
         _email_admins_new_registration(request, company, owner)
-        messages.success(request, REG_PENDING_MESSAGE)
+        messages.success(request, _new_company_state()[2])
         return redirect('login')
     return render(request, 'public/company_register.html', {'step': 3, 'form': form, 'simple': True})
 
@@ -358,8 +374,11 @@ def verify_email(request):
             user.save(update_fields=['email_verified'])
             request.session.pop('otp_user_id', None)
             log_action(request, 'UPDATE', user, details='Email verified via OTP', company=user.company)
-            messages.success(request, 'Email verified. Your registration is now pending admin approval — '
-                                      'you will be able to sign in once it is approved.')
+            if user.company is not None and user.company.status == 'PENDING_APPROVAL':
+                messages.success(request, 'Email verified. Your registration is now pending admin approval — '
+                                          'you will be able to sign in once it is approved.')
+            else:
+                messages.success(request, 'Email verified. You can sign in now.')
             return redirect('login')
     return render(request, 'auth/verify_email.html', {'form': form, 'email': user.email})
 

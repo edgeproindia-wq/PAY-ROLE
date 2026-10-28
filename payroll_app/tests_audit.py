@@ -58,7 +58,7 @@ def register_payload(**over):
 # Authentication
 # ---------------------------------------------------------------------------
 
-@override_settings(REQUIRE_EMAIL_VERIFICATION=True)
+@override_settings(REQUIRE_EMAIL_VERIFICATION=True, REQUIRE_ADMIN_APPROVAL=True)    # describes the admin-approval rule
 class RegistrationOtpApprovalLoginTests(TestCase):
     def _otp_from_mail(self):
         body = mail.outbox[-1].body
