@@ -73,13 +73,15 @@ class GrievanceUpdate(models.Model):
 
 # ------------------------------------------------------------------ announcements
 class Announcement(models.Model):
-    AUDIENCE_CHOICES = [('ALL', 'Everyone in the company'), ('EMPLOYEES', 'Employees only')]
+    AUDIENCE_CHOICES = [('ALL', 'Everyone in the company'), ('OWNERS', 'Company owners only'), ('EMPLOYEES', 'Employees only')]
     STATUS_CHOICES = [('PUBLISHED', 'Published'), ('ARCHIVED', 'Archived')]
+    PRIORITY_CHOICES = [('LOW', 'Low'), ('NORMAL', 'Normal'), ('HIGH', 'High'), ('URGENT', 'Urgent')]
 
     company = models.ForeignKey('payroll_app.Company', on_delete=models.CASCADE, related_name='announcements')
     title = models.CharField(max_length=150)
     message = models.TextField(max_length=3000)
     audience = models.CharField(max_length=10, choices=AUDIENCE_CHOICES, default='ALL')
+    priority = models.CharField(max_length=7, choices=PRIORITY_CHOICES, default='NORMAL')
     publish_date = models.DateField(default=timezone.localdate)
     expiry_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PUBLISHED')
@@ -95,6 +97,30 @@ class Announcement(models.Model):
         today = timezone.localdate()
         return cls.objects.filter(company=company, status='PUBLISHED', publish_date__lte=today).filter(
             models.Q(expiry_date__isnull=True) | models.Q(expiry_date__gte=today))
+
+    @classmethod
+    def visible_to(cls, user):
+        """Live announcements this user may see: their own company only, matching their role,
+        most important first (urgent before high before normal before low, then newest)."""
+        role = 'ADMIN' if getattr(user, 'is_superuser', False) else getattr(user, 'role', None)
+        if role not in ('COMPANY_OWNER', 'EMPLOYEE') or not getattr(user, 'company_id', None):
+            return cls.objects.none()
+        audiences = ['ALL', 'OWNERS'] if role == 'COMPANY_OWNER' else ['ALL', 'EMPLOYEES']
+        rank = models.Case(models.When(priority='URGENT', then=4), models.When(priority='HIGH', then=3),
+                           models.When(priority='LOW', then=1), default=2, output_field=models.IntegerField())
+        return (cls.active_for(user.company).filter(audience__in=audiences)
+                .annotate(rank=rank).order_by('-rank', '-publish_date', '-created_at'))
+
+    @property
+    def schedule_state(self):
+        today = timezone.localdate()
+        if self.status == 'ARCHIVED':
+            return 'Archived'
+        if self.publish_date > today:
+            return 'Scheduled'
+        if self.expiry_date and self.expiry_date < today:
+            return 'Expired'
+        return 'Live'
 
 
 # ------------------------------------------------------------------ demo request history

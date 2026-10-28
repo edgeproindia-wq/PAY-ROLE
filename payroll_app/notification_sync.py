@@ -124,8 +124,12 @@ if Grievance is not None:
     @_safe
     def _announcement_after(sender, instance, created, **kw):
         if created and instance.status == 'PUBLISHED':
-            ids = User.objects.filter(role='EMPLOYEE', company_id=instance.company_id, is_active=True).values_list('id', flat=True)
-            _send(list(ids), f'New announcement: {instance.title}', _link('announcements', fallback='/announcements/'))
+            ids = []
+            if instance.audience in ('ALL', 'EMPLOYEES'):
+                ids += User.objects.filter(role='EMPLOYEE', company_id=instance.company_id, is_active=True).values_list('id', flat=True)
+            if instance.audience in ('ALL', 'OWNERS'):
+                ids += [u for u in _owners(instance.company_id) if u != instance.created_by_id]
+            _send(ids, f'New announcement: {instance.title}', _link('announcements', fallback='/announcements/'))
 
 
 # ------------------------------------------------------------------ client complaints and requests -> admins, answers -> owner

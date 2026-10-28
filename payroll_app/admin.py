@@ -117,3 +117,14 @@ class EmailOTPAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+from .models_features import Announcement  # noqa: E402
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'company', 'audience', 'priority', 'publish_date', 'expiry_date', 'status')
+    list_filter = ('company', 'audience', 'priority', 'status')
+    search_fields = ('title', 'message')
+    date_hierarchy = 'publish_date'

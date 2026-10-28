@@ -178,10 +178,17 @@ def grievance_attachment(request, pk):
 class AnnouncementForm(forms.ModelForm):
     class Meta:
         model = Announcement
-        fields = ['title', 'message', 'audience', 'publish_date', 'expiry_date']
+        fields = ['title', 'message', 'audience', 'priority', 'publish_date', 'expiry_date']
         widgets = {'message': forms.Textarea(attrs={'rows': 4}),
                    'publish_date': forms.DateInput(attrs={'type': 'date'}),
                    'expiry_date': forms.DateInput(attrs={'type': 'date'})}
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.fields['priority'].required = False            # a form posted without it (an older page) means Normal
+
+    def clean_priority(self):
+        return self.cleaned_data.get('priority') or 'NORMAL'
 
     def clean(self):
         c = super().clean()
@@ -194,7 +201,7 @@ class AnnouncementForm(forms.ModelForm):
 def announcements(request):
     company = request.user.company
     if effective_role(request.user) == 'EMPLOYEE':
-        items = list(Announcement.active_for(company))
+        items = list(Announcement.visible_to(request.user))
         from .models_phase5 import AnnouncementRead
         for item in items:                      # opening the page marks them as read
             AnnouncementRead.objects.get_or_create(announcement=item, user=request.user)
@@ -209,12 +216,7 @@ def announcements(request):
     if request.method == 'POST' and form.is_valid():
         a = form.save(commit=False)
         a.company, a.created_by = company, request.user
-        a.save()
-        from .models import Employee
-        recipients = [e.user for e in Employee.objects.filter(company=company, user__isnull=False).select_related('user')]
-        if a.audience == 'ALL':
-            recipients += list(_owners(company).exclude(pk=request.user.pk))
-        _notify(recipients, f'Announcement: {a.title}', '/announcements/')
+        a.save()                                # the post-save signal notifies exactly the audience chosen
         log_action(request, 'CREATE', a, details='Announcement published')
         messages.success(request, 'Announcement published.')
         return redirect('announcements')
