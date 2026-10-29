@@ -488,12 +488,15 @@
   </div>
 <script data-submit-guard>
   // Prevent double submission: a form can be sent only once per click (re-enabled after 8 s).
-  document.addEventListener('submit', function (e) {
+  document.addEventListener('submit', function (e) {          // capture phase: refuse a second submit while the first is on its way
+    if (e.target.dataset.sent) { e.preventDefault(); }
+  }, true);
+  document.addEventListener('submit', function (e) {          // bubble phase, after any onsubmit confirm(): count only a submit that went ahead
     var f = e.target;
-    if (f.dataset.sent) { e.preventDefault(); return; }
+    if (e.defaultPrevented) { return; }
     f.dataset.sent = '1';
     setTimeout(function () { delete f.dataset.sent; }, 8000);
-  }, true);
+  });
 </script>
 <script>
   // App shell: page title from <title>, active menu item, collapse (desktop) / slide-in (mobile).

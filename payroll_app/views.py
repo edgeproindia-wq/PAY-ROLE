@@ -1450,7 +1450,14 @@ def payroll_combined(request):
                         run.status = 'DRAFT'
                         run.save(update_fields=['status'])
                     log_action(request, 'PROCESS_PAYROLL', run, details=f'Payroll run reprocessed ({created} lines)')
-                    messages.success(request, f"'{run.month}' reprocessed successfully.")
+                    messages.success(request, f"'{run.month}' reprocessed successfully with {created} employee(s).")
+                    if skipped:
+                        messages.warning(request, "Left out (no salary structure for this month): " +
+                                         ', '.join(e.employee_code for e in skipped[:15]))
+                    if run.company and period:
+                        later = Employee.objects.filter(company=run.company, employment_status='ACTIVE', date_of_joining__gt=period[1]).count()
+                        if later:
+                            messages.info(request, f"{later} active employee(s) join after {run.month} and are not in this run.")
             else:
                 messages.error(request, 'Unknown action.')
         return redirect('payroll_combined')
