@@ -319,6 +319,10 @@ class CompanySettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _style(self.fields)
+        ceiling = self.fields.get('pf_wage_ceiling')
+        if ceiling is not None:                 # PF is capped at the statutory ceiling by law, not by a company setting
+            ceiling.disabled = True
+            ceiling.help_text = 'Set by law, not editable: Rs 15,000 until 16 Sep 2026, Rs 25,000 from 17 Sep 2026. Payroll caps PF at this ceiling.'
 
 
 class InvestmentDeclarationForm(forms.ModelForm):

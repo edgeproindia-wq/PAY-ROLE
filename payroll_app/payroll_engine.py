@@ -104,6 +104,35 @@ def monthly_tds(annual_gross, tax_year=CURRENT_TAX_YEAR):
     return q(annual_tax(annual_gross, tax_year) / 12)
 
 
+# ---------------------------------------------------------------------------
+# Provident fund wage ceiling (statutory). The 12% contribution is mandatory only up to the ceiling:
+# Rs 15,000 until 16 September 2026, Rs 25,000 from 17 September 2026 (Notification S.O. 5109(E) of 17 Sep 2026).
+# Add a (first day, ceiling) row when the law changes. A month that straddles a change (September 2026) is split by days:
+# 1-16 September at the old ceiling, 17-30 September at the new one, in one single contribution for the month.
+# ---------------------------------------------------------------------------
+PF_WAGE_CEILINGS = [(datetime.date(1900, 1, 1), Decimal('15000')), (datetime.date(2026, 9, 17), Decimal('25000'))]
+
+
+def pf_ceiling_on(day):
+    ceiling = PF_WAGE_CEILINGS[0][1]
+    for first_day, value in PF_WAGE_CEILINGS:
+        if day >= first_day:
+            ceiling = value
+    return ceiling
+
+
+def pf_wage_for_month(basic, start, end):
+    """PF wages for a FULL month (start..end): the basic, capped at the ceiling in force on each day of the month."""
+    basic = Decimal(basic)
+    days = (end - start).days + 1
+    cuts = [d for d, _ in PF_WAGE_CEILINGS if start < d <= end]
+    bounds = [start] + cuts + [end + datetime.timedelta(days=1)]
+    total = Decimal('0')
+    for i in range(len(bounds) - 1):
+        total += min(basic, pf_ceiling_on(bounds[i])) * (bounds[i + 1] - bounds[i]).days
+    return total / days
+
+
 def _company_rates(company):
     cs = CompanySettings.objects.filter(company=company).first() if company else None
     pf_pct = Decimal(cs.pf_percentage) if cs else Decimal('12')
@@ -155,7 +184,10 @@ def calculate_line(run, employee, period):
     lop_amount = q(gross / days_in_month * lop_days) if days_in_month and lop_days else Decimal('0.00')
     not_joined_amount = q(gross / days_in_month * not_joined_days) if days_in_month and not_joined_days else Decimal('0.00')
     pay_factor = (Decimal(days_in_month) - lop_days - not_joined_days) / days_in_month if days_in_month else Decimal('1')
-    earned_basic = q(ss.basic * pay_factor)
+    if period:                                  # PF wages: the basic capped at the statutory ceiling (split by days in a month that changes it)
+        pf_wages = pf_wage_for_month(ss.basic, period[0], period[1]) * pay_factor
+    else:
+        pf_wages = min(Decimal(ss.basic), pf_ceiling_on(datetime.date.today())) * pay_factor
     earned_gross = gross - lop_amount - not_joined_amount
 
     # Claim unpaid arrears / approved reimbursements for THIS run only, so they
@@ -168,7 +200,7 @@ def calculate_line(run, employee, period):
     reimb_total = q(sum((r.amount for r in reimb_qs), Decimal('0')))
     reimb_qs.update(paid_in_run=run)
 
-    pf = q(earned_basic * pf_rate)
+    pf = q(pf_wages * pf_rate)
     esi = q(earned_gross * esi_rate) if gross <= ESI_GROSS_LIMIT else Decimal('0.00')
     tax_year = tax_year_for_period(period)
     tds = monthly_tds(gross * 12, tax_year)

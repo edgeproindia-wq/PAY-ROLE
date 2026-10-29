@@ -1,4 +1,5 @@
 import csv
+import calendar
 import json
 
 
@@ -42,7 +43,7 @@ from .models import (
     EmailOTP, BankPayment,
 )
 from .notifications import notify_demo_request, send_email_safe
-from .payroll_engine import annual_tax, build_run_lines, parse_month, release_claims
+from .payroll_engine import annual_tax, build_run_lines, parse_month, pf_wage_for_month, release_claims
 from .permissions import (
     role_required, admin_required, company_owner_required, owner_or_admin_required,
     any_authenticated_required, owner_or_employee_required, scope_employees, scope_by_employee_fk, get_user_company,
@@ -1149,8 +1150,11 @@ def reimbursement_receipt(request, pk):
 def statutory_compliance(request):
     employees = scope_employees(request, Employee.objects.all())
     rows = []
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    month_end = month_start.replace(day=calendar.monthrange(today.year, today.month)[1])
     for ss in SalaryStructure.objects.filter(employee__in=employees).select_related('employee'):
-        pf = ss.basic * Decimal('0.12')
+        pf = pf_wage_for_month(ss.basic, month_start, month_end) * Decimal('0.12')      # same ceiling rule as the payslip
         esi = ss.gross_salary * Decimal('0.0075') if ss.gross_salary <= 21000 else Decimal('0')
         rows.append({'employee': ss.employee, 'basic': ss.basic, 'gross': ss.gross_salary, 'pf': round(pf, 2), 'esi': round(esi, 2)})
     chart_labels = _js([r['employee'].full_name for r in rows])

@@ -67,8 +67,8 @@ class PayrollEndToEndTests(TestCase):
         self.assertEqual(set(run.lines.values_list('employee__employee_code', flat=True)), {'FA1', 'FB1'})
         la, lb = self.line(self.a), self.line(self.b)
         self.assertEqual((la.days_in_month, la.lop_days, la.lop_amount), (30, D('2.5'), D('3333.33')))
-        self.assertEqual((la.pf, la.esi, la.tds, la.net_pay), (D('2200.00'), D('0.00'), D('0.00'), D('34466.67')))
-        self.assertEqual((lb.pf, lb.net_pay), (D('1200.00'), D('18800.00')))
+        self.assertEqual((la.pf, la.esi, la.tds, la.net_pay), (D('1906.67'), D('0.00'), D('0.00'), D('34760.00')))   # PF 12% x 17,333.33 x 27.5/30; net 36,666.67 - 1,906.67
+        self.assertEqual((lb.pf, lb.net_pay), (D('1040.00'), D('18960.00')))     # joined mid-month: PF 12% x 17,333.33 x 15/30; net 20,000 - 1,040
         for ln in (la, lb):
             self.assertEqual(ln.total_earnings - ln.total_deductions, ln.net_pay)
 
@@ -84,7 +84,7 @@ class PayrollEndToEndTests(TestCase):
         self.client.force_login(self.a_user)
         shown = list(self.client.get(reverse('payslips')).context['lines'])
         self.assertEqual([ln.pk for ln in shown], [la.pk])
-        self.assertEqual(shown[0].net_pay, D('34466.67'))
+        self.assertEqual(shown[0].net_pay, D('34760.00'))
         self.client.force_login(self.b_user)
         self.assertEqual([ln.pk for ln in self.client.get(reverse('payslips')).context['lines']], [lb.pk])
 
@@ -100,9 +100,9 @@ class PayrollEndToEndTests(TestCase):
         SalaryStructure.objects.filter(employee=self.a).update(basic=99999)
         self.owner_post(action='reprocess', run_id=run.pk)
         la.refresh_from_db()
-        self.assertEqual((la.basic, la.net_pay), (D('20000.00'), D('34466.67')))
+        self.assertEqual((la.basic, la.net_pay), (D('20000.00'), D('34760.00')))
         pay.refresh_from_db()
-        self.assertEqual(pay.amount, D('34466.67'))
+        self.assertEqual(pay.amount, D('34760.00'))
 
     def test_another_company_sees_nothing_of_this_payroll(self):
         run = self.run_to_release()

@@ -55,10 +55,10 @@ class DeductionsInPayrollTests(TestCase):
         self.configure_everything()
         ln = self.make_run('September 2026')
         self.assertEqual((ln.lop_days, ln.lop_amount), (D('3.0'), D('4000.00')))
-        self.assertEqual((ln.pf, ln.esi, ln.tds), (D('2160.00'), D('0.00'), D('0.00')))
+        self.assertEqual((ln.pf, ln.esi, ln.tds), (D('1872.00'), D('0.00'), D('0.00')))     # PF 12% x 17,333.33 x 27/30: September 2026 is split between the old and the new wage ceiling
         self.assertEqual((ln.professional_tax, ln.insurance_deduction, ln.loan_deduction), (D('200.00'), D('500.00'), D('5000.00')))
         self.assertEqual((ln.other_earnings, ln.other_deductions), (D('900.00'), D('300.00')))
-        self.assertEqual((ln.total_earnings, ln.total_deductions, ln.net_pay), (D('36900.00'), D('8160.00'), D('28740.00')))
+        self.assertEqual((ln.total_earnings, ln.total_deductions, ln.net_pay), (D('36900.00'), D('7872.00'), D('29028.00')))   # deductions: 1,872 + 200 + 500 + 5,000 + 300
 
     def test_loan_is_recovered_in_full_then_closes(self):
         self.configure_everything()
@@ -90,4 +90,4 @@ class DeductionsInPayrollTests(TestCase):
                                     from_date=datetime.date(2026, 9, 21), to_date=datetime.date(2026, 9, 22))
         ln = self.make_run('September 2026')
         self.assertEqual((ln.insurance_deduction, ln.other_earnings, ln.lop_days), (D('0.00'), D('0.00'), D('0.0')))
-        self.assertEqual(ln.net_pay, D('37600.00'))      # 40,000 - PF 2,400, nothing else
+        self.assertEqual(ln.net_pay, D('37920.00'))      # 40,000 - PF 2,080 (12% of 17,333.33, the split September 2026 ceiling), nothing else
