@@ -13,11 +13,11 @@ from .tests import make_company, make_user
 
 OWNER = 'COMPANY_OWNER'
 ADDED_LATER = {'shift_assign', 'hr_day_hours'}          # pages from later packs: in the order when they exist, skipped when they do not
-MAIN_ITEMS = ['1. Dashboard', '2. Organisation & Payroll Configuration', '3. Employee Payroll Master', '4. Salary Component Master',
-              '5. Salary Structure & CTC Management', '6. Attendance & Payable Days', '7. Monthly Payroll Processing', '8. Statutory Compliance',
-              '9. Arrears & Adjustments', '10. Loan & Advance Management', '11. Payslip Management', '12. Bank Payment Management',
-              '13. Full & Final Settlement', '14. Accounting Integration', '15. Payroll Reports & Analytics', '16. Approval & Workflow Management',
-              '17. User Management & Security', '18. Notifications & Automation', '19. System Administration', '20. HRMS & External System Integration']
+MAIN_ITEMS = ['Dashboard', 'Organisation & Payroll Configuration', 'Employee Payroll Master', 'Salary Component Master',
+              'Salary Structure & CTC Management', 'Attendance & Payable Days', 'Monthly Payroll Processing', 'Statutory Compliance',
+              'Arrears & Adjustments', 'Loan & Advance Management', 'Payslip Management', 'Bank Payment Management',
+              'Full & Final Settlement', 'Accounting Integration', 'Payroll Reports & Analytics', 'Approval & Workflow Management',
+              'User Management & Security', 'Notifications & Automation', 'System Administration', 'HRMS & External System Integration']
 # every page the owner's sidebar had before the 20-section structure: none of them may become unreachable
 OLD_OWNER_PAGES = ['dashboard', 'employee_master', 'hr_employee_logins', 'user_roles_permissions', 'ess', 'attendance', 'attendance_bulk',
                    'working_calendar', 'hr_shifts', 'hr_work_hours', 'leave_management', 'pay_cycles', 'salary_structure', 'salary_history',
@@ -47,8 +47,9 @@ def names(role, section_key):
 class OrderTests(TestCase):
     def test_the_main_items_are_the_twenty_numbered_sections_in_that_order(self):
         self.assertEqual([s[1] for s in SECTIONS[OWNER]], MAIN_ITEMS)
-        self.assertIn('2. Organisation &amp; Payroll Configuration', base_source())
-        self.assertIn('15. Payroll Reports &amp; Analytics', base_source())
+        self.assertIn('<span class="tx">Organisation &amp; Payroll Configuration</span>', base_source())
+        self.assertIn('<span class="tx">Payroll Reports &amp; Analytics</span>', base_source())
+        self.assertNotRegex(base_source(), r'<span class="tx">\d+\. ')                 # no numbers in the sidebar
 
     def test_every_sidebar_group_lists_exactly_the_pages_of_its_section_in_order(self):
         groups = sidebar_groups()
@@ -121,7 +122,7 @@ class FooterTests(TestCase):
     def test_the_footer_shows_the_section_and_page_x_of_n(self):
         i = [p['name'] for p in self.pages].index('attendance_bulk')
         h = self.get('attendance_bulk')
-        self.assertIn('<b>6. Attendance &amp; Payable Days</b> &middot; Page %d of %d' % (i + 1, self.total), h)
+        self.assertIn('<b>Attendance &amp; Payable Days</b> &middot; Page %d of %d' % (i + 1, self.total), h)
         self.assertLess(h.index('class="np-meta"'), h.index('data-np-go'))              # the text is above the buttons
         self.assertIn('Previous', h)
         self.assertIn('Next &raquo;', h)

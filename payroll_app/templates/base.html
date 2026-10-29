@@ -301,36 +301,36 @@
       </div>
       {% url 'notifications' as u_emp9 %}{% if u_emp9 %}<a class="sb-top" href="{{ u_emp9 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">Notifications</span></a>{% endif %}
     {% elif user.is_authenticated %}
-      {% url 'dashboard' as u_s1 %}{% if u_s1 %}<a class="sb-top" href="{{ u_s1 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">1. Dashboard</span></a>{% endif %}
+      {% url 'dashboard' as u_s1 %}{% if u_s1 %}<a class="sb-top" href="{{ u_s1 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">Dashboard</span></a>{% endif %}
       <div class="sb-group" data-group="organisation">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span class="tx">2. Organisation &amp; Payroll Configuration</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span class="tx">Organisation &amp; Payroll Configuration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'settings' as u_s2_1 %}{% if u_s2_1 %}<a href="{{ u_s2_1 }}"><span class="tx">Company Master</span></a>{% endif %}
           {% url 'pay_cycles' as u_s2_2 %}{% if u_s2_2 %}<a href="{{ u_s2_2 }}"><span class="tx">Payroll Calendar</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="employee-payroll-master">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3.2-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2.2.6 4 2.2 4 5.2"/></svg><span class="tx">3. Employee Payroll Master</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3.2-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c2.2.6 4 2.2 4 5.2"/></svg><span class="tx">Employee Payroll Master</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'employee_master' as u_s3_1 %}{% if u_s3_1 %}<a href="{{ u_s3_1 }}"><span class="tx">Employee Information</span></a>{% endif %}
           {% url 'hr_employee_import' as u_s3_2 %}{% if u_s3_2 %}<a href="{{ u_s3_2 }}"><span class="tx">Employee Data Import / HRMS Integration</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="salary-component-master">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg><span class="tx">4. Salary Component Master</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg><span class="tx">Salary Component Master</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'hr_pay_components' as u_s4_1 %}{% if u_s4_1 %}<a href="{{ u_s4_1 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="salary-structure">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">5. Salary Structure &amp; CTC Management</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">Salary Structure &amp; CTC Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'salary_structure' as u_s5_1 %}{% if u_s5_1 %}<a href="{{ u_s5_1 }}"><span class="tx">Employee Salary Assignment</span></a>{% endif %}
           {% url 'salary_history' as u_s5_2 %}{% if u_s5_2 %}<a href="{{ u_s5_2 }}"><span class="tx">Salary Structure History</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="attendance-payable-days">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tx">6. Attendance &amp; Payable Days</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tx">Attendance &amp; Payable Days</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'attendance' as u_s6_1 %}{% if u_s6_1 %}<a href="{{ u_s6_1 }}"><span class="tx">Attendance Register</span></a>{% endif %}
           {% url 'leave_management' as u_s6_2 %}{% if u_s6_2 %}<a href="{{ u_s6_2 }}"><span class="tx">Paid Leave</span></a>{% endif %}
@@ -343,14 +343,14 @@
         </div>
       </div>
       <div class="sb-group" data-group="monthly-payroll-processing">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h3"/></svg><span class="tx">7. Monthly Payroll Processing</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h3"/></svg><span class="tx">Monthly Payroll Processing</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'payroll_processing' as u_s7_1 %}{% if u_s7_1 %}<a href="{{ u_s7_1 }}"><span class="tx">Step 1: Create Payroll Run</span></a>{% endif %}
           {% url 'payroll_preview' as u_s7_2 %}{% if u_s7_2 %}<a href="{{ u_s7_2 }}"><span class="tx">Step 9: Draft Payroll Register</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="statutory-compliance">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/></svg><span class="tx">8. Statutory Compliance</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/></svg><span class="tx">Statutory Compliance</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'statutory_compliance' as u_s8_1 %}{% if u_s8_1 %}<a href="{{ u_s8_1 }}"><span class="tx">Provident Fund (PF)</span></a>{% endif %}
           {% url 'hr_professional_tax' as u_s8_2 %}{% if u_s8_2 %}<a href="{{ u_s8_2 }}"><span class="tx">Professional Tax (PT)</span></a>{% endif %}
@@ -363,65 +363,65 @@
         </div>
       </div>
       <div class="sb-group" data-group="arrears-adjustments">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span class="tx">9. Arrears &amp; Adjustments</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span class="tx">Arrears &amp; Adjustments</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'arrears' as u_s9_1 %}{% if u_s9_1 %}<a href="{{ u_s9_1 }}"><span class="tx">Salary Revision Arrears</span></a>{% endif %}
           {% url 'reimbursement' as u_s9_2 %}{% if u_s9_2 %}<a href="{{ u_s9_2 }}"><span class="tx">Reimbursement Adjustments</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="loan-advance">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span class="tx">10. Loan &amp; Advance Management</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span class="tx">Loan &amp; Advance Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'hr_loans' as u_s10_1 %}{% if u_s10_1 %}<a href="{{ u_s10_1 }}"><span class="tx">Employee Loan Records</span></a>{% endif %}
           {% url 'hr_insurance' as u_s10_2 %}{% if u_s10_2 %}<a href="{{ u_s10_2 }}"><span class="tx">Insurance</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="payslip-management">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span class="tx">11. Payslip Management</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg><span class="tx">Payslip Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'payslips' as u_s11_1 %}{% if u_s11_1 %}<a href="{{ u_s11_1 }}"><span class="tx">PDF Generation</span></a>{% endif %}
           {% url 'ess' as u_s11_2 %}{% if u_s11_2 %}<a href="{{ u_s11_2 }}"><span class="tx">Employee Self-Service Access</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="bank-payments">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="tx">12. Bank Payment Management</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="tx">Bank Payment Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'bank_transfer' as u_s12_1 %}{% if u_s12_1 %}<a href="{{ u_s12_1 }}"><span class="tx">Salary Payment Register</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="full-final-settlement">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">13. Full &amp; Final Settlement</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tx">Full &amp; Final Settlement</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'full_final_settlement' as u_s13_1 %}{% if u_s13_1 %}<a href="{{ u_s13_1 }}"><span class="tx">Final Settlement Calculation</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="accounting-integration">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4zM8 4v16"/></svg><span class="tx">14. Accounting Integration</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4zM8 4v16"/></svg><span class="tx">Accounting Integration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'module_accounting_integration' as u_s14_1 %}{% if u_s14_1 %}<a href="{{ u_s14_1 }}"><span class="tx">Overview</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="reports-analytics">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tx">15. Payroll Reports &amp; Analytics</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tx">Payroll Reports &amp; Analytics</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'reports_analytics' as u_s15_1 %}{% if u_s15_1 %}<a href="{{ u_s15_1 }}"><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="approvals">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><span class="tx">16. Approval &amp; Workflow Management</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><span class="tx">Approval &amp; Workflow Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'module_approvals' as u_s16_1 %}{% if u_s16_1 %}<a href="{{ u_s16_1 }}"><span class="tx">Overview</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="user-security">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="tx">17. User Management &amp; Security</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="tx">User Management &amp; Security</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'hr_employee_logins' as u_s17_1 %}{% if u_s17_1 %}<a href="{{ u_s17_1 }}"><span class="tx">User Accounts</span></a>{% endif %}
           {% url 'user_roles_permissions' as u_s17_2 %}{% if u_s17_2 %}<a href="{{ u_s17_2 }}"><span class="tx">Role-Based Access</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="notifications">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">18. Notifications &amp; Automation</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">Notifications &amp; Automation</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'notifications' as u_s18_1 %}{% if u_s18_1 %}<a href="{{ u_s18_1 }}"><span class="tx">Notifications</span></a>{% endif %}
           {% url 'announcements' as u_s18_2 %}{% if u_s18_2 %}<a href="{{ u_s18_2 }}"><span class="tx">Announcements</span></a>{% endif %}
@@ -429,14 +429,14 @@
         </div>
       </div>
       <div class="sb-group" data-group="system-administration">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span class="tx">19. System Administration</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span class="tx">System Administration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'client_complaints' as u_s19_1 %}{% if u_s19_1 %}<a href="{{ u_s19_1 }}"><span class="tx">Raise Complaint</span></a>{% endif %}
           {% url 'client_requests' as u_s19_2 %}{% if u_s19_2 %}<a href="{{ u_s19_2 }}"><span class="tx">Raise Request</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="hrms-integration">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="tx">20. HRMS &amp; External System Integration</span><span class="sb-caret"></span></button>
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="tx">HRMS &amp; External System Integration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'module_hrms_integration' as u_s20_1 %}{% if u_s20_1 %}<a href="{{ u_s20_1 }}"><span class="tx">Overview</span></a>{% endif %}
         </div>

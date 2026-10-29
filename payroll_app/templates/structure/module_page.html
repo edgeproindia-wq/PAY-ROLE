@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ section.title }} &middot; Payroll{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1 class="page-title">{{ section.n }}. {{ section.title }}</h1>
+<div class="page-header"><div><h1 class="page-title">{{ section.title }}</h1>
 <p class="page-subtitle">{{ built }} of {{ total }} features are available. The others are planned and listed here so the payroll structure stays complete.</p></div>
 {% if main_url %}<div class="page-actions"><a class="btn btn-primary" href="{{ main_url }}">Open first page</a></div>{% endif %}</div>
 <div class="card"><div class="table-wrap">
   <table><thead><tr><th style="width:64px;">#</th><th>Feature</th><th>Status</th><th class="no-print">Action</th></tr></thead><tbody>
   {% for r in rows %}
-    <tr><td>{{ section.n }}.{{ forloop.counter }}</td><td class="cell-title">{{ r.label }}</td>
+    <tr><td>{{ forloop.counter }}</td><td class="cell-title">{{ r.label }}</td>
       <td>{% if r.url %}<span class="badge badge-success">Available</span>{% else %}<span class="badge badge-neutral">Planned</span>{% endif %}</td>
       <td class="no-print">{% if r.url %}<a class="btn btn-outline btn-sm" href="{{ r.url }}">Open</a>{% endif %}</td></tr>
   {% endfor %}</tbody></table>

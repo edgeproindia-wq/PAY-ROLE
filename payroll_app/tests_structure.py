@@ -51,7 +51,7 @@ class OverviewPageTests(TestCase):
     def test_owner_sees_available_and_planned_features(self):
         self.client.force_login(self.owner)
         r = self.client.get(self.url('bank-payments'))
-        self.assertContains(r, '12. Bank Payment Management')
+        self.assertContains(r, 'Bank Payment Management')
         self.assertContains(r, 'Available')
         self.assertContains(r, 'Planned')
         self.assertContains(r, reverse('bank_transfer'))
@@ -94,7 +94,7 @@ class MenuVisibilityTests(TestCase):
     def test_owner_sees_the_numbered_structure(self):
         side = self.sidebar(make_user('menu_owner', 'COMPANY_OWNER', self.co), 'dashboard')
         for s in SECTIONS:
-            self.assertIn('%d. %s' % (s['n'], s['title'].replace('&', '&amp;')), side)
+            self.assertIn('<span class="tx">%s</span>' % s['title'].replace('&', '&amp;'), side)
 
     def test_employee_and_admin_keep_their_own_menus(self):
         emp = self.sidebar(make_user('menu_emp', 'EMPLOYEE', self.co), 'employee_home')

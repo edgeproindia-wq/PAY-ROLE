@@ -317,7 +317,7 @@ def section_pages(section):
 
 def owner_sections():
     """np_nav.SECTIONS format: (key, label with its number, sidebar data-group or None, [(url name, label), ...])."""
-    return [(s['key'], '%d. %s' % (s['n'], s['title']), None if s['key'] == 'dashboard' else s['key'], section_pages(s))
+    return [(s['key'], s['title'], None if s['key'] == 'dashboard' else s['key'], section_pages(s))
             for s in SECTIONS]
 
 
