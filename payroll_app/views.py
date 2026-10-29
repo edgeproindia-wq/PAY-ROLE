@@ -43,6 +43,8 @@ from .models import (
     EmailOTP, BankPayment,
 )
 from .notifications import notify_demo_request, send_email_safe
+from .amount_words import rupees_in_words
+from .payroll_checks import ERROR as CHECK_ERROR, run_checks
 from .payroll_engine import annual_tax, build_run_lines, parse_month, pf_wage_for_month, release_claims
 from .permissions import (
     role_required, admin_required, company_owner_required, owner_or_admin_required,
@@ -738,7 +740,27 @@ def dashboard(request):
     cost_by_run = dict(PayrollRunLine.objects.filter(payroll_run__in=cost_runs, employee__in=employees)
                        .values('payroll_run').annotate(t=Sum('net_pay')).values_list('payroll_run', 't'))
 
+    # ---- payroll figures for the cards: deductions, loss of pay, failed payments, joiners and exits, change from the previous run
+    ranked = list(runs.filter(lines__isnull=False).distinct().order_by('-id')[:2])
+    latest_deductions, lop_people, net_change, net_change_pct, previous_run = 0, 0, None, None, None
+    if ranked:
+        latest_lines = list(ranked[0].lines.filter(employee__in=employees))
+        latest_deductions = sum(l.total_deductions for l in latest_lines)
+        lop_people = sum(1 for l in latest_lines if l.lop_days)
+        if len(ranked) == 2:
+            previous_run = ranked[1]
+            before = sum(l.net_pay for l in previous_run.lines.filter(employee__in=employees))
+            now = sum(l.net_pay for l in latest_lines)
+            if before:
+                net_change, net_change_pct = now - before, round((now - before) / before * 100, 1)
+    failed_payments = BankPayment.objects.filter(payroll_line__employee__in=employees, status='FAILED').count()
+    joiners_this_month = employees.filter(date_of_joining__year=today.year, date_of_joining__month=today.month).count()
+    exited_employees = employees.filter(employment_status__in=['RESIGNED', 'TERMINATED']).count()
+
     context = {
+        'payroll_cards_run': ranked[0] if ranked else None, 'latest_deductions': latest_deductions, 'lop_people': lop_people,
+        'previous_run': previous_run, 'net_change': net_change, 'net_change_pct': net_change_pct,
+        'failed_payments': failed_payments, 'joiners_this_month': joiners_this_month, 'exited_employees': exited_employees,
         'present_today': present_today, 'absent_today': absent_today,
         'on_leave_today': on_leave_today, 'not_marked_today': not_marked_today,
         'attendance_trend_labels': _js([d.strftime('%d %b') for d in trend_days]),
@@ -1291,6 +1313,20 @@ def scope_runs(request, queryset=None):
     return qs.none()
 
 
+def _validation_blocked(request, run):
+    """Show the checks before a run is validated. True when an error stops it (warnings never stop it)."""
+    blocked = False
+    for issue in run_checks(run):
+        if issue.level == CHECK_ERROR:
+            messages.error(request, issue.message)
+            blocked = True
+        else:
+            messages.warning(request, issue.message)
+    if blocked:
+        messages.error(request, f"'{run.month}' was not validated: fix the errors above and reprocess it.")
+    return blocked
+
+
 def _get_run_scoped(request, pk):
     run = get_object_or_404(PayrollRun, pk=pk)
     if not scope_runs(request, PayrollRun.objects.filter(pk=run.pk)).exists():
@@ -1409,6 +1445,8 @@ def payroll_combined(request):
                                             "Someone else may have just changed it.")
                 elif not run.lines.exists():
                     messages.error(request, f"'{run.month}' has no payslip lines. Add salary structures and reprocess.")
+                elif action == 'validate' and _validation_blocked(request, run):
+                    pass
                 else:
                     run.status = target
                     run.save(update_fields=['status'])
@@ -1812,7 +1850,7 @@ def download_pdf(request):
 @owner_or_employee_required
 def payslip_detail(request, pk):
     line = get_object_or_404(_scoped_released_lines(request), pk=pk)
-    return render(request, 'payslip management/Generate payslip.html', {'line': line})
+    return render(request, 'payslip management/Generate payslip.html', {'line': line, 'net_in_words': rupees_in_words(line.net_pay)})
 
 
 @owner_or_employee_required

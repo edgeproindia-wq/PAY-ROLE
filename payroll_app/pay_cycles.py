@@ -177,6 +177,15 @@ def move_cycle(cycle, action, request):
         return False, f'Cannot {action}: the payroll is {run.get_status_display()}, expected {dict(PayrollRun.STATUS_CHOICES)[required]}.'
     if not run.lines.exists():
         return False, 'There are no payslip lines. Check salary structures and recalculate.'
+    if action == 'validate':
+        from .payroll_checks import ERROR, run_checks
+        issues = run_checks(run)
+        for issue in issues:
+            if issue.level != ERROR:
+                messages.warning(request, issue.message)
+        errors = [issue.message for issue in issues if issue.level == ERROR]
+        if errors:
+            return False, ' '.join(errors) + ' Fix these, then recalculate.'
     run.status = target
     run.save(update_fields=['status'])
     if target == 'RELEASED':

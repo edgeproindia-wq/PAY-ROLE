@@ -12,6 +12,9 @@ from .models import CompanySettings
 RS = 'Rs. '  # the built-in PDF fonts have no rupee glyph
 
 
+from .amount_words import rupees_in_words  # noqa: E402
+
+
 def _money(v):
     return f"- {RS}{abs(v):,.2f}" if v < 0 else f"{RS}{v:,.2f}"
 
@@ -90,6 +93,7 @@ def build_payslip_pdf(line):
     ]))
     story += [t2, Spacer(1, 6 * mm),
               Paragraph(f'<b>Net Pay: {_money(line.net_pay)}</b>', styles['Heading2']),
+              Paragraph(rupees_in_words(line.net_pay), styles['Normal']),
               Spacer(1, 10 * mm),
               Paragraph('This is a system-generated payslip and does not require a signature.', styles['Italic'])]
     doc.build(story)
