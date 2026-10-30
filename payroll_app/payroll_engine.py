@@ -56,7 +56,10 @@ TAX_RULES = {
         'cess': Decimal('0.04'),
     },
 }
-CURRENT_TAX_YEAR = '2025-26'
+# FY 2026-27: the Union Budget of 1 February 2026 left the new-regime slabs, the Rs 75,000 standard deduction and the
+# Rs 12 lakh section 87A rebate unchanged, so the numbers are the same as FY 2025-26. Confirm with your CA, as above.
+TAX_RULES['2026-27'] = dict(TAX_RULES['2025-26'])
+CURRENT_TAX_YEAR = '2026-27'
 
 
 def tax_year_for_period(period):
