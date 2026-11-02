@@ -740,3 +740,4 @@ from .profile_photo_models import ProfilePhoto  # noqa: E402,F401
 from .notification_sync import notification_context  # noqa: E402,F401
 from .salary_history_models import SalaryRevision  # noqa: E402,F401
 from . import salary_history  # noqa: E402,F401
+from .bank_batch_models import BankBatch, BankBatchItem  # noqa: E402,F401

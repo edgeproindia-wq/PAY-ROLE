@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Payment Approval &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Payment Approval</h1>
+  <p class="page-subtitle">A batch must be approved before its bank file can be created.
+    {% if owners >= 2 %}The person who created a batch cannot approve it.{% else %}Your company has one owner login, so the creator may approve their own batch; this is recorded as a self-approval.{% endif %}</p>
+</div></div>
+{% include "bank/_tabs.html" with active="approvals" %}
+<div class="card" style="margin-bottom:16px;">
+  <div class="table-wrap">
+    {% if waiting %}
+    <table>
+      <thead><tr><th>Batch</th><th>Month</th><th>Payments</th><th>Total</th><th>Created by</th><th class="no-print">Decision</th></tr></thead>
+      <tbody>
+      {% for b in waiting %}
+        <tr>
+          <td class="cell-title"><a href="{% url 'bank_batch_detail' b.pk %}">{{ b.reference }}</a></td>
+          <td>{{ b.payroll_run.month }}</td>
+          <td>{{ b.item_count }}</td>
+          <td style="font-weight:700;">&#8377;{{ b.total_amount }}</td>
+          <td class="text-sm">{{ b.created_by.username|default:"-" }}<br><span class="text-muted">{{ b.created_at|date:"d M Y H:i" }}</span></td>
+          <td class="no-print">
+            <form method="post" action="{% url 'bank_batch_action' b.pk %}" style="display:flex;gap:4px;flex-wrap:wrap;">{% csrf_token %}
+              <input type="hidden" name="next" value="bank_approvals">
+              {% if b.can_approve %}<button class="btn btn-success btn-sm" name="action" value="approve">Approve</button>{% else %}<span class="text-sm text-muted">Another owner must approve</span>{% endif %}
+              <input type="text" name="reason" placeholder="Reason to reject" maxlength="255" style="max-width:150px;">
+              <button class="btn btn-danger btn-sm" name="action" value="reject">Reject</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#9989;</div><div class="title">Nothing waiting for approval</div></div>
+    {% endif %}
+  </div>
+</div>
+<h3 style="margin:8px 0;">Recent decisions</h3>
+<div class="card"><div class="table-wrap">
+  {% if recent %}
+  <table>
+    <thead><tr><th>Batch</th><th>Month</th><th>Total</th><th>Status</th><th>Approved by</th></tr></thead>
+    <tbody>
+    {% for b in recent %}
+      <tr><td class="cell-title"><a href="{% url 'bank_batch_detail' b.pk %}">{{ b.reference }}</a></td><td>{{ b.payroll_run.month }}</td><td>&#8377;{{ b.total_amount }}</td>
+        <td><span class="badge {% if b.status == 'REJECTED' %}badge-danger{% else %}badge-info{% endif %}">{{ b.get_status_display }}</span></td>
+        <td class="text-sm">{{ b.approved_by.username|default:"-" }}{% if b.self_approved %} <span class="badge badge-warn">self</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty-state"><div class="desc">No decisions yet.</div></div>{% endif %}
+</div></div>
+{% endblock %}

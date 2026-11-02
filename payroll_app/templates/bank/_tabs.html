@@ -1,0 +1,12 @@
+<div class="tabs no-print" style="margin-bottom:20px;border:none;flex-wrap:wrap;">
+  <a href="{% url 'bank_transfer' %}" class="tab">Register</a>
+  <a href="{% url 'bank_validation' %}" class="tab {% if active == 'validation' %}active{% endif %}">Validation</a>
+  <a href="{% url 'bank_batches' %}" class="tab {% if active == 'batches' %}active{% endif %}">Batches &amp; Files</a>
+  <a href="{% url 'bank_approvals' %}" class="tab {% if active == 'approvals' %}active{% endif %}">Approvals</a>
+  <a href="{% url 'bank_export' %}" class="tab {% if active == 'export' %}active{% endif %}">Instruction Export</a>
+  <a href="{% url 'payment_states' %}" class="tab">Status</a>
+  <a href="{% url 'failed_transaction_report' %}" class="tab">Failed</a>
+  <a href="{% url 'bank_duplicates' %}" class="tab {% if active == 'duplicates' %}active{% endif %}">Duplicates</a>
+  <a href="{% url 'bank_reconcile' %}" class="tab {% if active == 'reconcile' %}active{% endif %}">Reconciliation</a>
+  <a href="{% url 'bank_audit' %}" class="tab {% if active == 'audit' %}active{% endif %}">Audit Trail</a>
+</div>

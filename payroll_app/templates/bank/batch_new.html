@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}New payment batch &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">New payment batch</h1>
+  <p class="page-subtitle">Choose the released month, tick the employees to pay, and create the batch. A payment that is already paid, or already in an open batch, cannot be added again.</p>
+</div></div>
+{% include "bank/_tabs.html" with active="batches" %}
+<div class="card">
+  <form class="toolbar" method="get">
+    <select class="filter-select" name="run" onchange="this.form.submit()">
+      <option value="">Choose released month...</option>
+      {% for r in runs %}<option value="{{ r.pk }}" {% if run.pk == r.pk %}selected{% endif %}>{{ r.month }}</option>{% endfor %}
+    </select>
+    <select class="filter-select" name="mode" onchange="this.form.submit()">
+      {% for val, label in modes %}<option value="{{ val }}" {% if mode == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+{% if run %}
+<form method="post" id="batchForm">{% csrf_token %}
+<input type="hidden" name="run" value="{{ run.pk }}"><input type="hidden" name="mode" value="{{ mode }}">
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Can be paid now</div><div class="value">{{ eligible }}</div></div>
+  <div class="kpi-card"><div class="label">Blocked by errors</div><div class="value">{{ blocked }}</div></div>
+  <div class="kpi-card"><div class="label">Ticked</div><div class="value" id="tickedCount">0</div></div>
+</div>
+<div class="card">
+  <div class="toolbar">
+    <label class="text-sm"><input type="checkbox" id="selAll"> Select all shown</label>
+    <select class="filter-select" id="bankFilter"><option value="">All banks</option>{% for b in banks %}<option value="{{ b }}">{{ b }}</option>{% endfor %}</select>
+    <select class="filter-select" id="problemFilter"><option value="">All employees</option><option value="ok">Can be paid</option><option value="err">Has errors</option></select>
+    <div class="search-box"><input type="text" id="rowSearch" placeholder="Search employee, code or bank..."></div>
+    <div class="toolbar-spacer"></div>
+    <input type="text" name="note" maxlength="255" placeholder="Note (optional)" style="max-width:220px;">
+    <button class="btn btn-primary" type="submit">Create batch</button>
+  </div>
+  <div class="table-wrap">
+    {% if rows %}
+    <table id="newTable">
+      <thead><tr><th style="width:36px;"></th><th>Employee</th><th>Bank</th><th>Account</th><th>IFSC</th><th>Net pay</th><th>Payment</th><th>Problems</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr data-bank="{{ r.bank }}" data-ok="{% if r.eligible %}ok{% elif r.errors %}err{% else %}other{% endif %}">
+          <td>{% if r.eligible %}<input type="checkbox" class="rowTick" name="line" value="{{ r.line.pk }}">{% endif %}</td>
+          <td class="cell-title">{{ r.emp.full_name }}<br><span class="text-sm text-muted">{{ r.emp.employee_code }}</span></td>
+          <td>{{ r.emp.bank_name|default:"&mdash;" }}</td>
+          <td class="text-sm">{{ r.emp.masked_account_no|default:"Not on file" }}</td>
+          <td class="text-sm">{{ r.emp.ifsc_code|default:"&mdash;" }}</td>
+          <td style="font-weight:700;">&#8377;{{ r.line.net_pay }}</td>
+          <td><span class="badge {% if r.state == 'paid' %}badge-success{% elif r.state == 'failed' %}badge-danger{% else %}badge-neutral{% endif %}">{{ r.state_label }}</span></td>
+          <td class="text-sm">
+            {% for e in r.errors %}<span class="badge badge-danger">{{ e }}</span><br>{% endfor %}
+            {% for w in r.warnings %}<span class="badge badge-warn">{{ w }}</span><br>{% endfor %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#127974;</div><div class="title">No payslips in this month</div></div>
+    {% endif %}
+  </div>
+</div>
+</form>
+<script>
+(function(){
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#newTable tbody tr'));
+  var all = document.getElementById('selAll');
+  function visible(r){ return r.style.display !== 'none'; }
+  function count(){ document.getElementById('tickedCount').textContent = document.querySelectorAll('.rowTick:checked').length; }
+  function filter(){
+    var q = document.getElementById('rowSearch').value.toLowerCase();
+    var b = document.getElementById('bankFilter').value;
+    var p = document.getElementById('problemFilter').value;
+    rows.forEach(function(r){
+      var show = r.innerText.toLowerCase().indexOf(q) !== -1 && (!b || r.dataset.bank === b) && (!p || r.dataset.ok === p);
+      r.style.display = show ? '' : 'none';
+    });
+  }
+  ['rowSearch','bankFilter','problemFilter'].forEach(function(id){ document.getElementById(id).addEventListener('input', filter); document.getElementById(id).addEventListener('change', filter); });
+  all.addEventListener('change', function(){
+    rows.filter(visible).forEach(function(r){ var c = r.querySelector('.rowTick'); if (c) c.checked = all.checked; });
+    count();
+  });
+  document.addEventListener('change', function(e){ if (e.target.classList.contains('rowTick')) count(); });
+})();
+</script>
+{% endif %}
+{% endblock %}

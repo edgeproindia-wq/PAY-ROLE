@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Duplicate Payment Prevention &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Duplicate Payment Prevention</h1>
+  <p class="page-subtitle">How double payment is stopped, and what to look at.</p>
+</div></div>
+{% include "bank/_tabs.html" with active="duplicates" %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <strong>Rules that are always enforced</strong>
+  <ul class="text-sm" style="margin:8px 0 0 18px;">
+    <li>One payment per payslip. The database refuses a second one.</li>
+    <li>A payment that is already Paid can never be put in a batch.</li>
+    <li>A payment that is in an open batch (waiting, approved, file generated or sent) cannot be put in another batch.</li>
+    <li>A bank UTR number can be recorded against only one payment.</li>
+  </ul>
+</div>
+{% if clean %}
+<div class="card"><div class="empty-state"><div class="icon">&#9989;</div><div class="title">No duplicates found</div><div class="desc">No shared accounts, repeated payments or payments in two open batches.</div></div></div>
+{% endif %}
+{% if shared_rows %}
+<h3 style="margin:8px 0;">Same bank account used by more than one employee</h3>
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap"><table>
+  <thead><tr><th>Account</th><th>IFSC</th><th>Employees</th></tr></thead>
+  <tbody>{% for r in shared_rows %}<tr><td>{{ r.account }}</td><td>{{ r.ifsc }}</td><td class="text-sm">{{ r.people|join:", " }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% if repeat_rows %}
+<h3 style="margin:8px 0;">More than one payment for the same employee and month</h3>
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap"><table>
+  <thead><tr><th>Employee</th><th>Month</th><th>Payments</th></tr></thead>
+  <tbody>{% for r in repeat_rows %}<tr><td class="cell-title">{{ r.employee.full_name }} <span class="text-sm text-muted">{{ r.employee.employee_code }}</span></td><td>{{ r.month }}</td>
+    <td class="text-sm">{% for p in r.payments %}#{{ p.pk }} &#8377;{{ p.amount }} {{ p.get_status_display }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% if two_batch %}
+<h3 style="margin:8px 0;">Payments in more than one open batch</h3>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Employee</th><th>Amount</th></tr></thead>
+  <tbody>{% for p in two_batch %}<tr><td class="cell-title">{{ p.payroll_line.employee.full_name }}</td><td>&#8377;{{ p.amount }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

@@ -149,15 +149,15 @@ STRUCTURE = """
   Payslip History|
 12|bank-payments|Bank Payment Management
   Salary Payment Register|bank_transfer
-  Bank Detail Validation|
-  Bank Payment File|
-  Payment Approval|
-  Payment Instruction Export|
-  Payment Status|
-  Failed Payment Handling|
-  Duplicate Payment Prevention|
-  Bank Reconciliation|
-  Payment Audit Trail|
+  Bank Detail Validation|bank_validation
+  Bank Payment File|bank_batches
+  Payment Approval|bank_approvals
+  Payment Instruction Export|bank_export
+  Payment Status|payment_states
+  Failed Payment Handling|failed_transaction_report
+  Duplicate Payment Prevention|bank_duplicates
+  Bank Reconciliation|bank_reconcile
+  Payment Audit Trail|bank_audit
 13|full-final-settlement|Full & Final Settlement
   Employee Exit Details|
   Pending Salary|

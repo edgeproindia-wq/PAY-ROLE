@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ batch.reference }} &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ batch.reference }}</h1>
+  <p class="page-subtitle">{{ batch.payroll_run.month }} &middot; {{ batch.mode }} &middot; {{ batch.item_count }} payment{{ batch.item_count|pluralize }} &middot; &#8377;{{ batch.total_amount }}
+    &middot; <span class="badge {% if batch.status == 'COMPLETED' %}badge-success{% elif batch.status == 'REJECTED' or batch.status == 'CANCELLED' %}badge-danger{% elif batch.status == 'PENDING_APPROVAL' %}badge-warn{% else %}badge-info{% endif %}">{{ batch.get_status_display }}</span></p>
+</div>
+<div class="page-actions no-print">
+  <button class="btn btn-outline" type="button" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn btn-outline" href="{% url 'bank_batches' %}">All batches</a>
+</div></div>
+{% include "bank/_tabs.html" with active="batches" %}
+
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <div class="text-sm">
+    Created by <strong>{{ batch.created_by.username|default:"-" }}</strong> on {{ batch.created_at|date:"d M Y H:i" }}.
+    {% if batch.approved_at %}Approved by <strong>{{ batch.approved_by.username|default:"-" }}</strong> on {{ batch.approved_at|date:"d M Y H:i" }}{% if batch.self_approved %} <span class="badge badge-warn">self-approved: only one owner login</span>{% endif %}.{% endif %}
+    {% if batch.file_generated_at %}Bank file generated {{ batch.file_generated_at|date:"d M Y H:i" }}.{% endif %}
+    {% if batch.sent_at %}Sent to bank {{ batch.sent_at|date:"d M Y H:i" }} by {{ batch.sent_by.username|default:"-" }}.{% endif %}
+    {% if batch.completed_at %}Completed {{ batch.completed_at|date:"d M Y H:i" }}.{% endif %}
+    {% if batch.rejection_reason %}<br>Rejected: {{ batch.rejection_reason }}{% endif %}
+    {% if batch.note %}<br>Note: {{ batch.note }}{% endif %}
+  </div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Paid</div><div class="value">{{ status_count.PAID }}</div></div>
+  <div class="kpi-card"><div class="label">Waiting</div><div class="value">{{ waiting }}</div></div>
+  <div class="kpi-card"><div class="label">Failed</div><div class="value">{{ status_count.FAILED }}</div></div>
+  <div class="kpi-card"><div class="label">Amount paid</div><div class="value">&#8377;{{ paid_total }}</div></div>
+</div>
+
+<div class="card no-print" style="padding:16px;margin-bottom:16px;">
+  {% if batch.status == 'PENDING_APPROVAL' %}
+    <form method="post" action="{% url 'bank_batch_action' batch.pk %}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">{% csrf_token %}
+      {% if can_approve %}
+        <button class="btn btn-success" name="action" value="approve">Approve batch</button>
+        {% if self_approval %}<span class="text-sm text-muted">You created this batch and you are the only owner login, so you may approve it. It is recorded as a self-approval.</span>{% endif %}
+      {% else %}
+        <span class="text-sm text-muted">A different company owner must approve this batch.</span>
+      {% endif %}
+      <input type="text" name="reason" placeholder="Reason (needed to reject)" maxlength="255" style="max-width:240px;">
+      <button class="btn btn-danger" name="action" value="reject">Reject</button>
+      <button class="btn btn-outline" name="action" value="cancel">Cancel batch</button>
+    </form>
+  {% elif batch.status == 'APPROVED' %}
+    <p class="text-sm">Approved. Download the bank file below, upload it to your bank, then mark the batch as sent.</p>
+    <form method="post" action="{% url 'bank_batch_action' batch.pk %}">{% csrf_token %}<button class="btn btn-outline" name="action" value="cancel">Cancel batch</button></form>
+  {% elif batch.status == 'FILE_GENERATED' %}
+    <form method="post" action="{% url 'bank_batch_action' batch.pk %}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">{% csrf_token %}
+      <button class="btn btn-primary" name="action" value="mark_sent">I uploaded the file to the bank</button>
+      <label class="text-sm"><input type="checkbox" name="confirm" value="1"> The file was NOT uploaded</label>
+      <button class="btn btn-outline" name="action" value="cancel">Cancel batch</button>
+    </form>
+  {% elif batch.status == 'SENT' %}
+    <p class="text-sm">Sent to the bank. When the bank gives you its statement or response file, use <a href="{% url 'bank_reconcile' %}">Bank Reconciliation</a> to mark payments Paid or Failed.</p>
+  {% elif batch.status == 'COMPLETED' %}
+    <p class="text-sm">Every payment in this batch is paid.</p>
+  {% else %}
+    <p class="text-sm">This batch is closed. Its payments can be put in a new batch.</p>
+  {% endif %}
+  {% if batch.file_allowed %}
+  <div style="margin-top:12px;">
+    <strong class="text-sm">Bank files</strong>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+      <a class="btn btn-outline btn-sm" href="{% url 'bank_batch_file' batch.pk %}">All banks (CSV)</a>
+      <a class="btn btn-outline btn-sm" href="{% url 'bank_batch_file' batch.pk %}?format=xlsx">All banks (Excel)</a>
+      {% for b in banks %}<a class="btn btn-outline btn-sm" href="{% url 'bank_batch_file' batch.pk %}?bank={{ b.code }}">{{ b.name }} ({{ b.count }}) CSV</a>
+      <a class="btn btn-outline btn-sm" href="{% url 'bank_batch_file' batch.pk %}?bank={{ b.code }}&amp;format=xlsx">Excel</a>{% endfor %}
+    </div>
+    <p class="text-sm text-muted" style="margin-top:6px;">Check the column layout against the template your bank's portal asks for before you upload.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card"><div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Employee</th><th>Beneficiary</th><th>Account</th><th>IFSC</th><th>Amount</th><th>Status</th><th>UTR / reason</th></tr></thead>
+    <tbody>
+    {% for i in items %}{% with p=i.payment %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td class="cell-title">{{ p.payroll_line.employee.full_name }}<br><span class="text-sm text-muted">{{ p.payroll_line.employee.employee_code }}</span></td>
+        <td class="text-sm">{{ p.account_holder_name }}<br>{{ p.bank_name }}</td>
+        <td class="text-sm">&hellip;{{ p.account_no|slice:"-4:" }}</td>
+        <td class="text-sm">{{ p.ifsc_code }}</td>
+        <td style="font-weight:700;">&#8377;{{ p.amount }}</td>
+        <td><span class="badge {% if p.status == 'PAID' %}badge-success{% elif p.status == 'FAILED' %}badge-danger{% elif p.status == 'INITIATED' %}badge-info{% else %}badge-warn{% endif %}">{{ p.get_status_display }}</span></td>
+        <td class="text-sm">{% if p.status == 'PAID' %}{{ p.reference_number }}{% else %}{{ p.failure_reason|default:"&mdash;" }}{% endif %}</td>
+      </tr>
+    {% endwith %}{% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

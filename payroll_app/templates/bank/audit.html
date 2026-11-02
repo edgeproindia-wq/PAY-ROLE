@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Payment Audit Trail &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Payment Audit Trail</h1>
+  <p class="page-subtitle">Who created, approved, exported, sent or changed a bank payment or batch, and when.</p>
+</div></div>
+{% include "bank/_tabs.html" with active="audit" %}
+<div class="card">
+  <form class="toolbar" method="get">
+    <select class="filter-select" name="action" onchange="this.form.submit()">
+      <option value="">All actions</option>
+      {% for val, label in actions %}<option value="{{ val }}" {% if action == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <label class="text-sm">From <input type="date" name="from" value="{{ date_from }}"></label>
+    <label class="text-sm">To <input type="date" name="to" value="{{ date_to }}"></label>
+    <div class="search-box"><input type="text" name="q" value="{{ q }}" placeholder="Search batch, payslip, user..."></div>
+    <button class="btn btn-outline btn-sm" type="submit">Filter</button>
+  </form>
+  <div class="table-wrap">
+    {% if page.object_list %}
+    <table>
+      <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for l in page.object_list %}
+        <tr><td class="text-sm">{{ l.timestamp|date:"d M Y H:i" }}</td><td>{{ l.actor.username|default:"-" }}</td><td><span class="badge badge-neutral">{{ l.get_action_display }}</span></td>
+          <td class="text-sm">{{ l.details }}</td><td class="text-sm text-muted">{{ l.ip_address|default:"" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128221;</div><div class="title">No bank payment activity found</div></div>
+    {% endif %}
+  </div>
+  {% include "bank/_pager.html" %}
+</div>
+{% endblock %}

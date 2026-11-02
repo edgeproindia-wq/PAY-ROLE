@@ -387,6 +387,15 @@
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="tx">Bank Payment Management</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'bank_transfer' as u_s12_1 %}{% if u_s12_1 %}<a href="{{ u_s12_1 }}"><span class="tx">Salary Payment Register</span></a>{% endif %}
+          {% url 'bank_validation' as u_s12_2 %}{% if u_s12_2 %}<a href="{{ u_s12_2 }}"><span class="tx">Bank Detail Validation</span></a>{% endif %}
+          {% url 'bank_batches' as u_s12_3 %}{% if u_s12_3 %}<a href="{{ u_s12_3 }}"><span class="tx">Bank Payment File</span></a>{% endif %}
+          {% url 'bank_approvals' as u_s12_4 %}{% if u_s12_4 %}<a href="{{ u_s12_4 }}"><span class="tx">Payment Approval</span></a>{% endif %}
+          {% url 'bank_export' as u_s12_5 %}{% if u_s12_5 %}<a href="{{ u_s12_5 }}"><span class="tx">Payment Instruction Export</span></a>{% endif %}
+          {% url 'payment_states' as u_s12_6 %}{% if u_s12_6 %}<a href="{{ u_s12_6 }}"><span class="tx">Payment Status</span></a>{% endif %}
+          {% url 'failed_transaction_report' as u_s12_7 %}{% if u_s12_7 %}<a href="{{ u_s12_7 }}"><span class="tx">Failed Payment Handling</span></a>{% endif %}
+          {% url 'bank_duplicates' as u_s12_8 %}{% if u_s12_8 %}<a href="{{ u_s12_8 }}"><span class="tx">Duplicate Payment Prevention</span></a>{% endif %}
+          {% url 'bank_reconcile' as u_s12_9 %}{% if u_s12_9 %}<a href="{{ u_s12_9 }}"><span class="tx">Bank Reconciliation</span></a>{% endif %}
+          {% url 'bank_audit' as u_s12_10 %}{% if u_s12_10 %}<a href="{{ u_s12_10 }}"><span class="tx">Payment Audit Trail</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="full-final-settlement">

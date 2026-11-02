@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Bank Reconciliation &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Bank Reconciliation</h1>
+  <p class="page-subtitle">Upload the statement or response file from your bank. You see what will change first, and nothing is saved until you confirm.</p>
+</div></div>
+{% include "bank/_tabs.html" with active="reconcile" %}
+{% if preview %}
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Will be marked Paid</div><div class="value">{{ preview.paid }}</div></div>
+  <div class="kpi-card"><div class="label">Will be marked Failed</div><div class="value">{{ preview.failed }}</div></div>
+  <div class="kpi-card"><div class="label">Need review (not applied)</div><div class="value">{{ preview.review }}</div></div>
+  <div class="kpi-card"><div class="label">Skipped</div><div class="value">{{ preview.skip }}</div></div>
+</div>
+<div class="card" style="margin-bottom:16px;">
+  <div class="toolbar">
+    <span class="text-sm">File: <strong>{{ preview.name }}</strong>. Confirm within {{ minutes }} minutes.</span>
+    <div class="toolbar-spacer"></div>
+    <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="step" value="cancel"><button class="btn btn-outline" type="submit">Discard</button></form>
+    {% if preview.ok %}<form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="step" value="confirm"><button class="btn btn-primary" type="submit">Confirm and save {{ preview.ok }} change{{ preview.ok|pluralize }}</button></form>{% endif %}
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Row</th><th>Employee</th><th>Amount</th><th>UTR</th><th>Result</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for r in preview.rows %}
+      <tr>
+        <td>{{ r.n }}</td><td class="text-sm">{{ r.who|default:"&mdash;" }}</td><td>{{ r.amount|default:"&mdash;" }}</td><td class="text-sm">{{ r.utr|default:"&mdash;" }}</td>
+        <td><span class="badge {% if r.outcome == 'ok' and r.action == 'PAID' %}badge-success{% elif r.outcome == 'ok' %}badge-danger{% elif r.outcome == 'review' %}badge-warn{% else %}badge-neutral{% endif %}">{% if r.outcome == 'ok' %}{{ r.action }}{% elif r.outcome == 'review' %}Review{% else %}Skipped{% endif %}</span></td>
+        <td class="text-sm">{{ r.note|default:"&mdash;" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="card" style="padding:16px;">
+  <p class="text-sm">{{ waiting }} payment{{ waiting|pluralize }} in generated or sent batches {{ waiting|pluralize:"is,are" }} still waiting for a result.</p>
+  <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">{% csrf_token %}
+    <input type="hidden" name="step" value="upload">
+    <input type="file" name="statement" accept=".csv,.xlsx" required>
+    <button class="btn btn-primary" type="submit">Upload and preview</button>
+  </form>
+  <p class="text-sm text-muted" style="margin-top:10px;">The file needs a <strong>UTR</strong> (or Status) column and either a <strong>Payment ID</strong> column (the ID in the bank file you uploaded) or an <strong>Account Number</strong> and <strong>Amount</strong>. A Status column is optional; a row with a UTR and no status counts as successful. Rows with a failed or rejected status are marked Failed. Amounts that do not match, repeated UTRs and unclear rows are never applied. Only .csv and .xlsx files up to 2 MB.</p>
+</div>
+{% endif %}
+{% endblock %}

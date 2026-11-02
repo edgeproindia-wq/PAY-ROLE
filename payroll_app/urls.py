@@ -216,3 +216,7 @@ urlpatterns += _livenotify.urlpatterns
 # ---- Overview page of each numbered section of the payroll structure ----
 from . import structure_pages as _sp  # noqa: E402
 urlpatterns += _sp.urlpatterns
+
+# ---- Advanced bank payments: validation, batches, approval, files, reconciliation, audit trail ----
+from . import bank_batches as _bb  # noqa: E402
+urlpatterns += _bb.urlpatterns

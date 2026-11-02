@@ -50,11 +50,11 @@ class OverviewPageTests(TestCase):
 
     def test_owner_sees_available_and_planned_features(self):
         self.client.force_login(self.owner)
-        r = self.client.get(self.url('bank-payments'))
-        self.assertContains(r, 'Bank Payment Management')
+        r = self.client.get(self.url('organisation'))             # the bank section has no planned features left, so this uses one that still has some
+        self.assertContains(r, 'Organisation')
         self.assertContains(r, 'Available')
         self.assertContains(r, 'Planned')
-        self.assertContains(r, reverse('bank_transfer'))
+        self.assertContains(r, reverse('settings'))
 
     def test_every_section_with_features_has_a_working_overview_for_the_owner(self):
         self.client.force_login(self.owner)
