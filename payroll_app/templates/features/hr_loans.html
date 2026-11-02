@@ -3,35 +3,56 @@
 {% block content %}{% include "features/_ui.html" %}
 <div class="fx">
   <div class="fx-card"><h1>Employee Loans</h1><div class="muted">The EMI is deducted in each payroll run from the start month until the loan amount is recovered. Enter the loan amount as the total to recover (including any interest).</div></div>
-  <div class="fx-card"><h2>Add loan</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add loan</button></p><script>/* autofill-loan: pre-fills interest 0 and tenure 12, the first day of next month, and works out the EMI as loan amount / months (still editable) */
+  <div class="fx-card"><h2>Add loan</h2><form method="post" novalidate>{% csrf_token %}{% include "features/_form.html" %}<p style="margin-top:12px"><button class="fx-btn" type="submit">Add loan</button></p><script>/* autofill-loan v5: interest rate and months are dropdowns, the first day of next month is pre-filled, and the EMI is worked out from the amount, the interest rate and the months (reducing balance; still editable) */
 (function () {
   var f = document.currentScript.closest("form");
   if (!f) return;
   function q(n) { return f.querySelector('[name="' + n + '"]'); }
   var amount = q("loan_amount"), rate = q("interest_rate"), months = q("tenure_months"), emi = q("emi_amount"), start = q("start_date");
   if (!amount || !months || !emi) return;
-  if (rate && !rate.value) rate.value = "0";
-  if (!months.value) months.value = "12";
+  function toSelect(input, choices, fallback, label) {
+    if (!input || input.tagName === "SELECT") return input;
+    var cur = parseFloat(input.value), list = choices.slice();
+    if (!isNaN(cur) && cur >= 0 && list.indexOf(cur) < 0) { list.push(cur); list.sort(function (a, b) { return a - b; }); }
+    var sel = document.createElement("select");
+    sel.name = input.name; sel.id = input.id; sel.className = input.className; sel.required = input.required;
+    list.forEach(function (n) { var o = document.createElement("option"); o.value = String(n); o.textContent = label(n); sel.appendChild(o); });
+    sel.value = String(!isNaN(cur) && cur >= 0 && input.value !== "" ? cur : fallback);
+    input.parentNode.replaceChild(sel, input);
+    return sel;
+  }
+  months = toSelect(months, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24, 36, 48, 60], 12, function (n) { return n + " months"; });
+  rate = toSelect(rate, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 24], 0, function (n) { return n + "% per year"; });
   if (start && !start.value) {
     var d = new Date();
     var next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
     var mm = ("0" + (next.getMonth() + 1)).slice(-2);
     start.value = next.getFullYear() + "-" + mm + "-01";
   }
+  var note = document.createElement("small");
+  note.className = "text-muted";
+  emi.parentNode.insertBefore(note, emi.nextSibling);
   function work() {
-    var a = parseFloat(amount.value), m = parseInt(months.value, 10);
-    if (!(a > 0) || !(m > 0)) return "";
-    return (Math.round(a / m * 100) / 100).toFixed(2);
+    var a = parseFloat(amount.value), m = parseInt(months.value, 10), annual = rate ? parseFloat(rate.value) : 0;
+    if (!(a > 0) || !(m > 0)) return null;
+    var r = (isNaN(annual) ? 0 : annual) / 12 / 100, e;
+    if (r === 0) { e = a / m; } else { var g = Math.pow(1 + r, m); e = a * r * g / (g - 1); }
+    return Math.round(e * 100) / 100;
   }
   function refresh() {
-    if (emi.value && emi.dataset.auto !== "1") return;
-    var v = work();
-    emi.value = v;
-    emi.dataset.auto = v ? "1" : "";
+    if (emi.value && emi.dataset.auto !== "1") { note.textContent = ""; return; }
+    var e = work();
+    emi.value = e === null ? "" : e.toFixed(2);
+    emi.dataset.auto = e === null ? "" : "1";
+    if (e === null) { note.textContent = ""; return; }
+    var total = Math.round(e * parseInt(months.value, 10) * 100) / 100, a = parseFloat(amount.value);
+    note.textContent = "Worked out from the interest rate and months. Total to repay " + total.toFixed(2) + (total - a >= 0.005 ? " (interest " + (Math.round((total - a) * 100) / 100).toFixed(2) + ")" : "");
   }
-  emi.addEventListener("input", function () { emi.dataset.auto = ""; });
+  emi.addEventListener("input", function () { emi.dataset.auto = ""; note.textContent = ""; });
   amount.addEventListener("input", refresh);
+  months.addEventListener("change", refresh);
   months.addEventListener("input", refresh);
+  if (rate) { rate.addEventListener("change", refresh); rate.addEventListener("input", refresh); }
   refresh();
 })();
 </script>
