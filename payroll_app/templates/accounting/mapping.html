@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}General Ledger Mapping &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">General Ledger Mapping</h1>
+  <p class="page-subtitle">Give each payroll head the ledger name (and code) used in your accounting software. Leave a name empty to use the default shown. Posted journals keep the names they were posted with.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="mapping" %}
+<form method="post">{% csrf_token %}
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Payroll head</th><th>Type</th><th>Ledger name</th><th>Ledger code</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td class="cell-title">{{ r.label }}</td><td class="text-sm">{{ r.type }}</td>
+      <td><input type="text" name="name_{{ r.head }}" value="{{ r.name }}" placeholder="{{ r.default }}" maxlength="100" style="min-width:240px;"></td>
+      <td><input type="text" name="code_{{ r.head }}" value="{{ r.code }}" maxlength="30" style="max-width:120px;"></td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<div class="toolbar"><div class="toolbar-spacer"></div><button class="btn btn-primary" type="submit">Save mapping</button></div></div>
+</form>
+{% endblock %}

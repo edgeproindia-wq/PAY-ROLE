@@ -174,15 +174,15 @@ STRUCTURE = """
   Settlement Statement|
   Payment Status|
 14|accounting-integration|Accounting Integration
-  Salary Expense Journal|
-  Salary Payable Entries|
-  Employer Contribution Entries|
-  Statutory Liability Entries|
-  Loan Recovery Entries|
-  Branch-Wise Cost Allocation|
-  General Ledger Mapping|
-  Accounting Export|
-  Reconciliation|
+  Salary Expense Journal|acc_journals
+  Salary Payable Entries|acc_payable
+  Employer Contribution Entries|acc_employer
+  Statutory Liability Entries|acc_statutory
+  Loan Recovery Entries|acc_loans
+  Branch-Wise Cost Allocation|acc_allocation
+  General Ledger Mapping|acc_mapping
+  Accounting Export|acc_export
+  Reconciliation|acc_reconcile
 15|reports-analytics|Payroll Reports & Analytics
   Monthly Payroll Register|
   Employee Salary Register|

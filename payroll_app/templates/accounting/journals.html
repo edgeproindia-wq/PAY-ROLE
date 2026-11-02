@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Salary Expense Journal &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Salary Expense Journal</h1>
+  <p class="page-subtitle">Post the accounting entry of a released payroll month. Debit: salary expense by department. Credit: salary payable and the deductions payable. A journal is posted only when it balances, and only once per month.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="journals" %}
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap">
+  {% if rows %}
+  <table>
+    <thead><tr><th>Month</th><th>Payslips</th><th>Earnings</th><th>Net pay</th><th>Journal</th><th class="no-print">Action</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="cell-title">{{ r.run.month }}</td><td>{{ r.n }}</td><td>&#8377;{{ r.earn }}</td><td>&#8377;{{ r.net }}</td>
+        <td>{% if r.entry %}<a href="{% url 'acc_journal_detail' r.entry.pk %}">{{ r.entry.voucher_no }}</a> <span class="badge badge-success">Posted</span>{% else %}<span class="badge badge-neutral">Not posted</span>{% endif %}</td>
+        <td class="no-print">{% if not r.entry %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="post"><input type="hidden" name="run_id" value="{{ r.run.pk }}"><button class="btn btn-primary btn-sm" type="submit">Post journal</button></form>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty-state"><div class="icon">&#128210;</div><div class="title">No released payroll yet</div><div class="desc">Release a payroll run first.</div></div>{% endif %}
+</div></div>
+<h3 style="margin:8px 0;">All journal entries</h3>
+<div class="card">
+  <form class="toolbar" method="get">
+    <select class="filter-select" name="status" onchange="this.form.submit()"><option value="">All status</option>{% for val, label in status_choices %}<option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <div class="search-box"><input type="text" name="q" value="{{ q }}" placeholder="Search voucher or month..."></div>
+    <button class="btn btn-outline btn-sm" type="submit">Search</button>
+  </form>
+  <div class="table-wrap">
+    {% if page.object_list %}
+    <table>
+      <thead><tr><th>Voucher</th><th>Type</th><th>Month</th><th>Date</th><th>Amount</th><th>Status</th><th>By</th></tr></thead>
+      <tbody>
+      {% for e in page.object_list %}
+        <tr><td class="cell-title"><a href="{% url 'acc_journal_detail' e.pk %}">{{ e.voucher_no }}</a></td><td>{{ e.get_kind_display }}</td><td>{{ e.payroll_run.month }}</td><td>{{ e.entry_date|date:"d M Y" }}</td>
+          <td>&#8377;{{ e.total_debit }}</td><td><span class="badge {% if e.status == 'POSTED' %}badge-success{% else %}badge-danger{% endif %}">{{ e.get_status_display }}</span></td><td class="text-sm">{{ e.created_by.username|default:"-" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty-state"><div class="desc">No journal entries yet.</div></div>{% endif %}
+  </div>
+  {% include "bank/_pager.html" %}
+</div>
+{% endblock %}

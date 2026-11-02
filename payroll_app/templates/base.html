@@ -407,7 +407,15 @@
       <div class="sb-group" data-group="accounting-integration">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4zM8 4v16"/></svg><span class="tx">Accounting Integration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
-          {% url 'module_accounting_integration' as u_s14_1 %}{% if u_s14_1 %}<a href="{{ u_s14_1 }}"><span class="tx">Overview</span></a>{% endif %}
+          {% url 'acc_journals' as u_s14_1 %}{% if u_s14_1 %}<a href="{{ u_s14_1 }}"><span class="tx">Salary Expense Journal</span></a>{% endif %}
+          {% url 'acc_payable' as u_s14_2 %}{% if u_s14_2 %}<a href="{{ u_s14_2 }}"><span class="tx">Salary Payable Entries</span></a>{% endif %}
+          {% url 'acc_employer' as u_s14_3 %}{% if u_s14_3 %}<a href="{{ u_s14_3 }}"><span class="tx">Employer Contribution Entries</span></a>{% endif %}
+          {% url 'acc_statutory' as u_s14_4 %}{% if u_s14_4 %}<a href="{{ u_s14_4 }}"><span class="tx">Statutory Liability Entries</span></a>{% endif %}
+          {% url 'acc_loans' as u_s14_5 %}{% if u_s14_5 %}<a href="{{ u_s14_5 }}"><span class="tx">Loan Recovery Entries</span></a>{% endif %}
+          {% url 'acc_allocation' as u_s14_6 %}{% if u_s14_6 %}<a href="{{ u_s14_6 }}"><span class="tx">Branch-Wise Cost Allocation</span></a>{% endif %}
+          {% url 'acc_mapping' as u_s14_7 %}{% if u_s14_7 %}<a href="{{ u_s14_7 }}"><span class="tx">General Ledger Mapping</span></a>{% endif %}
+          {% url 'acc_export' as u_s14_8 %}{% if u_s14_8 %}<a href="{{ u_s14_8 }}"><span class="tx">Accounting Export</span></a>{% endif %}
+          {% url 'acc_reconcile' as u_s14_9 %}{% if u_s14_9 %}<a href="{{ u_s14_9 }}"><span class="tx">Reconciliation</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="reports-analytics">

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.voucher_no }} &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ entry.voucher_no }}</h1>
+  <p class="page-subtitle">{{ entry.get_kind_display }} &middot; {{ entry.payroll_run.month }} &middot; {{ entry.entry_date|date:"d M Y" }} &middot;
+    <span class="badge {% if entry.status == 'POSTED' %}badge-success{% else %}badge-danger{% endif %}">{{ entry.get_status_display }}</span></p>
+</div>
+<div class="page-actions no-print"><button class="btn btn-outline" type="button" onclick="window.print()">Print / Save as PDF</button><a class="btn btn-outline" href="{% url 'acc_journals' %}">All journals</a></div></div>
+{% include "accounting/_tabs.html" with active="journals" %}
+<div class="card" style="padding:16px;margin-bottom:16px;"><div class="text-sm">
+  {{ entry.narration }}<br>Posted by <strong>{{ entry.created_by.username|default:"-" }}</strong> on {{ entry.created_at|date:"d M Y H:i" }}.
+  {% if entry.status == 'REVERSED' %}<br>Reversed by <strong>{{ entry.reversed_by.username|default:"-" }}</strong> on {{ entry.reversed_at|date:"d M Y H:i" }}: {{ entry.reverse_reason }}{% endif %}
+</div></div>
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap"><table>
+  <thead><tr><th>Ledger</th><th>Code</th><th>Department</th><th style="text-align:right;">Debit</th><th style="text-align:right;">Credit</th><th>Narration</th></tr></thead>
+  <tbody>
+  {% for l in lines %}<tr><td class="cell-title">{{ l.ledger_name }}</td><td class="text-sm">{{ l.ledger_code|default:"&mdash;" }}</td><td>{{ l.department|default:"&mdash;" }}</td>
+    <td style="text-align:right;">{% if l.debit %}&#8377;{{ l.debit }}{% endif %}</td><td style="text-align:right;">{% if l.credit %}&#8377;{{ l.credit }}{% endif %}</td><td class="text-sm">{{ l.narration }}</td></tr>{% endfor %}
+  <tr><td colspan="3"><strong>Total</strong></td><td style="text-align:right;"><strong>&#8377;{{ entry.total_debit }}</strong></td><td style="text-align:right;"><strong>&#8377;{{ entry.total_credit }}</strong></td><td></td></tr>
+  </tbody>
+</table></div></div>
+{% if entry.status == 'POSTED' %}
+<div class="card no-print" style="padding:16px;"><form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">{% csrf_token %}
+  <input type="text" name="reason" placeholder="Reason for reversing" maxlength="255" required style="min-width:260px;">
+  <button class="btn btn-danger" type="submit">Reverse this entry</button>
+  <span class="text-sm text-muted">Reversing removes it from exports and lets the month or payments be posted again.</span>
+</form></div>
+{% endif %}
+{% endblock %}

@@ -65,8 +65,8 @@ class OverviewPageTests(TestCase):
 
     def test_an_empty_section_overview_lists_every_planned_feature(self):
         self.client.force_login(self.owner)
-        r = self.client.get(self.url('accounting-integration'))
-        for label in ('Salary Expense Journal', 'General Ledger Mapping', 'Accounting Export'):
+        r = self.client.get(self.url('approvals'))                  # accounting now has pages, so this uses a section that has none yet
+        for label in ('Payroll Maker', 'Payroll Checker', 'Payment Authorisation'):
             self.assertContains(r, label)
         self.assertNotContains(r, 'Open first page')                # nothing is built yet: no button to open
 

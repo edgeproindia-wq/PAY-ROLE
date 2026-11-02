@@ -220,3 +220,7 @@ urlpatterns += _sp.urlpatterns
 # ---- Advanced bank payments: validation, batches, approval, files, reconciliation, audit trail ----
 from . import bank_batches as _bb  # noqa: E402
 urlpatterns += _bb.urlpatterns
+
+# ---- Accounting Integration: journals, payment entries, ledger mapping, export, reconciliation ----
+from . import accounting as _acc  # noqa: E402
+urlpatterns += _acc.urlpatterns

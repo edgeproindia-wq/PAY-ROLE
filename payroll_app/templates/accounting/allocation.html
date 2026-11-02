@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Cost Allocation &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Branch-Wise Cost Allocation</h1>
+  <p class="page-subtitle">Salary cost split by department for a released month. Employees do not have a branch field yet, so the split is by department; the salary journal posts one expense line per department.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="allocation" %}
+<div class="card" style="margin-bottom:16px;"><form class="toolbar" method="get">
+  <select class="filter-select" name="run" onchange="this.form.submit()"><option value="">Choose released month...</option>{% for r in runs %}<option value="{{ r.pk }}" {% if run.pk == r.pk %}selected{% endif %}>{{ r.month }}</option>{% endfor %}</select>
+</form></div>
+{% if run %}
+<div class="card"><div class="table-wrap">
+  {% if rows %}<table><thead><tr><th>Department</th><th>Employees</th><th>Salary cost</th><th>Share</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="cell-title">{{ r.dept }}</td><td>{{ r.count }}</td><td>&#8377;{{ r.earnings }}</td><td>{{ r.share }}%</td></tr>{% endfor %}
+    <tr><td><strong>Total</strong></td><td></td><td><strong>&#8377;{{ total }}</strong></td><td></td></tr></tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No payslips in this month.</div></div>{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Accounting Reconciliation &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Reconciliation</h1>
+  <p class="page-subtitle">Payroll against the books and the bank, month by month. {% if attention %}<strong>{{ attention }} month(s) need attention.</strong>{% else %}Nothing needs attention.{% endif %}</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="reconcile" %}
+<div class="card"><div class="table-wrap">
+  {% if rows %}
+  <table><thead><tr><th>Month</th><th>Payroll net pay</th><th>Salary payable posted</th><th>Paid by bank</th><th>Paid payments posted</th><th>Outstanding</th><th>State</th><th class="no-print"></th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="cell-title">{{ r.run.month }}</td><td>&#8377;{{ r.net }}</td><td>{% if r.payable is not None %}&#8377;{{ r.payable }}{% else %}&mdash;{% endif %}</td>
+      <td>&#8377;{{ r.paid_bank }}</td><td>&#8377;{{ r.paid_posted }}</td><td>{% if r.outstanding is not None %}&#8377;{{ r.outstanding }}{% else %}&mdash;{% endif %}</td>
+      <td><span class="badge {{ r.tone }}">{{ r.state }}</span></td>
+      <td class="no-print">{% if r.salary %}<a class="btn btn-outline btn-sm" href="{% url 'acc_journal_detail' r.salary.pk %}">Journal</a>{% endif %}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No released payroll yet.</div></div>{% endif %}
+</div></div>
+{% endblock %}

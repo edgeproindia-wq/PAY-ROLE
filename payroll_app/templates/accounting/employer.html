@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Employer Contribution Entries &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Employer Contribution Entries</h1>
+  <p class="page-subtitle">The employer's PF and ESI share is an extra cost and an extra liability. It is not part of net pay. It is worked out from the employee amounts using the percentages below, so set them to what your company actually pays.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="employer" %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <form method="post" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">{% csrf_token %}
+    <label class="text-sm">Employer PF %<br><input type="number" step="0.01" min="0" max="100" name="employer_pf_percent" value="{{ acc.employer_pf_percent|default:'0' }}"></label>
+    <label class="text-sm">Employer ESI %<br><input type="number" step="0.01" min="0" max="100" name="employer_esi_percent" value="{{ acc.employer_esi_percent|default:'0' }}"></label>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+  <p class="text-sm text-muted" style="margin-top:8px;">With 0 no employer entry is made. The percentages apply to journals posted from now on.</p>
+</div>
+<div class="card"><div class="table-wrap">
+  {% if rows %}
+  <table><thead><tr><th>Month</th><th>Payslips</th><th>Employer PF</th><th>Employer ESI</th><th>Total</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="cell-title">{{ r.run.month }}</td><td>{{ r.count }}</td><td>&#8377;{{ r.pf }}</td><td>&#8377;{{ r.esi }}</td><td style="font-weight:700;">&#8377;{{ r.pf|add:r.esi }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No released payroll yet.</div></div>{% endif %}
+</div></div>
+{% endblock %}

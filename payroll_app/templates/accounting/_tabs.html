@@ -1,0 +1,11 @@
+<div class="tabs no-print" style="margin-bottom:20px;border:none;flex-wrap:wrap;">
+  <a href="{% url 'acc_journals' %}" class="tab {% if active == 'journals' %}active{% endif %}">Salary Journal</a>
+  <a href="{% url 'acc_payable' %}" class="tab {% if active == 'payable' %}active{% endif %}">Salary Payable</a>
+  <a href="{% url 'acc_employer' %}" class="tab {% if active == 'employer' %}active{% endif %}">Employer Contributions</a>
+  <a href="{% url 'acc_statutory' %}" class="tab {% if active == 'statutory' %}active{% endif %}">Statutory Liabilities</a>
+  <a href="{% url 'acc_loans' %}" class="tab {% if active == 'loans' %}active{% endif %}">Loan Recovery</a>
+  <a href="{% url 'acc_allocation' %}" class="tab {% if active == 'allocation' %}active{% endif %}">Cost Allocation</a>
+  <a href="{% url 'acc_mapping' %}" class="tab {% if active == 'mapping' %}active{% endif %}">Ledger Mapping</a>
+  <a href="{% url 'acc_export' %}" class="tab {% if active == 'export' %}active{% endif %}">Export</a>
+  <a href="{% url 'acc_reconcile' %}" class="tab {% if active == 'reconcile' %}active{% endif %}">Reconciliation</a>
+</div>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Statutory Liability Entries &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Statutory Liability Entries</h1>
+  <p class="page-subtitle">What the company owes to the authorities for each released month: PF and ESI (employee plus employer share), TDS and professional tax.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="statutory" %}
+<div class="card"><div class="table-wrap">
+  {% if rows %}
+  <table><thead><tr><th>Month</th><th>PF</th><th>ESI</th><th>TDS</th><th>Professional tax</th><th>Total</th><th>Journal</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="cell-title">{{ r.run.month }}</td><td>&#8377;{{ r.pf }}</td><td>&#8377;{{ r.esi }}</td><td>&#8377;{{ r.tds }}</td><td>&#8377;{{ r.pt }}</td><td style="font-weight:700;">&#8377;{{ r.total }}</td>
+      <td>{% if r.posted %}<a href="{% url 'acc_journal_detail' r.posted.pk %}">{{ r.posted.voucher_no }}</a>{% else %}<span class="badge badge-neutral">Not posted</span>{% endif %}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No released payroll yet.</div></div>{% endif %}
+</div></div>
+{% endblock %}

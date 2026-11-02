@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Loan Recovery Entries &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Loan Recovery Entries</h1>
+  <p class="page-subtitle">Loan instalments and insurance premiums recovered from salary each month. The loan recovery is credited to the employee loans ledger.</p>
+</div></div>
+{% include "accounting/_tabs.html" with active="loans" %}
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap">
+  {% if rows %}
+  <table><thead><tr><th>Month</th><th>Loan recovery</th><th>Insurance recovery</th><th>Employees with a loan deduction</th><th class="no-print"></th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="cell-title">{{ r.run.month }}</td><td>&#8377;{{ r.loan }}</td><td>&#8377;{{ r.insurance }}</td><td>{{ r.people }}</td><td class="no-print"><a class="btn btn-outline btn-sm" href="?run={{ r.run.pk }}">Who</a></td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No released payroll yet.</div></div>{% endif %}
+</div></div>
+{% if run %}
+<h3 style="margin:8px 0;">Recoveries in {{ run.month }}</h3>
+<div class="card"><div class="table-wrap">
+  {% if people %}<table><thead><tr><th>Employee</th><th>Loan recovery</th><th>Insurance recovery</th></tr></thead>
+    <tbody>{% for p in people %}<tr><td class="cell-title">{{ p.emp.full_name }} <span class="text-sm text-muted">{{ p.emp.employee_code }}</span></td><td>&#8377;{{ p.loan }}</td><td>&#8377;{{ p.insurance }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No loan recoveries in this month.</div></div>{% endif %}
+</div></div>
+{% endif %}
+{% endblock %}
