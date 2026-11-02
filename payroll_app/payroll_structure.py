@@ -255,16 +255,16 @@ STRUCTURE = """
   Raise Complaint|client_complaints|owner
   Raise Request|client_requests|owner
 20|hrms-integration|HRMS & External System Integration
-  Employee Master Synchronisation|
-  Attendance Import|
-  Leave Data Import|
+  Employee Master Synchronisation|hrms_employee_sync
+  Attendance Import|hrms_attendance_import
+  Leave Data Import|hrms_leave_import
   Approved Salary Revision Import|
-  Employee Joining / Exit Updates|
-  Biometric Integration|
-  Accounting Software Integration|
-  Bank Integration|
-  Email Integration|
-  Secure API / CSV / Excel Integration|
+  Employee Joining / Exit Updates|hrms_joining_exit
+  Biometric Integration|hrms_biometric
+  Accounting Software Integration|hrms_accounting_sw
+  Bank Integration|hrms_bank
+  Email Integration|hrms_email
+  Secure API / CSV / Excel Integration|hrms_import_center
 """
 
 

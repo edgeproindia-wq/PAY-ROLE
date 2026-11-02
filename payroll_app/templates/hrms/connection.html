@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ info.title }} &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ info.title }}</h1>
+  <p class="page-subtitle">{{ info.summary }}</p>
+</div></div>
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <p><span class="badge {{ info.tone }}">{{ info.state }}</span>{% if info.status_note %} <span class="text-sm">{{ info.status_note }}</span>{% endif %}</p>
+  {% if info.status_rows %}
+  <div class="table-wrap" style="margin-top:10px;"><table><tbody>{% for k, v in info.status_rows %}<tr><td class="cell-title">{{ k }}</td><td class="text-sm">{{ v }}</td></tr>{% endfor %}</tbody></table></div>
+  <form method="post" style="margin-top:12px;">{% csrf_token %}<button class="btn btn-primary" type="submit">Send a test email to my address</button></form>
+  {% endif %}
+</div>
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <strong>What you can do today</strong>
+  <ul class="text-sm" style="margin:8px 0 0 18px;">{% for t in info.today %}<li>{{ t }}</li>{% endfor %}</ul>
+  {% if info.links %}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">{% for label, url in info.links %}<a class="btn btn-outline btn-sm" href="{{ url }}">{{ label }}</a>{% endfor %}</div>{% endif %}
+</div>
+<div class="card" style="padding:16px;"><strong>What is not available</strong><p class="text-sm" style="margin-top:6px;">{{ info.needs }}</p></div>
+{% endblock %}

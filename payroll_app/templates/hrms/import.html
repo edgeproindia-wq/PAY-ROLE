@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ sp.title }} &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ sp.title }}</h1>
+  <p class="page-subtitle">{{ sp.description }}</p>
+</div>
+<div class="page-actions no-print"><a class="btn btn-outline" href="{% url sp.name|add:'_template' %}">Download template</a><a class="btn btn-outline" href="{% url 'hrms_import_center' %}">All imports</a></div></div>
+{% if preview %}
+<div class="kpi-row">
+  <div class="kpi-card"><div class="label">Will be saved</div><div class="value">{{ preview.ok }}</div></div>
+  <div class="kpi-card"><div class="label">Errors (not saved)</div><div class="value">{{ preview.error }}</div></div>
+  <div class="kpi-card"><div class="label">No change / skipped</div><div class="value">{{ preview.skip }}</div></div>
+  <div class="kpi-card"><div class="label">With a warning</div><div class="value">{{ preview.warn }}</div></div>
+</div>
+<div class="card" style="margin-bottom:16px;">
+  <div class="toolbar">
+    <span class="text-sm">File: <strong>{{ preview.name }}</strong> &middot; {{ preview.total }} row{{ preview.total|pluralize }}. Confirm within {{ preview.minutes }} minutes. Nothing is saved yet.</span>
+    <div class="toolbar-spacer"></div>
+    <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="step" value="discard"><button class="btn btn-outline" type="submit">Discard</button></form>
+    {% if preview.ok %}<form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="step" value="confirm"><button class="btn btn-primary" type="submit">Confirm and save {{ preview.ok }} row{{ preview.ok|pluralize }}</button></form>{% endif %}
+  </div>
+  {% if preview.total > preview.shown %}<p class="text-sm text-muted" style="padding:0 16px;">Showing the first {{ preview.shown }} rows. Every row is checked and saved, not only these.</p>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Row</th><th>Employee</th><th>Result</th><th>What will happen</th></tr></thead>
+    <tbody>
+    {% for r in preview.rows %}
+      <tr>
+        <td>{{ r.n }}</td><td class="text-sm">{{ r.who }}</td>
+        <td><span class="badge {% if r.outcome == 'error' %}badge-danger{% elif r.outcome == 'skip' %}badge-neutral{% elif r.warnings %}badge-warn{% else %}badge-success{% endif %}">{% if r.outcome == 'error' %}Error{% elif r.outcome == 'skip' %}Skipped{% elif r.warnings %}Warning{% else %}OK{% endif %}</span></td>
+        <td class="text-sm">{{ r.summary }}{% for e in r.errors %}<span class="text-sm" style="color:#b91c1c;">{{ e }}</span><br>{% endfor %}{% for w in r.warnings %}<br><span class="text-sm" style="color:#b45309;">{{ w }}</span>{% endfor %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <form method="post" enctype="multipart/form-data" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">{% csrf_token %}
+    <input type="hidden" name="step" value="upload">
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    {% for field, label in sp.options %}<label class="text-sm"><input type="checkbox" name="{{ field }}" value="1"> {{ label }}</label>{% endfor %}
+    <button class="btn btn-primary" type="submit">Upload and preview</button>
+  </form>
+  <p class="text-sm text-muted" style="margin-top:10px;">.csv or .xlsx, up to 2 MB and {{ max_rows }} rows. You see every change first, and nothing is saved until you confirm.</p>
+</div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Column</th><th>Needed</th><th>Other names that are understood</th></tr></thead>
+  <tbody>{% for field, label, required, aliases in columns %}<tr><td class="cell-title">{{ label }}</td><td>{% if required %}<span class="badge badge-warn">Required</span>{% else %}Optional{% endif %}</td><td class="text-sm text-muted">{{ aliases|join:", " }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% if sp.notes %}<ul class="text-sm" style="margin:12px 0 0 18px;">{% for n in sp.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+{% endif %}
+{% endblock %}

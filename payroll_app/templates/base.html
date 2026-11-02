@@ -476,7 +476,15 @@
       <div class="sb-group" data-group="hrms-integration">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="tx">HRMS &amp; External System Integration</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
-          {% url 'module_hrms_integration' as u_s20_1 %}{% if u_s20_1 %}<a href="{{ u_s20_1 }}"><span class="tx">Overview</span></a>{% endif %}
+          {% url 'hrms_employee_sync' as u_s20_1 %}{% if u_s20_1 %}<a href="{{ u_s20_1 }}"><span class="tx">Employee Master Synchronisation</span></a>{% endif %}
+          {% url 'hrms_attendance_import' as u_s20_2 %}{% if u_s20_2 %}<a href="{{ u_s20_2 }}"><span class="tx">Attendance Import</span></a>{% endif %}
+          {% url 'hrms_leave_import' as u_s20_3 %}{% if u_s20_3 %}<a href="{{ u_s20_3 }}"><span class="tx">Leave Data Import</span></a>{% endif %}
+          {% url 'hrms_joining_exit' as u_s20_4 %}{% if u_s20_4 %}<a href="{{ u_s20_4 }}"><span class="tx">Employee Joining / Exit Updates</span></a>{% endif %}
+          {% url 'hrms_biometric' as u_s20_5 %}{% if u_s20_5 %}<a href="{{ u_s20_5 }}"><span class="tx">Biometric Integration</span></a>{% endif %}
+          {% url 'hrms_accounting_sw' as u_s20_6 %}{% if u_s20_6 %}<a href="{{ u_s20_6 }}"><span class="tx">Accounting Software Integration</span></a>{% endif %}
+          {% url 'hrms_bank' as u_s20_7 %}{% if u_s20_7 %}<a href="{{ u_s20_7 }}"><span class="tx">Bank Integration</span></a>{% endif %}
+          {% url 'hrms_email' as u_s20_8 %}{% if u_s20_8 %}<a href="{{ u_s20_8 }}"><span class="tx">Email Integration</span></a>{% endif %}
+          {% url 'hrms_import_center' as u_s20_9 %}{% if u_s20_9 %}<a href="{{ u_s20_9 }}"><span class="tx">Secure API / CSV / Excel Integration</span></a>{% endif %}
         </div>
       </div>
     {% endif %}

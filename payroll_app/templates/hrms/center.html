@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Secure API / CSV / Excel Integration &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Secure API / CSV / Excel Integration</h1>
+  <p class="page-subtitle">Every file import in one place. Each one shows what will change before anything is saved, and is recorded in the audit log. Bank, PAN and Aadhaar numbers are not imported here.</p>
+</div></div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Import</th><th>What it does</th><th class="no-print">Open</th></tr></thead>
+  <tbody>{% for i in items %}<tr><td class="cell-title"><a href="{{ i.url }}">{{ i.title }}</a></td><td class="text-sm">{{ i.description }}</td>
+    <td class="no-print"><a class="btn btn-outline btn-sm" href="{{ i.url }}">Open</a>{% if i.template %} <a class="btn btn-outline btn-sm" href="{{ i.template }}">Template</a>{% endif %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<div class="card" style="padding:16px;margin-top:16px;"><strong>API access</strong><p class="text-sm" style="margin-top:6px;">There is no API with access keys yet. Data comes in through the files above. Approved Salary Revision Import is planned and is not available yet.</p></div>
+{% endblock %}
