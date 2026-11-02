@@ -9,6 +9,38 @@
     <p class="page-subtitle">Daily attendance records per employee</p>
   </div>
   <div class="page-actions">
+<span class="no-print" id="attRefreshWrap" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;margin-right:8px;">
+  <button type="button" class="btn btn-outline btn-sm" id="attRefreshBtn" title="Reload the attendance records">&#8635; Refresh</button>
+  <label class="text-sm" style="display:inline-flex;gap:4px;align-items:center;cursor:pointer;"><input type="checkbox" id="attAutoBox"> Auto-refresh every minute</label>
+  <span class="text-sm text-muted" id="attStamp"></span>
+</span>
+<script>/* attendance-refresh: a Refresh button, an optional once-a-minute refresh, and the time of the last update */
+(function () {
+  var btn = document.getElementById("attRefreshBtn"), box = document.getElementById("attAutoBox"), stamp = document.getElementById("attStamp");
+  if (!btn || !box) return;
+  var KEY = "attendanceAutoRefresh", SECONDS = parseInt(box.getAttribute("data-seconds") || "60", 10), timer = null;
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  var d = new Date();
+  stamp.textContent = "Updated " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  function reload() { window.location.reload(); }
+  function busy() {
+    var a = document.activeElement;
+    return !!(a && (a.tagName === "INPUT" || a.tagName === "SELECT" || a.tagName === "TEXTAREA") && a !== box);
+  }
+  function tick() { if (!document.hidden && !busy()) reload(); }
+  function apply() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (box.checked) timer = setInterval(tick, SECONDS * 1000);
+  }
+  try { box.checked = window.localStorage.getItem(KEY) === "1"; } catch (e) {}
+  box.addEventListener("change", function () {
+    try { window.localStorage.setItem(KEY, box.checked ? "1" : "0"); } catch (e) {}
+    apply();
+  });
+  btn.addEventListener("click", reload);
+  apply();
+})();
+</script>
     {% if is_employee_role %}
       {% if not today_record.check_in %}
       <form method="post" action="{% url 'attendance_check' 'in' %}" style="display:inline;">{% csrf_token %}<button class="btn btn-success" type="submit">&#9201; Check In</button></form>
