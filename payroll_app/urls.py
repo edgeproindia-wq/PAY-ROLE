@@ -224,3 +224,7 @@ urlpatterns += _bb.urlpatterns
 # ---- Accounting Integration: journals, payment entries, ledger mapping, export, reconciliation ----
 from . import accounting as _acc  # noqa: E402
 urlpatterns += _acc.urlpatterns
+
+# ---- Payroll Reports & Analytics: 20 reports and the export centre (read-only) ----
+from . import reports as _rep  # noqa: E402
+urlpatterns += _rep.urlpatterns

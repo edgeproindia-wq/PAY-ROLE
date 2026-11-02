@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Excel / PDF / CSV Export &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Excel / PDF / CSV Export</h1>
+  <p class="page-subtitle">Every payroll report in one place. Choose the month, then download a report as CSV or Excel. For a PDF, open the report and use Print / Save as PDF.</p>
+</div></div>
+<div class="card" style="margin-bottom:16px;"><form class="toolbar" method="get">
+  <select class="filter-select" name="run" onchange="this.form.submit()">{% for r in runs %}<option value="{{ r.pk }}" {% if run.pk == r.pk %}selected{% endif %}>{{ r.month }} ({{ r.get_status_display }})</option>{% endfor %}</select>
+</form></div>
+<div class="card"><div class="table-wrap">
+  <table>
+    <thead><tr><th>Report</th><th>What it shows</th><th class="no-print">Download</th></tr></thead>
+    <tbody>
+    {% for i in items %}
+      <tr>
+        <td class="cell-title"><a href="{% url i.name %}{% if run and i.run_based %}?run={{ run.pk }}{% endif %}">{{ i.title }}</a></td>
+        <td class="text-sm">{{ i.description }}</td>
+        <td class="no-print">{% if i.employee_based %}<span class="text-sm text-muted">Choose an employee first</span>{% else %}
+          <a class="btn btn-outline btn-sm" href="{% url i.name %}?{% if run and i.run_based %}run={{ run.pk }}&amp;{% endif %}export=csv">CSV</a>
+          <a class="btn btn-outline btn-sm" href="{% url i.name %}?{% if run and i.run_based %}run={{ run.pk }}&amp;{% endif %}export=xlsx">Excel</a>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

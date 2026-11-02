@@ -421,6 +421,27 @@
       <div class="sb-group" data-group="reports-analytics">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tx">Payroll Reports &amp; Analytics</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
+          {% url 'rep_monthly_register' as u_s15_r1 %}{% if u_s15_r1 %}<a href="{{ u_s15_r1 }}"><span class="tx">Monthly Payroll Register</span></a>{% endif %}
+          {% url 'rep_employee_register' as u_s15_r2 %}{% if u_s15_r2 %}<a href="{{ u_s15_r2 }}"><span class="tx">Employee Salary Register</span></a>{% endif %}
+          {% url 'rep_branch_wise' as u_s15_r3 %}{% if u_s15_r3 %}<a href="{{ u_s15_r3 }}"><span class="tx">Branch-Wise Payroll</span></a>{% endif %}
+          {% url 'rep_department_wise' as u_s15_r4 %}{% if u_s15_r4 %}<a href="{{ u_s15_r4 }}"><span class="tx">Department-Wise Payroll</span></a>{% endif %}
+          {% url 'rep_ctc' as u_s15_r5 %}{% if u_s15_r5 %}<a href="{{ u_s15_r5 }}"><span class="tx">CTC Report</span></a>{% endif %}
+          {% url 'rep_gross' as u_s15_r6 %}{% if u_s15_r6 %}<a href="{{ u_s15_r6 }}"><span class="tx">Gross Salary Report</span></a>{% endif %}
+          {% url 'rep_net' as u_s15_r7 %}{% if u_s15_r7 %}<a href="{{ u_s15_r7 }}"><span class="tx">Net Salary Report</span></a>{% endif %}
+          {% url 'rep_earnings_deductions' as u_s15_r8 %}{% if u_s15_r8 %}<a href="{{ u_s15_r8 }}"><span class="tx">Earnings &amp; Deductions Report</span></a>{% endif %}
+          {% url 'rep_pf' as u_s15_r9 %}{% if u_s15_r9 %}<a href="{{ u_s15_r9 }}"><span class="tx">PF Report</span></a>{% endif %}
+          {% url 'rep_esi' as u_s15_r10 %}{% if u_s15_r10 %}<a href="{{ u_s15_r10 }}"><span class="tx">ESI Report</span></a>{% endif %}
+          {% url 'rep_pt' as u_s15_r11 %}{% if u_s15_r11 %}<a href="{{ u_s15_r11 }}"><span class="tx">PT Report</span></a>{% endif %}
+          {% url 'rep_tds' as u_s15_r12 %}{% if u_s15_r12 %}<a href="{{ u_s15_r12 }}"><span class="tx">TDS Report</span></a>{% endif %}
+          {% url 'rep_lop' as u_s15_r13 %}{% if u_s15_r13 %}<a href="{{ u_s15_r13 }}"><span class="tx">LOP Report</span></a>{% endif %}
+          {% url 'rep_overtime' as u_s15_r14 %}{% if u_s15_r14 %}<a href="{{ u_s15_r14 }}"><span class="tx">Overtime Report</span></a>{% endif %}
+          {% url 'rep_arrears' as u_s15_r15 %}{% if u_s15_r15 %}<a href="{{ u_s15_r15 }}"><span class="tx">Arrears Report</span></a>{% endif %}
+          {% url 'rep_loan_recovery' as u_s15_r16 %}{% if u_s15_r16 %}<a href="{{ u_s15_r16 }}"><span class="tx">Loan Recovery Report</span></a>{% endif %}
+          {% url 'rep_ff' as u_s15_r17 %}{% if u_s15_r17 %}<a href="{{ u_s15_r17 }}"><span class="tx">F&amp;F Settlement Report</span></a>{% endif %}
+          {% url 'rep_bank_payment' as u_s15_r18 %}{% if u_s15_r18 %}<a href="{{ u_s15_r18 }}"><span class="tx">Bank Payment Report</span></a>{% endif %}
+          {% url 'rep_variance' as u_s15_r19 %}{% if u_s15_r19 %}<a href="{{ u_s15_r19 }}"><span class="tx">Payroll Variance Report</span></a>{% endif %}
+          {% url 'rep_cost_trend' as u_s15_r20 %}{% if u_s15_r20 %}<a href="{{ u_s15_r20 }}"><span class="tx">Payroll Cost Trend</span></a>{% endif %}
+          {% url 'rep_export_center' as u_s15_r21 %}{% if u_s15_r21 %}<a href="{{ u_s15_r21 }}"><span class="tx">Excel / PDF / CSV Export</span></a>{% endif %}
           {% url 'reports_analytics' as u_s15_1 %}{% if u_s15_1 %}<a href="{{ u_s15_1 }}"><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
         </div>
       </div>

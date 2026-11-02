@@ -184,27 +184,27 @@ STRUCTURE = """
   Accounting Export|acc_export
   Reconciliation|acc_reconcile
 15|reports-analytics|Payroll Reports & Analytics
-  Monthly Payroll Register|
-  Employee Salary Register|
-  Branch-Wise Payroll|
-  Department-Wise Payroll|
-  CTC Report|
-  Gross Salary Report|
-  Net Salary Report|
-  Earnings & Deductions Report|
-  PF Report|
-  ESI Report|
-  PT Report|
-  TDS Report|
-  LOP Report|
-  Overtime Report|
-  Arrears Report|
-  Loan Recovery Report|
-  F&F Settlement Report|
-  Bank Payment Report|
-  Payroll Variance Report|
-  Payroll Cost Trend|
-  Excel / PDF / CSV Export|
+  Monthly Payroll Register|rep_monthly_register
+  Employee Salary Register|rep_employee_register
+  Branch-Wise Payroll|rep_branch_wise
+  Department-Wise Payroll|rep_department_wise
+  CTC Report|rep_ctc
+  Gross Salary Report|rep_gross
+  Net Salary Report|rep_net
+  Earnings & Deductions Report|rep_earnings_deductions
+  PF Report|rep_pf
+  ESI Report|rep_esi
+  PT Report|rep_pt
+  TDS Report|rep_tds
+  LOP Report|rep_lop
+  Overtime Report|rep_overtime
+  Arrears Report|rep_arrears
+  Loan Recovery Report|rep_loan_recovery
+  F&F Settlement Report|rep_ff
+  Bank Payment Report|rep_bank_payment
+  Payroll Variance Report|rep_variance
+  Payroll Cost Trend|rep_cost_trend
+  Excel / PDF / CSV Export|rep_export_center
   Reports & Analytics|reports_analytics
 16|approvals|Approval & Workflow Management
   Payroll Maker|

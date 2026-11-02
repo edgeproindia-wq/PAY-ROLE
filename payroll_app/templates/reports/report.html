@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ spec.title }} &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ spec.title }}</h1>
+  <p class="page-subtitle">{{ spec.description }}{% if run and show_run %} &middot; <strong>{{ run.month }}</strong> ({{ run.get_status_display }}){% endif %}</p>
+</div>
+<div class="page-actions no-print">
+  <a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=csv">Export CSV</a>
+  <a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=xlsx">Export Excel</a>
+  <button class="btn btn-outline" type="button" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn btn-outline" href="{% url 'rep_export_center' %}">All reports</a>
+</div></div>
+{% if show_run or employees %}
+<div class="card no-print" style="margin-bottom:16px;"><form class="toolbar" method="get">
+  {% if show_run %}<select class="filter-select" name="run" onchange="this.form.submit()">{% for r in runs %}<option value="{{ r.pk }}" {% if run.pk == r.pk %}selected{% endif %}>{{ r.month }} ({{ r.get_status_display }})</option>{% endfor %}</select>{% endif %}
+  {% if employees %}<select class="filter-select" name="employee" onchange="this.form.submit()"><option value="">Choose employee...</option>{% for e in employees %}<option value="{{ e.pk }}" {% if employee.pk == e.pk %}selected{% endif %}>{{ e.employee_code }} {{ e.first_name }} {{ e.last_name }}</option>{% endfor %}</select>{% endif %}
+  <noscript><button class="btn btn-outline btn-sm" type="submit">Show</button></noscript>
+</form></div>
+{% endif %}
+{% for n in notes %}<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm text-muted">{{ n }}</span></div>{% endfor %}
+<div class="card"><div class="table-wrap">
+  {% if table %}
+  <table>
+    <thead><tr>{% for label, right in cols %}<th {% if right %}style="text-align:right;"{% endif %}>{{ label }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in table %}<tr>{% for text, right in row %}<td {% if right %}style="text-align:right;"{% endif %}>{{ text }}</td>{% endfor %}</tr>{% endfor %}
+    </tbody>
+    {% if totals %}<tfoot><tr>{% for text, right in totals %}<td {% if right %}style="text-align:right;"{% endif %}><strong>{{ text }}</strong></td>{% endfor %}</tr></tfoot>{% endif %}
+  </table>
+  {% else %}
+  <div class="empty-state"><div class="icon">&#128202;</div><div class="title">Nothing to show</div><div class="desc">{% if not runs and show_run %}There is no payroll month yet.{% else %}No rows for this selection.{% endif %}</div></div>
+  {% endif %}
+</div>
+{% include "bank/_pager.html" %}
+</div>
+{% endblock %}
