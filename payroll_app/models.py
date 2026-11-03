@@ -742,3 +742,4 @@ from .salary_history_models import SalaryRevision  # noqa: E402,F401
 from . import salary_history  # noqa: E402,F401
 from .bank_batch_models import BankBatch, BankBatchItem  # noqa: E402,F401
 from .accounting_models import AccountingSettings, JournalEntry, JournalLine, JournalPaymentLink, LedgerMapping  # noqa: E402,F401
+from .biometric_models import BiometricDevice, BiometricIdMap, BiometricPunch  # noqa: E402,F401

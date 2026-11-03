@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Biometric Integration &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Biometric Integration</h1>
+  <p class="page-subtitle">A small sync program on your office server reads the punches from the machine and sends them here with a secret key. Check-in and check-out then fill in by themselves. Nothing on your device is opened to the internet.</p>
+</div>
+<div class="page-actions no-print"><a class="btn btn-outline" href="{% url 'bio_punches' %}">Punch log</a><a class="btn btn-outline" href="{% url 'hrms_attendance_import' %}">Attendance import (file)</a></div></div>
+
+<div class="card" style="padding:12px 16px;margin-bottom:16px;"><span class="text-sm">Website address for the sync program: <code>{{ endpoint }}</code></span></div>
+
+{% if new_key %}
+<div class="card" style="padding:16px;margin-bottom:16px;border:2px solid #b45309;">
+  <strong>Copy this key now. It is shown only once and cannot be read back later.</strong>
+  <p class="text-sm" style="margin:8px 0;">Website address: <code>{{ endpoint }}</code></p>
+  <p class="text-sm" style="margin:8px 0;">Device key: <code id="newKey" style="user-select:all;">{{ new_key }}</code></p>
+  <p class="text-sm text-muted">Put the key and the address in the sync program's config file on your server. If you lose the key, revoke the device below and add it again.</p>
+</div>
+{% endif %}
+
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap">
+  <table>
+    <thead><tr><th>Device</th><th>Key starts with</th><th>Status</th><th>Last contact</th><th>Punches in 24 hours</th><th class="no-print"></th></tr></thead>
+    <tbody>
+    {% for d in devices %}
+      <tr>
+        <td class="cell-title">{{ d.name }}</td><td class="text-sm"><code>{{ d.key_prefix }}...</code></td>
+        <td>{% if not d.active %}<span class="badge badge-danger">Revoked</span>{% elif d.connected %}<span class="badge badge-success">Connected</span>{% elif d.last_seen %}<span class="badge badge-warn">Not heard from for a while</span>{% else %}<span class="badge badge-neutral">Never connected</span>{% endif %}</td>
+        <td class="text-sm">{% if d.last_seen %}{{ d.last_seen|date:"d M Y H:i" }} ({{ d.last_batch }} punch{{ d.last_batch|pluralize:"es" }}){% else %}&mdash;{% endif %}</td>
+        <td>{{ d.recent }}</td>
+        <td class="no-print">{% if d.active %}<form method="post" onsubmit="return confirm('Revoke this key? The sync program using it will stop working.');">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="device" value="{{ d.pk }}"><button class="btn btn-outline btn-sm" type="submit">Revoke key</button></form>{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6"><div class="empty-state"><div class="title">No device yet</div><div class="desc">Add one below to get a key for the sync program.</div></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<form method="post" class="toolbar no-print">{% csrf_token %}<input type="hidden" name="action" value="add_device">
+  <input type="text" name="name" maxlength="80" placeholder="Device name, e.g. Main office" required style="min-width:260px;">
+  <button class="btn btn-primary" type="submit">Add device and create key</button>
+</form></div>
+
+{% if unmapped %}
+<h3 style="margin:8px 0;">Punches waiting: {{ waiting_total }} punch{{ waiting_total|pluralize:"es" }} from numbers that are not matched to an employee</h3>
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap">
+  <table>
+    <thead><tr><th>Number on the device</th><th>Punches</th><th>Suggested employee</th><th class="no-print">Match to an employee</th></tr></thead>
+    <tbody>
+    {% for u in unmapped %}
+      <tr><td class="cell-title">{{ u.device_user_id }}</td><td>{{ u.n }}</td><td class="text-sm">{% if u.suggest %}{{ u.suggest.employee_code }} {{ u.suggest.full_name }}{% else %}&mdash;{% endif %}</td>
+        <td class="no-print"><form method="post" style="display:flex;gap:6px;">{% csrf_token %}<input type="hidden" name="action" value="map"><input type="hidden" name="device_user_id" value="{{ u.device_user_id }}">
+          <select name="employee" class="filter-select" required><option value="">Choose...</option>{% for e in employees %}<option value="{{ e.pk }}" {% if u.suggest and u.suggest.pk == e.pk %}selected{% endif %}>{{ e.employee_code }} {{ e.first_name }} {{ e.last_name }}</option>{% endfor %}</select>
+          <button class="btn btn-outline btn-sm" type="submit">Save</button></form></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="toolbar no-print">
+  {% if has_suggestions %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="accept_suggestions"><button class="btn btn-outline" type="submit">Accept all suggestions (matched by the number at the end of the Employee ID)</button></form>{% endif %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reprocess"><button class="btn btn-primary" type="submit">Apply to waiting punches</button></form>
+</div></div>
+{% endif %}
+
+{% if conflicts %}
+<h3 style="margin:8px 0;">Needs a decision: punches on days marked Absent or On leave</h3>
+<div class="card" style="margin-bottom:16px;"><div class="table-wrap"><table>
+  <thead><tr><th>Employee</th><th>Date</th><th>Marked as</th></tr></thead>
+  <tbody>{% for a in conflicts %}<tr><td class="cell-title">{{ a.employee.full_name }} <span class="text-sm text-muted">{{ a.employee.employee_code }}</span></td><td>{{ a.date|date:"d M Y" }}</td><td>{{ a.get_status_display }}</td></tr>{% endfor %}</tbody>
+</table></div><p class="text-sm text-muted" style="padding:0 16px 12px;">These records were left as they are. Change them in attendance if the employee was present.</p></div>
+{% endif %}
+
+<h3 style="margin:8px 0;">Latest punches</h3>
+<div class="card"><div class="table-wrap">
+  {% if recent %}<table><thead><tr><th>Time</th><th>Number</th><th>Employee</th></tr></thead>
+    <tbody>{% for p in recent %}<tr><td>{{ p.punched_at|date:"d M Y H:i:s" }}</td><td>{{ p.device_user_id }}</td><td>{% if p.employee %}{{ p.employee.employee_code }} {{ p.employee.full_name }}{% else %}<span class="badge badge-warn">Not matched</span>{% endif %}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<div class="empty-state"><div class="desc">No punches have arrived yet.</div></div>{% endif %}
+</div></div>
+{% endblock %}

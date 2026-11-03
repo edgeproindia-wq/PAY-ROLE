@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Biometric punch log &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1 class="page-title">Biometric punch log</h1><p class="page-subtitle">Every punch the sync program has sent.</p></div>
+<div class="page-actions no-print"><a class="btn btn-outline" href="{% url 'bio_setup' %}">Biometric setup</a></div></div>
+<div class="card">
+  <form class="toolbar" method="get">
+    <input type="date" name="date" value="{{ date }}" onchange="this.form.submit()">
+    <select class="filter-select" name="state" onchange="this.form.submit()"><option value="">All punches</option><option value="mapped" {% if state == 'mapped' %}selected{% endif %}>Matched to an employee</option><option value="unmapped" {% if state == 'unmapped' %}selected{% endif %}>Not matched</option></select>
+    <div class="search-box"><input type="text" name="q" value="{{ q }}" placeholder="Search number, code or name..."></div>
+    <button class="btn btn-outline btn-sm" type="submit">Search</button>
+  </form>
+  <div class="table-wrap">
+    {% if page.object_list %}
+    <table><thead><tr><th>Time</th><th>Number on device</th><th>Employee</th><th>Device</th><th>Received</th></tr></thead>
+      <tbody>{% for p in page.object_list %}<tr><td>{{ p.punched_at|date:"d M Y H:i:s" }}</td><td>{{ p.device_user_id }}</td>
+        <td>{% if p.employee %}{{ p.employee.employee_code }} {{ p.employee.full_name }}{% else %}<span class="badge badge-warn">Not matched</span>{% endif %}</td>
+        <td class="text-sm">{{ p.device.name|default:"&mdash;" }}</td><td class="text-sm text-muted">{{ p.received_at|date:"d M H:i" }}</td></tr>{% endfor %}</tbody></table>
+    {% else %}<div class="empty-state"><div class="title">No punches</div></div>{% endif %}
+  </div>
+  {% include "bank/_pager.html" %}
+</div>
+{% endblock %}

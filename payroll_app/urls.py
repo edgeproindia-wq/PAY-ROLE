@@ -232,3 +232,7 @@ urlpatterns += _rep.urlpatterns
 # ---- HRMS & External System Integration: imports with preview, connection pages, import centre ----
 from . import hrms_imports as _hrms  # noqa: E402
 urlpatterns += _hrms.urlpatterns
+
+# ---- Biometric integration: secure punch API, device keys, ID mapping, punch log ----
+from . import biometric as _bio  # noqa: E402
+urlpatterns += _bio.urlpatterns

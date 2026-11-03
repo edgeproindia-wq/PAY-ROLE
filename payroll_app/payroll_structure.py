@@ -260,7 +260,7 @@ STRUCTURE = """
   Leave Data Import|hrms_leave_import
   Approved Salary Revision Import|
   Employee Joining / Exit Updates|hrms_joining_exit
-  Biometric Integration|hrms_biometric
+  Biometric Integration|bio_setup
   Accounting Software Integration|hrms_accounting_sw
   Bank Integration|hrms_bank
   Email Integration|hrms_email
