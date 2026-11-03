@@ -240,3 +240,7 @@ urlpatterns += _bio.urlpatterns
 # ---- Tally export of the accounting journals (voucher XML and ledger XML) ----
 from . import tally as _tally  # noqa: E402
 urlpatterns += _tally.urlpatterns
+
+# ---- Biometric month-end summary ----
+from . import biometric_month as _bio_month  # noqa: E402
+urlpatterns += _bio_month.urlpatterns

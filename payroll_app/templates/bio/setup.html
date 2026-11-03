@@ -5,7 +5,7 @@
   <h1 class="page-title">Biometric Integration</h1>
   <p class="page-subtitle">A small sync program on your office server reads the punches from the machine and sends them here with a secret key. Check-in and check-out then fill in by themselves. Nothing on your device is opened to the internet.</p>
 </div>
-<div class="page-actions no-print"><a class="btn btn-outline" href="{% url 'bio_punches' %}">Punch log</a><a class="btn btn-outline" href="{% url 'hrms_attendance_import' %}">Attendance import (file)</a></div></div>
+<div class="page-actions no-print"><a class="btn btn-primary" href="{% url 'bio_month' %}">Month-end summary</a><a class="btn btn-outline" href="{% url 'bio_punches' %}">Punch log</a><a class="btn btn-outline" href="{% url 'hrms_attendance_import' %}">Attendance import (file)</a></div></div>
 
 <div class="card" style="padding:12px 16px;margin-bottom:16px;"><span class="text-sm">Website address for the sync program: <code>{{ endpoint }}</code></span></div>
 

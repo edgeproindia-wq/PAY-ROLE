@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Biometric month-end summary &middot; Payroll{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">Biometric month-end summary</h1>
+  <p class="page-subtitle">{{ month_label }}: for each employee, the days present, half days, absent and on leave, missing check-outs, hours worked and punches received. Every punch is stored permanently in the punch log.</p>
+</div>
+<div class="page-actions no-print">
+  <a class="btn btn-outline" href="?month={{ month }}&amp;q={{ q|urlencode }}&amp;export=csv">Export CSV</a>
+  <a class="btn btn-outline" href="?month={{ month }}&amp;q={{ q|urlencode }}&amp;export=xlsx">Export Excel</a>
+  <button class="btn btn-outline" type="button" onclick="window.print()">Print / Save as PDF</button>
+  <a class="btn btn-outline" href="{% url 'bio_setup' %}">Biometric setup</a>
+</div></div>
+<div class="card no-print" style="margin-bottom:16px;"><form class="toolbar" method="get">
+  <a class="btn btn-outline btn-sm" href="?month={{ prev_month }}">&larr; Previous</a>
+  <input type="month" name="month" value="{{ month }}" onchange="this.form.submit()">
+  <a class="btn btn-outline btn-sm" href="?month={{ next_month }}">Next &rarr;</a>
+  <div class="search-box"><input type="text" name="q" value="{{ q }}" placeholder="Search employee, code or department..."></div>
+  <button class="btn btn-outline btn-sm" type="submit">Show</button>
+</form></div>
+{% if waiting %}<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm">{{ waiting }} punch{{ waiting|pluralize:"es" }} in this month came from numbers that are not matched to an employee, so they are not in the table. <a href="{% url 'bio_setup' %}">Match them on the Biometric page.</a></span></div>{% endif %}
+<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm text-muted">Hours are check-out minus check-in on days that have both punches. A day with only one punch has no hours and counts under Missing check-out. Check the Absent and Missing columns before you process payroll.</span></div>
+<div class="card"><div class="table-wrap">
+  {% if rows %}
+  <table>
+    <thead><tr>{% for label, right in cols %}<th {% if right %}style="text-align:right;"{% endif %}>{{ label }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in rows %}<tr>{% for text, right in row %}<td {% if right %}style="text-align:right;"{% endif %}>{{ text }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    <tfoot><tr>{% for text, right in totals %}<td {% if right %}style="text-align:right;"{% endif %}><strong>{{ text }}</strong></td>{% endfor %}</tr></tfoot>
+  </table>
+  {% else %}<div class="empty-state"><div class="icon">&#128337;</div><div class="title">No employees to show</div><div class="desc">Nothing matches this month or this search.</div></div>{% endif %}
+</div></div>
+{% endblock %}
