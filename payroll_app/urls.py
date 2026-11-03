@@ -236,3 +236,7 @@ urlpatterns += _hrms.urlpatterns
 # ---- Biometric integration: secure punch API, device keys, ID mapping, punch log ----
 from . import biometric as _bio  # noqa: E402
 urlpatterns += _bio.urlpatterns
+
+# ---- Tally export of the accounting journals (voucher XML and ledger XML) ----
+from . import tally as _tally  # noqa: E402
+urlpatterns += _tally.urlpatterns

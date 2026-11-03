@@ -5,8 +5,16 @@
   <h1 class="page-title">Accounting Export</h1>
   <p class="page-subtitle">Posted journal lines as CSV or Excel: voucher, date, ledger, department, debit, credit. Import them into your accounting software (Tally, Zoho Books and others) using its own journal import. The layout is generic, not a specific software's template.</p>
 </div>
-<div class="page-actions no-print"><a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=csv">Export CSV</a><a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=xlsx">Export Excel</a></div></div>
+<div class="page-actions no-print"><a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=csv">Export CSV</a><a class="btn btn-outline" href="?{% if qs %}{{ qs }}&amp;{% endif %}export=xlsx">Export Excel</a><a class="btn btn-primary" href="{% url 'acc_tally_ledgers' %}">Tally: ledgers (XML)</a><a class="btn btn-primary" href="{% url 'acc_tally_vouchers' %}{% if qs %}?{{ qs }}{% endif %}">Tally: vouchers (XML)</a></div></div>
 {% include "accounting/_tabs.html" with active="export" %}
+<div class="card no-print" style="padding:12px 16px;margin-bottom:16px;">
+  <strong>Import into Tally Prime</strong>
+  <ol class="text-sm" style="margin:6px 0 0 18px;">
+    <li>Download <em>Tally: ledgers (XML)</em> and import it first: <em>Import Data</em> &rarr; <em>Masters</em>. Ledgers that already exist are reported by Tally and left as they are.</li>
+    <li>Download <em>Tally: vouchers (XML)</em> and import it: <em>Import Data</em> &rarr; <em>Vouchers</em>. Each posted journal becomes one Journal voucher.</li>
+    <li>The vouchers use the ledger names from General Ledger Mapping. Set those names first, and try the import in a test company before the real one.</li>
+  </ol>
+</div>
 <div class="kpi-row"><div class="kpi-card"><div class="label">Total debit</div><div class="value">&#8377;{{ debit }}</div></div><div class="kpi-card"><div class="label">Total credit</div><div class="value">&#8377;{{ credit }}</div></div></div>
 <div class="card">
   <form class="toolbar" method="get">
