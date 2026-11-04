@@ -1,83 +1,187 @@
-{% extends "public/split_base.html" %}
-{% block title %}Register your Company{% endblock %}
-{% block nav_register %}on{% endblock %}
-{% block hero_title %}Start running <span class="hl">Smarter Payroll</span> for your company{% endblock %}
-{% block hero_text %}Add your company details, create your login and start adding employees and running your first payroll.{% endblock %}
-{% block content %}
-<style>
-  .steps{display:flex;gap:8px;margin-top:22px}
-  .steps div{flex:1;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#94a3b8}
-  .steps b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#eef0f5;color:#64748b;font-size:12.5px;flex:none}
-  .steps .on{color:var(--ink)} .steps .on b{background:var(--brand);color:#fff}
-  .steps .done{color:#16a34a} .steps .done b{background:#dcfce7;color:#16a34a}
-  .linkbtn{background:none;border:none;color:var(--brand);font:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:0}
-  .row-actions{margin-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--body)}
-  .verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:700;color:#16a34a}
-  input[readonly]{background:#f6f7fa;color:#475569}
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register your Company &middot; Namma Payroll</title>
+<link rel="icon" href="{% static 'img/namma-payroll-logo.png' %}">
+<style>/* register-light: the company sign-up page, light theme (same design as the login page). Same steps, fields, messages and links as before; only the look is new. */
+:root{--g1:#22c55e;--g2:#16a34a;--g3:#15803d;--ink:#0f2a1a;--muted:#4b6b58;--line:#d5e8dc}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 24px;
+  background:radial-gradient(900px 520px at 8% 12%,rgba(34,197,94,.16),transparent 60%),radial-gradient(820px 480px at 96% 92%,rgba(16,185,129,.14),transparent 58%),linear-gradient(135deg,#f4fbf7 0%,#e8f7ee 55%,#f9fdfb 100%)}
+.wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:64px;align-items:center;max-width:1120px;width:100%}
+.logo-badge{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 20px;box-shadow:0 10px 30px rgba(22,101,52,.12)}
+.logo-badge img{height:52px;width:auto;display:block}
+.left h1{font-size:38px;line-height:1.15;margin:30px 0 16px;font-weight:800;letter-spacing:-.5px;color:var(--ink)}
+.left h1 .hl{color:var(--g2)}
+.lead{color:var(--muted);font-size:16px;line-height:1.65;max-width:440px;margin:0}
+.points{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:12px;color:var(--muted);font-size:14.5px}
+.points li{display:flex;gap:10px;align-items:center}
+.points li:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g1);box-shadow:0 0 0 4px rgba(34,197,94,.2);flex:0 0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:36px 34px 28px;box-shadow:0 24px 60px rgba(22,101,52,.14)}
+.card h2{margin:0 0 6px;font-size:26px;text-align:center;font-weight:800;color:var(--ink)}
+.sub{margin:0 0 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5}
+.steps{display:flex;gap:8px;margin:0 0 22px}
+.steps div{flex:1;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#7a9486}
+.steps b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#e8f0eb;color:#4b6b58;font-size:12.5px;flex:none}
+.steps .on{color:var(--ink)}
+.steps .on b{background:var(--g2);color:#fff}
+.steps .done{color:var(--g3)}
+.steps .done b{background:#dcfce7;color:var(--g3)}
+.alert{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:10px 14px;font-size:13.5px;margin:0 0 14px}
+.alert.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.alert.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.field{margin:0 0 16px;min-width:0}
+.field.full{grid-column:1 / -1}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#244a35;margin:0 0 7px}
+.field input,.field textarea,.field select{width:100%;border-radius:12px;border:1px solid #cfe3d6;background:#f8fcf9;color:var(--ink);font-size:15px;outline:none;font-family:inherit;transition:box-shadow .15s,border-color .15s,background .15s}
+.field input,.field select{height:48px;padding:0 14px}
+.field textarea{min-height:78px;padding:12px 14px;resize:vertical}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--g1);background:#fff;box-shadow:0 0 0 4px rgba(34,197,94,.22)}
+.field input[readonly]{background:#eef5f0;color:#3b5a47}
+.help{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.45}
+.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#b91c1c;font-size:12.5px;line-height:1.4}
+.verified{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:700;color:var(--g3)}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.eye{position:absolute;right:6px;top:5px;width:38px;height:38px;border:0;background:transparent;color:#3b6b4e;cursor:pointer;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0}
+.eye:hover{background:rgba(22,163,74,.12)}
+.btn{width:100%;height:50px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--g2),var(--g3));color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 12px 26px rgba(21,128,61,.3);transition:transform .12s,filter .12s}
+.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}
+.busy .btn{opacity:.75;cursor:wait}
+.linkbtn{background:none;border:none;color:var(--g3);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer;padding:0}
+.linkbtn:hover{text-decoration:underline}
+.row-actions{margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.foot{margin:20px 0 0;text-align:center;color:var(--muted);font-size:13px}
+.foot a{color:var(--g3);text-decoration:none;font-weight:600}
+.foot a:hover{text-decoration:underline}
+.copy{margin:22px 0 0;text-align:center;color:#7a9486;font-size:12px}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;gap:30px;max-width:560px}.left{text-align:center}.left h1{font-size:30px;margin-top:22px}.lead{margin:0 auto}.points{display:none}}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}.card{padding:28px 20px 22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="left">
+    <span class="logo-badge"><img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll"></span>
+    <h1>Start running <span class="hl">Smarter Payroll</span> for your company</h1>
+    <p class="lead">Add your company details, create your login and start adding employees and running your first payroll.</p>
+    <ul class="points"><li>Payroll, attendance and leave in one place</li><li>Payslips and statutory reports ready every month</li><li>Secure sign-in for your whole team</li></ul>
+  </section>
+  <section class="card">
+    <h2>Register Your Company</h2>
+    <p class="sub">{% if simple %}Fill in your details to create your company account.{% elif step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Add your company details and choose a login.{% endif %}</p>
 
-<h2>Register Your Company</h2>
-<p class="sub">{% if simple %}Fill in your details to create your company account.{% elif step == 1 %}Start with your email. We'll send a 6-digit code to verify it.{% elif step == 2 %}Enter the 6-digit code we emailed to <b>{{ pending_email }}</b>.{% else %}Add your company details and choose a login.{% endif %}</p>
+    {% if not simple %}<div class="steps">
+      <div class="{% if step == 1 %}on{% else %}done{% endif %}"><b>{% if step > 1 %}&#10003;{% else %}1{% endif %}</b>Email</div>
+      <div class="{% if step == 2 %}on{% elif step > 2 %}done{% endif %}"><b>{% if step > 2 %}&#10003;{% else %}2{% endif %}</b>Verify OTP</div>
+      <div class="{% if step == 3 %}on{% endif %}"><b>3</b>Company details</div>
+    </div>{% endif %}
 
-{% if not simple %}<div class="steps">
-  <div class="{% if step == 1 %}on{% else %}done{% endif %}"><b>{% if step > 1 %}&#10003;{% else %}1{% endif %}</b>Email</div>
-  <div class="{% if step == 2 %}on{% elif step > 2 %}done{% endif %}"><b>{% if step > 2 %}&#10003;{% else %}2{% endif %}</b>Verify OTP</div>
-  <div class="{% if step == 3 %}on{% endif %}"><b>3</b>Company details</div>
-</div>{% endif %}
+    {% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
 
-{% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
-
-{% if step == 1 %}
-<form method="post" novalidate>
-  {% csrf_token %}
-  <div class="field">
-    <label for="{{ email_form.email.id_for_label }}">Email *</label>
-    {{ email_form.email }}
-    {{ email_form.email.errors }}
-  </div>
-  <button class="btn" type="submit" name="action" value="send_otp">Send OTP</button>
-</form>
-
-{% elif step == 2 %}
-<form method="post" novalidate>
-  {% csrf_token %}
-  <div class="field">
-    <label for="{{ otp_form.code.id_for_label }}">6-digit code *</label>
-    {{ otp_form.code }}
-    {{ otp_form.code.errors }}
-  </div>
-  <button class="btn" type="submit" name="action" value="verify_otp">Verify Email</button>
-  <div class="row-actions">
-    <span>Didn't get it? <button class="linkbtn" type="submit" name="action" value="resend_otp">Resend code</button></span>
-    <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
-  </div>
-</form>
-
-{% else %}
-{% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
-<form method="post" enctype="multipart/form-data" novalidate>
-  {% csrf_token %}
-  <input type="hidden" name="action" value="register">
-  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
-  <div class="grid2">
-    {% for field in form.visible_fields %}
-      <div class="field{% if field.widget_type == 'textarea' %} full{% endif %}">
-        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
-        {{ field }}
-        {% if field.name == 'contact_email' and verified_email %}<div class="verified">&#10003; Verified</div>{% endif %}
-        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
-        {{ field.errors }}
+    {% if step == 1 %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="field">
+        <label for="{{ email_form.email.id_for_label }}">Email *</label>
+        {{ email_form.email }}
+        {{ email_form.email.errors }}
       </div>
-    {% endfor %}
-  </div>
-  <button class="btn" type="submit">Create Account</button>
-</form>
-{% if verified_email %}
-<form method="post" class="row-actions" style="margin-top:14px">
-  {% csrf_token %}
-  <span>Registering with <b>{{ verified_email }}</b></span>
-  <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
-</form>
-{% endif %}
-{% endif %}
-{% endblock %}
+      <button class="btn" type="submit" name="action" value="send_otp">Send OTP</button>
+    </form>
+
+    {% elif step == 2 %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="field">
+        <label for="{{ otp_form.code.id_for_label }}">6-digit code *</label>
+        {{ otp_form.code }}
+        {{ otp_form.code.errors }}
+      </div>
+      <button class="btn" type="submit" name="action" value="verify_otp">Verify Email</button>
+      <div class="row-actions">
+        <span>Didn't get it? <button class="linkbtn" type="submit" name="action" value="resend_otp">Resend code</button></span>
+        <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
+      </div>
+    </form>
+
+    {% else %}
+    {% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="register">
+      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="grid2">
+        {% for field in form.visible_fields %}
+          <div class="field{% if field.widget_type == 'textarea' %} full{% endif %}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+            {{ field }}
+            {% if field.name == 'contact_email' and verified_email %}<div class="verified">&#10003; Verified</div>{% endif %}
+            {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+      </div>
+      <button class="btn" type="submit">Create Account</button>
+    </form>
+    {% if verified_email %}
+    <form method="post" class="row-actions" style="margin-top:14px">
+      {% csrf_token %}
+      <span>Registering with <b>{{ verified_email }}</b></span>
+      <button class="linkbtn" type="submit" name="action" value="change_email">Change email</button>
+    </form>
+    {% endif %}
+    {% endif %}
+
+    <p class="foot">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+    <p class="copy">Namma Payroll &copy; {% now "Y" %}</p>
+  </section>
+</main>
+<script>
+(function () {
+  var EYE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var inputs = document.querySelectorAll('input[type="password"]');
+  for (var i = 0; i < inputs.length; i++) {
+    (function (inp) {
+      var wrap = document.createElement("div");
+      wrap.className = "pw";
+      inp.parentNode.insertBefore(wrap, inp);
+      wrap.appendChild(inp);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "eye";
+      b.setAttribute("aria-label", "Show password");
+      b.title = "Show password";
+      b.innerHTML = EYE;
+      wrap.appendChild(b);
+      b.addEventListener("click", function () {
+        var show = inp.type === "password";
+        inp.type = show ? "text" : "password";
+        b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        b.title = show ? "Hide password" : "Show password";
+        inp.focus();
+      });
+    })(inputs[i]);
+  }
+  /* A second click while the page is being sent is ignored. The buttons are never disabled, because the step buttons carry the name and value the server needs. */
+  var sent = false;
+  var forms = document.querySelectorAll("form");
+  for (var j = 0; j < forms.length; j++) {
+    forms[j].addEventListener("submit", function (e) {
+      if (sent) { e.preventDefault(); return; }
+      sent = true;
+      document.body.classList.add("busy");
+      setTimeout(function () { sent = false; document.body.classList.remove("busy"); }, 8000);
+    });
+  }
+  window.addEventListener("pageshow", function () { sent = false; document.body.classList.remove("busy"); });
+})();
+</script>
+</body>
+</html>
