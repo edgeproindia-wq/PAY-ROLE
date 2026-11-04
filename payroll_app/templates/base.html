@@ -271,6 +271,7 @@
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span class="tx">Platform</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
           {% url 'admin_company_list' as u_admin2 %}{% if u_admin2 %}<a href="{{ u_admin2 }}"><span class="tx">Client Management</span></a>{% endif %}
+          {% url 'admin_company_monitor' as u_admin9 %}{% if u_admin9 %}<a href="{{ u_admin9 }}"><span class="tx">Company Monitoring</span></a>{% endif %}
           {% url 'admin_company_approvals' as u_admin3 %}{% if u_admin3 %}<a href="{{ u_admin3 }}"><span class="tx">Company Approvals</span></a>{% endif %}
           {% url 'admin_demo_requests' as u_admin4 %}{% if u_admin4 %}<a href="{{ u_admin4 }}"><span class="tx">Demo Requests</span></a>{% endif %}
           {% url 'admin_client_complaints' as u_admin5 %}{% if u_admin5 %}<a href="{{ u_admin5 }}"><span class="tx">Client Complaints</span></a>{% endif %}

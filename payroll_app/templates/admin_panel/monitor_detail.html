@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }} &middot; Company Monitoring{% endblock %}
+{% block content %}
+<div class="page-header"><div>
+  <h1 class="page-title">{{ company.name }}</h1>
+  <p class="page-subtitle"><span class="badge {{ badge }}">{{ label }}</span> &nbsp; Usage and health only. No payroll data or employee names are shown.</p>
+</div>
+<div class="page-actions no-print"><a class="btn btn-outline" href="{% url 'admin_company_monitor' %}">&larr; All companies</a><a class="btn btn-outline" href="{% url 'admin_company_list' %}">Client Management</a></div></div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;">
+  <div class="kpi-card"><div class="label">Active users</div><div class="value">{{ company.active_users }}</div></div>
+  <div class="kpi-card"><div class="label">Active employees</div><div class="value">{{ company.active_employees }}</div></div>
+  <div class="kpi-card"><div class="label">Last login</div><div class="value" style="font-size:16px;">{% if company.last_login %}{{ company.last_login|timesince }} ago{% else %}Never{% endif %}</div></div>
+  <div class="kpi-card"><div class="label">Last payroll processed</div><div class="value" style="font-size:16px;">{% if company.last_payroll %}{{ company.last_payroll|date:"d M Y" }}{% else %}&mdash;{% endif %}</div></div>
+  <div class="kpi-card"><div class="label">Actions in {{ window }} days</div><div class="value">{{ company.actions_30d }}</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card"><div class="card-header"><h3>Company</h3></div><div class="card-body"><table><tbody>
+    <tr><td class="text-muted">Status</td><td>{{ company.get_status_display }}</td></tr>
+    <tr><td class="text-muted">Email</td><td>{{ company.contact_email }}</td></tr>
+    <tr><td class="text-muted">Mobile</td><td>{{ company.contact_phone|default:"&mdash;" }}</td></tr>
+    <tr><td class="text-muted">Address</td><td>{{ company.address|default:"&mdash;" }}</td></tr>
+    <tr><td class="text-muted">Registered</td><td>{{ company.created_at|date:"d M Y H:i" }}</td></tr>
+    <tr><td class="text-muted">Approved</td><td>{% if company.approved_at %}{{ company.approved_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
+    {% if company.rejection_reason %}<tr><td class="text-muted">Reason</td><td>{{ company.rejection_reason }}</td></tr>{% endif %}
+  </tbody></table></div></div>
+  <div class="card"><div class="card-header"><h3>Headcount</h3></div><div class="card-body"><table><tbody>
+    {% for name, n in headcount %}<tr><td class="text-muted">{{ name }}</td><td>{{ n }}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+
+<div class="card" style="margin-top:16px;"><div class="card-header"><h3>Logins of this company</h3></div><div class="card-body flush"><div class="table-wrap"><table>
+  <thead><tr><th>Username</th><th>Role</th><th>Email</th><th>Active</th><th>Last login</th></tr></thead>
+  <tbody>{% for u in users %}<tr><td>{{ u.username }}</td><td>{{ u.get_role_display }}</td><td class="text-sm">{{ u.email|default:"&mdash;" }}</td>
+    <td>{% if u.is_active %}<span class="badge badge-success">Yes</span>{% else %}<span class="badge badge-neutral">No</span>{% endif %}</td>
+    <td class="text-sm">{% if u.last_login %}{{ u.last_login|date:"d M Y H:i" }}{% else %}Never{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5">No logins.</td></tr>{% endfor %}</tbody></table></div></div></div>
+
+<div class="grid-2" style="margin-top:16px;">
+  <div class="card"><div class="card-header"><h3>What it did in the last {{ window }} days</h3></div><div class="card-body flush"><table><tbody>
+    {% for a in action_counts %}<tr><td>{{ a.name }}</td><td>{{ a.n }}</td></tr>{% empty %}<tr><td>No activity.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="card"><div class="card-header"><h3>Biometric</h3></div><div class="card-body flush"><table><tbody>
+    {% for d in devices %}<tr><td>{{ d.name }}</td><td class="text-sm">{% if d.last_seen %}last contact {{ d.last_seen|timesince }} ago{% else %}never connected{% endif %}</td></tr>{% empty %}<tr><td>No biometric device set up.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+
+<div class="card" style="margin-top:16px;"><div class="card-header"><h3>Last {{ events|length }} events</h3></div><div class="card-body flush"><div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Who</th><th>What</th><th>Where</th></tr></thead>
+  <tbody>{% for e in events %}<tr><td class="text-sm">{{ e.when|date:"d M Y H:i" }}</td><td>{{ e.who }}</td><td>{{ e.what }}</td><td class="text-sm text-muted">{{ e.where|default:"&mdash;" }}</td></tr>
+  {% empty %}<tr><td colspan="4">No events yet.</td></tr>{% endfor %}</tbody></table></div></div></div>
+{% endblock %}

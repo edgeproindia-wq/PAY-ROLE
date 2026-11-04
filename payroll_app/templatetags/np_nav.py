@@ -25,7 +25,7 @@ SECTIONS = {
     ],
     'ADMIN': [
         ('dashboard', 'Dashboard', None, [('admin_dashboard', 'Dashboard')]),
-        ('platform', 'Platform', 'platform', [('admin_company_list', 'Client Management'), ('admin_company_approvals', 'Company Approvals'),
+        ('platform', 'Platform', 'platform', [('admin_company_list', 'Client Management'), ('admin_company_monitor', 'Company Monitoring'), ('admin_company_approvals', 'Company Approvals'),
                                               ('admin_demo_requests', 'Demo Requests'), ('admin_client_complaints', 'Client Complaints'),
                                               ('admin_client_requests', 'Client Requests'), ('admin_audit_log', 'Audit Log')]),
         ('notifications', 'Notifications', None, [('notifications', 'Notifications')]),
