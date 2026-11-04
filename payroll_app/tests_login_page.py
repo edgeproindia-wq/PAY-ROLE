@@ -26,7 +26,7 @@ class LoginPageTests(TestCase):
         self.assertIn('type="password"', html)
         self.assertIn('href="%s"' % reverse('password_reset'), html)
         self.assertIn('namma-payroll-logo', html)
-        self.assertIn('login-dark-green', html)
+        self.assertIn('login-light', html)
 
     def test_it_is_a_standalone_page_with_no_template_leftovers(self):
         html = self.client.get(reverse('login')).content.decode()
