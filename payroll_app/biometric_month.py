@@ -48,11 +48,9 @@ def parse_month(text):
 
 
 def _hours(a):
-    """Hours between check-in and check-out on the same day, or None."""
-    if not (a.check_in and a.check_out):
-        return None
-    seconds = (datetime.datetime.combine(a.date, a.check_out) - datetime.datetime.combine(a.date, a.check_in)).total_seconds()
-    return Decimal(seconds) / 3600 if seconds > 0 else None
+    """Hours after the break (see attendance_hours.py), or None when there are no usable check-in and check-out times."""
+    from .attendance_hours import net_hours_decimal
+    return net_hours_decimal(a)
 
 
 def summary_rows(company, first, last):

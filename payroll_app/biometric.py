@@ -9,6 +9,7 @@ Attendance rules (they never overwrite a decision made by a person):
   * no record yet                 -> a Present record is created
   * Present / Half day record     -> check-in and check-out are updated, but only if they were set by the biometric (or are empty)
   * Absent / On leave record      -> left alone, and listed on the Biometric page so HR can decide
+  * Finished days under 6 hours after the 1-hour break become Half day (see attendance_hours.py)
 """
 import datetime
 import json
@@ -128,8 +129,8 @@ def apply_attendance(company, pairs):
             counts['created'] += 1
         elif rec.status in ('ABSENT', 'LEAVE'):
             counts['conflict'] += 1
-        elif rec.remarks == BIO_TAG or (rec.check_in is None and rec.check_out is None):
-            if (rec.check_in, rec.check_out) != (check_in, check_out) or rec.remarks != BIO_TAG:
+        elif rec.remarks.startswith(BIO_TAG) or (rec.check_in is None and rec.check_out is None):
+            if (rec.check_in, rec.check_out) != (check_in, check_out) or not rec.remarks.startswith(BIO_TAG):
                 rec.check_in, rec.check_out = check_in, check_out
                 if not rec.remarks:
                     rec.remarks = BIO_TAG
@@ -175,6 +176,10 @@ def ingest(company, device, raw_punches):
         pairs = {(people[u].pk, t.astimezone(IST).date()) for u, t in fresh if u in people}
         for k, v in apply_attendance(company, pairs).items():
             summary['attendance_' + k] += v
+    from .attendance_hours import finalize_statuses
+    finished = finalize_statuses(company)
+    if finished:
+        summary['attendance_status_updated'] = finished
     device.last_seen, device.last_batch = now, summary['received']
     device.save(update_fields=['last_seen', 'last_batch'])
     return dict(summary)

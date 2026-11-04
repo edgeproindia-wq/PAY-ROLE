@@ -19,7 +19,7 @@
   <button class="btn btn-outline btn-sm" type="submit">Show</button>
 </form></div>
 {% if waiting %}<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm">{{ waiting }} punch{{ waiting|pluralize:"es" }} in this month came from numbers that are not matched to an employee, so they are not in the table. <a href="{% url 'bio_setup' %}">Match them on the Biometric page.</a></span></div>{% endif %}
-<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm text-muted">Hours are check-out minus check-in on days that have both punches. A day with only one punch has no hours and counts under Missing check-out. Check the Absent and Missing columns before you process payroll.</span></div>
+<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm text-muted">Hours are check-out minus check-in, with 1 hour taken off for a break on days longer than 4 hours (a check-out earlier than the check-in is a night shift). A day with only one punch has no hours and counts under Missing check-out. Finished days under 6 hours after the break are marked Half day. Check the Absent and Missing columns before you process payroll.</span></div>
 <div class="card"><div class="table-wrap">
   {% if rows %}
   <table>

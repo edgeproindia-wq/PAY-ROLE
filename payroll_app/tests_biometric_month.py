@@ -69,11 +69,11 @@ class SummaryTests(MonthBase):
         d, totals = self.data()
         a = d['E1']
         self.assertEqual((a['present'], a['half'], a['absent'], a['leave'], a['recorded'], a['missing']), (3, 1, 1, 1, 6, 1))
-        self.assertEqual(a['hours'], D('21.00'))                      # 9 + 8 + 4 hours; the day without a check-out has no hours
-        self.assertEqual(a['avg'], D('7.00'))
+        self.assertEqual(a['hours'], D('19.00'))                      # 8 + 7 hours after the 1-hour break, plus the 4-hour day (no break): 19; the day without a check-out has none
+        self.assertEqual(a['avg'], D('6.33'))
         self.assertEqual((a['punches'], a['punch_days']), (3, 2))
         self.assertEqual((d['E2']['present'], d['E2']['hours'], d['E2']['avg'], d['E2']['punches']), (1, D('0.00'), D('0.00'), 1))
-        self.assertEqual((totals['present'], totals['recorded'], totals['hours'], totals['punches']), (4, 7, D('21.00'), 4))
+        self.assertEqual((totals['present'], totals['recorded'], totals['hours'], totals['punches']), (4, 7, D('19.00'), 4))
 
     def test_the_page_shows_a_row_per_employee_a_total_and_the_month(self):
         r, rows = self.rows()
@@ -110,12 +110,15 @@ class SummaryTests(MonthBase):
         d, _ = self.data()
         self.assertEqual((d['E2']['punch_days'], d['E2']['punches']), (2, 3))     # the 1 from setUp is on the 1st; the two new ones share one India day
 
-    def test_a_check_out_before_the_check_in_never_gives_negative_hours(self):
-        self.att(self.e2, 8, 'PRESENT', datetime.time(18, 0), datetime.time(9, 0))
+    def test_impossible_times_never_give_hours_and_a_night_shift_does(self):
+        self.att(self.e2, 8, 'PRESENT', datetime.time(18, 0), datetime.time(17, 0))            # would be 23 hours: not a real shift
         d, totals = self.data()
         self.assertEqual(d['E2']['hours'], D('0.00'))
-        self.assertGreaterEqual(totals['hours'], D('0.00'))
         self.assertEqual(d['E2']['missing'], 0)
+        self.att(self.e2, 9, 'PRESENT', datetime.time(22, 0), datetime.time(6, 0))             # a night shift: 8 hours, 7 after the break
+        d, totals = self.data()
+        self.assertEqual(d['E2']['hours'], D('7.00'))
+        self.assertGreaterEqual(totals['hours'], D('0.00'))
 
     def test_employees_who_left_with_no_data_are_not_listed_but_active_ones_always_are(self):
         gone = make_employee(self.co, 'E3', 'e3@m.test')
@@ -150,10 +153,10 @@ class ExportTests(MonthBase):
         rows = list(csv.reader(io.StringIO(r.content.decode())))
         self.assertEqual(rows[0], [label for _k, label in COLUMNS])
         self.assertEqual(len(rows), 3)
-        self.assertEqual(rows[1][COLUMNS.index(('hours', 'Hours worked'))], '9.00')
+        self.assertEqual(rows[1][COLUMNS.index(('hours', 'Hours worked'))], '8.00')
         x = self.client.get(reverse('bio_month'), {'month': '2026-10', 'export': 'xlsx'})
         ws = load_workbook(io.BytesIO(x.content)).active
-        self.assertEqual((ws.max_row, ws.cell(2, 11).value), (3, 9.0))
+        self.assertEqual((ws.max_row, ws.cell(2, 11).value), (3, 8.0))
         self.assertTrue(AuditLog.objects.filter(action='EXPORT', company=self.co, details__startswith='Biometric month summary exported (2026-10, csv').exists())
 
     def test_text_that_looks_like_a_formula_is_neutralised(self):

@@ -96,7 +96,7 @@
           <td>{{ r.date }}</td>
           <td>{{ r.check_in|time:"h:i A"|default:"&mdash;" }}</td>
           <td>{{ r.check_out|time:"h:i A"|default:"&mdash;" }}</td>
-          <td>{{ r.hours_worked|default_if_none:"&mdash;" }}</td>
+          <td>{{ r.hours_label|default_if_none:"&mdash;" }}</td>
           <td><span class="badge {% if r.status == 'PRESENT' %}badge-success{% elif r.status == 'ABSENT' %}badge-danger{% elif r.status == 'HALF_DAY' %}badge-warn{% else %}badge-info{% endif %}">{{ r.get_status_display }}</span></td>
           <td class="wrap">{{ r.remarks|default:"&mdash;" }}</td>
         </tr>

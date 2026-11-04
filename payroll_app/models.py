@@ -230,6 +230,18 @@ class Attendance(models.Model):
             return round(delta.total_seconds() / 3600, 2) if delta.total_seconds() > 0 else 0
         return None
 
+    @property
+    def hours_label(self):
+        """Hours as people read them (8h 05m), after the break; or why there are none (Check-out missing)."""
+        from .attendance_hours import label
+        return label(self.date, self.check_in, self.check_out)
+
+    @property
+    def net_hours(self):
+        """Hours after the break as a number with two decimals, or None."""
+        from .attendance_hours import net_hours_decimal
+        return net_hours_decimal(self)
+
     def __str__(self):
         return f"{self.employee} - {self.date} - {self.status}"
 
