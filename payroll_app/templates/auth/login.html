@@ -1,29 +1,107 @@
-{% extends "public/split_base.html" %}
-{% block title %}Login{% endblock %}
-{% block nav_login %}on{% endblock %}
-{% block hero_title %}Welcome back to <span class="hl">Smarter Payroll</span>{% endblock %}
-{% block hero_text %}Sign in to run payroll, approve leave and claims, download payslips and track compliance &mdash; all from one secure workspace.{% endblock %}
-{% block content %}
-<h2>Welcome Back</h2>
-<p class="sub">Sign in to access your Namma Payroll workspace.</p>
-{% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
-{% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
-{% if form.errors and not form.non_field_errors %}<div class="alert">Invalid username/email or password.</div>{% endif %}
-<form method="post" novalidate>
-  {% csrf_token %}
-  <input type="hidden" name="next" value="{{ next }}">
-  <div class="field">
-    <label for="{{ form.username.id_for_label }}">Username, Email or Employee ID</label>
-    <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
-           value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" autocapitalize="none" maxlength="254" required autofocus>
-  </div>
-  <div class="field">
-    <div class="field-head">
-      <label for="{{ form.password.id_for_label }}">Password</label>
-      <a href="{% url 'password_reset' %}">Forgot password?</a>
-    </div>
-    <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>
-  </div>
-  <button class="btn" type="submit">Sign In</button>
-</form>
-{% endblock %}
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login &middot; Namma Payroll</title>
+<link rel="icon" href="{% static 'img/namma-payroll-logo.png' %}">
+<style>/* login-dark-green: the sign-in page. Same form fields, messages and links as before; only the look is new. */
+:root{--g1:#22c55e;--g2:#16a34a;--ink:#f0fdf4;--muted:#a9c7b5;--line:rgba(255,255,255,.16)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 24px;
+  background:radial-gradient(1100px 620px at 12% 18%,rgba(34,197,94,.22),transparent 60%),radial-gradient(900px 520px at 92% 85%,rgba(16,185,129,.18),transparent 58%),linear-gradient(135deg,#031a0f 0%,#06301b 52%,#021008 100%)}
+.wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:72px;align-items:center;max-width:1080px;width:100%}
+.logo-badge{display:inline-flex;align-items:center;background:#fff;border-radius:18px;padding:12px 20px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.logo-badge img{height:52px;width:auto;display:block}
+.left h1{font-size:42px;line-height:1.14;margin:30px 0 16px;font-weight:800;letter-spacing:-.5px}
+.left h1 .hl{color:#4ade80}
+.lead{color:var(--muted);font-size:16px;line-height:1.65;max-width:470px;margin:0}
+.points{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:12px;color:var(--muted);font-size:14.5px}
+.points li{display:flex;gap:10px;align-items:center}
+.points li:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g1);box-shadow:0 0 0 4px rgba(34,197,94,.18);flex:0 0 auto}
+.card{background:rgba(255,255,255,.08);border:1px solid var(--line);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:24px;padding:38px 34px 30px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.card h2{margin:0 0 6px;font-size:26px;text-align:center;font-weight:800}
+.sub{margin:0 0 22px;text-align:center;color:var(--muted);font-size:14px}
+.alert{background:rgba(239,68,68,.14);border:1px solid rgba(248,113,113,.5);color:#fecaca;border-radius:12px;padding:10px 14px;font-size:13.5px;margin:0 0 14px}
+.alert.ok{background:rgba(34,197,94,.14);border-color:rgba(74,222,128,.5);color:#bbf7d0}
+.alert.info{background:rgba(59,130,246,.14);border-color:rgba(147,197,253,.5);color:#dbeafe}
+.field{margin:0 0 16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:#d9f2e2;margin:0 0 7px}
+.field-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.field-head a,.foot a{color:#86efac;text-decoration:none;font-size:12.5px;font-weight:600}
+.field-head a:hover,.foot a:hover{text-decoration:underline}
+.field input{width:100%;height:48px;border-radius:12px;border:1px solid transparent;background:#f3fbf6;color:#0f2a1a;font-size:15px;padding:0 14px;outline:none;transition:box-shadow .15s,border-color .15s}
+.field input:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(34,197,94,.28)}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;background:transparent;color:#3b6b4e;cursor:pointer;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0}
+.eye:hover{background:rgba(22,163,74,.12)}
+.btn{width:100%;height:50px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 12px 30px rgba(22,163,74,.4);transition:transform .12s,filter .12s}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.75;cursor:wait}
+.foot{margin:20px 0 0;text-align:center;color:var(--muted);font-size:13px}
+.copy{margin:26px 0 0;text-align:center;color:rgba(255,255,255,.4);font-size:12px}
+@media (max-width:900px){.wrap{grid-template-columns:1fr;gap:30px;max-width:460px}.left{text-align:center}.left h1{font-size:30px;margin-top:22px}.lead{margin:0 auto}.points{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="left">
+    <span class="logo-badge"><img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll"></span>
+    <h1>Welcome back to <span class="hl">Smarter Payroll</span></h1>
+    <p class="lead">Sign in to run payroll, approve leave and claims, download payslips and track compliance &mdash; all from one secure workspace.</p>
+    <ul class="points"><li>Payroll, attendance and leave in one place</li><li>Payslips and statutory reports ready every month</li><li>Secure sign-in for your whole team</li></ul>
+  </section>
+  <section class="card">
+    <h2>Welcome Back</h2>
+    <p class="sub">Sign in to access your Namma Payroll workspace.</p>
+    {% for message in messages %}<div class="alert {% if message.tags == 'success' %}ok{% elif message.tags == 'error' %}{% else %}info{% endif %}">{{ message }}</div>{% endfor %}
+    {% for e in form.non_field_errors %}<div class="alert">{{ e }}</div>{% endfor %}
+    {% if form.errors and not form.non_field_errors %}<div class="alert">Invalid username/email or password.</div>{% endif %}
+    <form method="post" id="loginForm" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="field">
+        <label for="{{ form.username.id_for_label }}">Username, Email or Employee ID</label>
+        <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
+               value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" autocapitalize="none" maxlength="254" required autofocus>
+      </div>
+      <div class="field">
+        <div class="field-head">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          <a href="{% url 'password_reset' %}">Forgot password?</a>
+        </div>
+        <div class="pw">
+          <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}" autocomplete="current-password" required>
+          <button type="button" class="eye" id="pwToggle" aria-label="Show password" title="Show password"><svg id="pwIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="btn" type="submit" id="loginBtn">Sign In</button>
+    </form>
+    {% url 'company_register' as reg_url %}{% if reg_url %}<p class="foot">New company? <a href="{{ reg_url }}">Register here</a></p>{% endif %}
+    <p class="copy">Namma Payroll &copy; {% now "Y" %}</p>
+  </section>
+</main>
+<script>
+(function () {
+  var pw = document.getElementById("{{ form.password.id_for_label }}"), tg = document.getElementById("pwToggle"), form = document.getElementById("loginForm"), btn = document.getElementById("loginBtn");
+  if (tg && pw) {
+    tg.addEventListener("click", function () {
+      var show = pw.type === "password";
+      pw.type = show ? "text" : "password";
+      tg.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      tg.title = show ? "Hide password" : "Show password";
+      pw.focus();
+    });
+  }
+  if (form && btn) {
+    form.addEventListener("submit", function () { btn.disabled = true; btn.textContent = "Signing in..."; });
+    window.addEventListener("pageshow", function () { btn.disabled = false; btn.textContent = "Sign In"; });
+  }
+})();
+</script>
+</body>
+</html>
