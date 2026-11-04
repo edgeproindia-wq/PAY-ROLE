@@ -32,4 +32,4 @@ class BankMenuTests(TestCase):
 
     def test_the_other_sections_are_unchanged(self):
         self.assertEqual([s['n'] for s in SECTIONS], list(range(1, 21)))
-        self.assertEqual(sum(1 for c in get_section('accounting-integration')['children'] if c['url_name']), 0)
+        # the Accounting section has its own built pages now; they are checked in tests_accounting_menu

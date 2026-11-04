@@ -575,5 +575,51 @@
 {% include "partials/amount_format.html" %}
 {% include "partials/live_notify.html" %}
 {% include "partials/legal_links.html" %}
+<style id="topRefreshStyle">
+#topRefreshBtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--border,#e5e7eb);background:var(--surface,#fff);color:var(--primary,#1f9d4c);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin-right:10px;padding:0;box-shadow:0 1px 2px rgba(0,0,0,.06);vertical-align:middle;flex:0 0 auto}
+#topRefreshBtn:hover{filter:brightness(.96)}
+#topRefreshBtn.spin svg{animation:topRefreshSpin .8s linear infinite}
+#topRefreshBtn.floating{position:fixed;right:18px;bottom:18px;z-index:1000;margin:0;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+@keyframes topRefreshSpin{to{transform:rotate(360deg)}}
+@media print{#topRefreshBtn{display:none!important}}
+</style>
+<script id="topRefreshScript">/* top-refresh: a Refresh button next to the notification bell on every page */
+(function () {
+  if (document.getElementById("topRefreshBtn")) return;
+  var bell = null, bar = null;
+  var bars = document.querySelectorAll("header, [class*='topbar'], [class*='top-bar'], [class*='app-header']");
+  for (var i = 0; i < bars.length && !bell; i++) {
+    var found = bars[i].querySelector("[href*='notification'], [class*='bell'], [class*='notif'], [id*='bell'], [id*='notif']");
+    if (found) { bell = found; bar = bars[i]; }
+  }
+  var btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "topRefreshBtn";
+  btn.setAttribute("aria-label", "Refresh this page");
+  var d = new Date();
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  btn.title = "Refresh this page (opened " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + ")";
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>';
+  if (bell && bar) {
+    var node = bell;
+    while (node.parentElement && node.parentElement !== bar &&
+           (node.parentElement.children.length === 1 || /notif|bell|dropdown/i.test(node.parentElement.className || ""))) {
+      node = node.parentElement;
+    }
+    node.parentElement.insertBefore(btn, node);
+  } else {
+    btn.className = "floating";
+    document.body.appendChild(btn);
+  }
+  var dirty = false;
+  document.addEventListener("input", function (e) { if (e.target && e.target.form) dirty = true; }, true);
+  btn.addEventListener("click", function () {
+    if (dirty && !window.confirm("You have unsaved changes on this page. Refresh anyway?")) return;
+    btn.classList.add("spin");
+    var go = window.topRefreshGo || function (url) { window.location.assign(url); };
+    go(window.location.href.split("#")[0]);
+  });
+})();
+</script>
 </body>
 </html>

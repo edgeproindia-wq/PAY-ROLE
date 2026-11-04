@@ -1,5 +1,6 @@
 """Database-driven announcements: priority, schedule (publish / expiry date), role visibility, company isolation,
 the sidebar panel, and management by the company owner (and the platform admin through the Django admin)."""
+import unittest
 import datetime
 
 from django.test import TestCase
@@ -72,6 +73,15 @@ class VisibilityTests(Base):
 
 
 class SidebarPanelTests(Base):
+    def test_the_sidebar_no_longer_has_the_announcements_box(self):
+        from django.urls import reverse as _reverse
+        for user, page in ((self.owner, 'dashboard'), (self.emp, 'employee_home')):
+            self.client.force_login(user)
+            response = self.client.get(_reverse(page))
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn('Open announcements', response.content.decode())
+
+    @unittest.skip("The sidebar Announcements box was removed on request.")
     def test_the_panel_is_read_from_the_database_and_limited_to_three(self):
         for i, p in enumerate(['LOW', 'NORMAL', 'HIGH', 'URGENT']):
             self.make('Notice %s' % p, priority=p)
@@ -82,6 +92,7 @@ class SidebarPanelTests(Base):
         self.assertNotIn('Notice LOW', panel)                       # only the 3 most important
         self.assertIn('View all 4', panel)
 
+    @unittest.skip("The sidebar Announcements box was removed on request.")
     def test_a_role_only_notice_is_not_in_the_other_roles_sidebar(self):
         self.make('Owners eyes only', audience='OWNERS')
         self.make('Staff notice', audience='EMPLOYEES')
@@ -98,6 +109,7 @@ class SidebarPanelTests(Base):
         self.client.force_login(make_user('ann_admin2', 'ADMIN', is_superuser=True))
         self.assertEqual(self.client.get(reverse('admin_dashboard')).status_code, 200)
 
+    @unittest.skip("The sidebar Announcements box was removed on request.")
     def test_changing_the_database_row_changes_the_sidebar(self):
         a = self.make('First headline')
         self.assertIn('First headline', self.panel(self.emp, 'employee_home'))
@@ -108,6 +120,7 @@ class SidebarPanelTests(Base):
         a.save()
         self.assertEqual(self.panel(self.emp, 'employee_home'), '')
 
+    @unittest.skip("The sidebar Announcements box was removed on request.")
     def test_opening_the_announcements_page_marks_them_read_for_an_employee(self):
         a = self.make('Read me')
         self.assertIn('p-normal unread', self.panel(self.emp, 'employee_home'))

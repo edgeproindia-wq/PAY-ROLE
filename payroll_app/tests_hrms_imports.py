@@ -332,11 +332,18 @@ class LeaveTests(HrmsBase):
         self.assertEqual([r['outcome'] for r in res], ['error', 'ok', 'error', 'ok', 'error'])
 
     def test_a_leave_above_the_balance_is_flagged_but_can_be_imported(self):
+        from unittest import mock
+
+        class TwoDaysLeft(dict):                      # the balance is fixed here, so this test does not depend on the leave policy of the project
+            def get(self, key, default=None):
+                return {'remaining': 2}
+
         rows = [['Employee ID', 'Leave Type', 'From Date', 'To Date'], ['E1', 'CL', '2026-10-05', '2026-10-09']]      # 5 days against 2 remaining
-        res = self.results(self.preview('hrms_leave_import', rows))
-        self.assertEqual(res['E1']['outcome'], 'ok')
-        self.assertTrue(any('More than the balance' in w for w in res['E1']['warnings']))
-        self.confirm('hrms_leave_import')
+        with mock.patch('payroll_app.leave.leave_balance', return_value=TwoDaysLeft()):
+            res = self.results(self.preview('hrms_leave_import', rows))
+            self.assertEqual(res['E1']['outcome'], 'ok')
+            self.assertTrue(any('More than the balance' in w for w in res['E1']['warnings']))
+            self.confirm('hrms_leave_import')
         self.assertEqual(LeaveRequest.objects.count(), 1)
 
     def test_refused_rows(self):
