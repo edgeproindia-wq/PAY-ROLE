@@ -18,7 +18,7 @@
     {% else %}<h3>Notifications{% if unread_notification_count %}<span class="nc-count">{{ unread_notification_count }}</span>{% endif %}</h3>{% endif %}
     <div class="nc-actions">
       {% if unread_notification_count %}
-      <form method="post" action="{% url 'notification_mark_all_read' %}" style="margin:0">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button type="submit" class="nc-link">Mark all read</button></form>
+      <!-- notif-refresh --><button type="button" class="nc-link" id="notifRefreshBtn" title="Reload the notifications" onclick="window.location.reload()">&#8635; Refresh</button> <form method="post" action="{% url 'notification_mark_all_read' %}" style="margin:0">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button type="submit" class="nc-link">Mark all read</button></form>
       {% endif %}
       {% if request.resolver_match.url_name != 'notifications' %}<a class="nc-link" href="{% url 'notifications' %}">View all</a>{% endif %}
     </div>
