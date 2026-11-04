@@ -10,6 +10,4 @@
 .sidebar .sb-ann a.sb-ann-all{display:block;padding:4px;font-size:11.5px;color:#475569;}
 body.sb-collapsed .sb-ann{display:none;}
 </style>
-<div class="sb-ann" id="sbAnnouncements" aria-label="Announcements"><div class="sb-ann-h">Announcements</div>
-{% for a in items %}<a class="sb-ann-i p-{{ a.priority|lower }}{% if a.unread %} unread{% endif %}" href="{{ url }}" title="{{ a.title }}"><span class="dot"></span><span class="tx"><b>{{ a.title }}</b><small>{{ a.get_priority_display }} &middot; {{ a.publish_date|date:"d M" }}</small></span></a>{% endfor %}
-{% if total > items|length %}<a class="sb-ann-all" href="{{ url }}">View all {{ total }}</a>{% else %}<a class="sb-ann-all" href="{{ url }}">Open announcements</a>{% endif %}</div>{% endif %}
+{% endif %}
