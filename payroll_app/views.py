@@ -784,6 +784,9 @@ def dashboard(request):
         'recent_leaves': leaves.order_by('-id')[:5],
         'recent_reimbursements': reimbursements.order_by('-id')[:5],
     }
+    if request.user.role == 'COMPANY_OWNER':
+        from .dashboard_extras import owner_extras
+        context.update(owner_extras(request, employees, today, runs, context))       # the extra panels; a failing panel is logged and skipped
     return render(request, 'Dashboard.html', context)
 
 

@@ -1,9 +1,79 @@
 {% extends "base.html" %}
-{% block title %}Dashboard · Payroll{% endblock %}
+{% block title %}Dashboard &middot; Payroll{% endblock %}
 {% block extra_head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 {% endblock %}
 {% block content %}
+<style id="dx-style">
+  /* dx-: the owner dashboard panels (tracker, setup, attention, events, attendance bar) */
+  .dx-hello{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:-6px 0 18px;padding:14px 18px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(135deg,var(--accent-soft),#fff)}
+  .dx-hello b{display:block;font-size:17px;color:var(--ink)}
+  .dx-hello span.d{font-size:12.5px;color:var(--muted)}
+  .dx-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;text-decoration:none}
+  .dx-pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .dx-pill.ok{background:var(--success-soft);color:var(--success)}
+  .dx-grid{display:grid;gap:20px;margin-bottom:20px}
+  .dx-2-1{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+  .dx-grid>.card{margin-bottom:0}
+  @media (max-width:1080px){.dx-2-1{grid-template-columns:1fr}}
+  .dx-steps{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 0}
+  .dx-step{flex:1 1 105px;min-width:105px;text-align:center;position:relative;padding:0 6px;text-decoration:none;color:var(--muted)}
+  .dx-step .dot{width:30px;height:30px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:13px;font-weight:800;background:#eef0f4;color:var(--muted)}
+  .dx-step.done .dot{background:var(--success);color:#fff}
+  .dx-step.current .dot{background:var(--accent);color:#fff;box-shadow:0 0 0 5px var(--accent-soft)}
+  .dx-step .t{font-size:12px;font-weight:600}
+  .dx-step.done .t,.dx-step.current .t{color:var(--ink)}
+  .dx-step:not(:last-child)::after{content:"";position:absolute;top:15px;left:calc(50% + 20px);right:calc(-50% + 20px);height:2px;background:var(--line)}
+  .dx-step.done:not(:last-child)::after{background:var(--success)}
+  .dx-tmeta{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--muted)}
+  .dx-tmeta b{color:var(--ink)}
+  .dx-setup{display:flex;gap:16px;align-items:center}
+  .dx-ring{--p:0;width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--p) * 1%),#eef1f6 0);display:grid;place-items:center;flex:none}
+  .dx-ring span{width:62px;height:62px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800;color:var(--ink);font-size:17px}
+  .dx-check{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:9px}
+  .dx-check li{display:flex;align-items:center;gap:10px;font-size:13px}
+  .dx-check .box{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:10px;color:#fff}
+  .dx-check li.done .box{background:var(--success);border-color:var(--success)}
+  .dx-check a{color:var(--body);text-decoration:none}
+  .dx-check li.done a{color:var(--muted)}
+  .dx-check .det{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .dx-alerts{display:grid;gap:8px;margin-bottom:16px}
+  .dx-alert{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;text-decoration:none;border:1px solid var(--line);background:#fff}
+  .dx-alert:hover{border-color:var(--accent)}
+  .dx-alert .n{min-width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .dx-alert.danger .n{background:var(--danger-soft);color:var(--danger)}
+  .dx-alert.warn .n{background:var(--warn-soft);color:var(--warn)}
+  .dx-alert.info .n{background:var(--info-soft);color:var(--info)}
+  .dx-alert b{display:block;font-size:13px;color:var(--ink)}
+  .dx-alert small{color:var(--muted);font-size:11.5px}
+  .dx-alert .go{margin-left:auto;font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+  .dx-clear{padding:14px;border-radius:10px;background:var(--success-soft);color:var(--success);font-weight:700;font-size:13px;margin-bottom:16px}
+  .dx-ev{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+  .dx-ev:last-child{border-bottom:0}
+  .dx-date{width:46px;text-align:center;border-radius:10px;background:var(--accent-soft);color:var(--accent);padding:5px 0;flex:none}
+  .dx-date b{display:block;font-size:16px;line-height:1.1}
+  .dx-date small{font-size:10px;text-transform:uppercase;font-weight:700}
+  .dx-ev.holiday .dx-date{background:var(--info-soft);color:var(--info)}
+  .dx-ev.joining .dx-date{background:var(--warn-soft);color:var(--warn)}
+  .dx-ev b{display:block;font-size:13px;color:var(--ink)}
+  .dx-ev small{color:var(--muted);font-size:11.5px}
+  .dx-ev .when{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .dx-bar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:#eef1f6}
+  .dx-bar i{display:block;height:100%}
+  .dx-bar .present{background:var(--success)}
+  .dx-bar .leave{background:var(--info)}
+  .dx-bar .absent{background:var(--danger)}
+  .dx-bar .unmarked{background:#cbd5e1}
+  .dx-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted)}
+  .dx-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .dx-legend .present{background:var(--success)}
+  .dx-legend .leave{background:var(--info)}
+  .dx-legend .absent{background:var(--danger)}
+  .dx-legend .unmarked{background:#cbd5e1}
+  .dx-queue .flex-between{padding:9px 0;border-bottom:1px solid var(--line-soft)}
+  .dx-queue .flex-between:last-child{border-bottom:0}
+  .dx-queue .zero{background:var(--success-soft);color:var(--success)}
+</style>
 
 <div class="page-header">
   <div>
@@ -16,28 +86,138 @@
   </div>
 </div>
 
+{% if dx_greeting %}
+<div class="dx-hello">
+  <div>
+    <b>{{ dx_greeting.hello }}{% if dx_greeting.name %}, {{ dx_greeting.name }}{% endif %}</b>
+    <span class="d">{% if dx_greeting.company %}{{ dx_greeting.company }} &middot; {% endif %}{{ dx_today|date:"l, j F Y" }}</span>
+  </div>
+  {% if dx_attention.total %}<a class="dx-pill warn" href="#dx-attention">{{ dx_attention.total }} item{{ dx_attention.total|pluralize }} need your attention</a>
+  {% else %}<span class="dx-pill ok">&#10003; All clear</span>{% endif %}
+</div>
+{% endif %}
+
 <div class="kpi-row">
   <div class="kpi-card">
     <span class="icon-badge" style="background:var(--accent-soft);color:var(--accent);">&#128101;</span>
     <div class="label">Active Employees</div>
     <div class="value">{{ total_employees }}</div>
+    <div class="text-sm text-muted">{% if joiners_this_month %}+{{ joiners_this_month }} joined this month{% else %}No new joiners this month{% endif %}</div>
   </div>
   <div class="kpi-card">
     <span class="icon-badge" style="background:var(--success-soft);color:var(--success);">&#128179;</span>
     <div class="label">Salary Structures</div>
     <div class="value">{{ total_salary_structures }}</div>
+    <div class="text-sm text-muted">of {{ total_employees }} active employee{{ total_employees|pluralize }}</div>
   </div>
   <div class="kpi-card">
     <span class="icon-badge" style="background:var(--info-soft);color:var(--info);">&#128196;</span>
     <div class="label">Payroll Runs Processed</div>
     <div class="value">{{ salary_generated_count }}</div>
+    <div class="text-sm text-muted">{% if latest_payroll_run %}Latest: {{ latest_payroll_run.month }}{% else %}None yet{% endif %}</div>
   </div>
   <div class="kpi-card">
     <span class="icon-badge" style="background:var(--warn-soft);color:var(--warn);">&#9203;</span>
     <div class="label">Pending Approvals</div>
     <div class="value">{{ pending_approvals }}</div>
+    <div class="text-sm text-muted">payroll run{{ pending_approvals|pluralize }} awaiting approval</div>
   </div>
 </div>
+
+{% if dx_tracker or dx_setup %}
+<div class="dx-grid dx-2-1">
+  {% if dx_tracker %}
+  <div class="card">
+    <div class="card-header"><div><h3>Payroll for {{ dx_tracker.month }}</h3><div class="sub">{% if dx_tracker.complete %}All steps are done for this month{% else %}Follow the highlighted step{% endif %}</div></div>
+      {% if dx_tracker.run %}<span class="badge {% if dx_tracker.run.status == 'RELEASED' %}badge-success{% elif dx_tracker.run.status == 'APPROVED' %}badge-info{% elif dx_tracker.run.status == 'VALIDATED' %}badge-warn{% else %}badge-neutral{% endif %}">{{ dx_tracker.run.get_status_display }}</span>{% endif %}</div>
+    <div class="card-body">
+      <div class="dx-steps">
+        {% for s in dx_tracker.steps %}
+        <{% if s.href %}a href="{{ s.href }}"{% else %}div{% endif %} class="dx-step {{ s.state }}"><div class="dot">{% if s.state == 'done' %}&#10003;{% else %}{{ forloop.counter }}{% endif %}</div><div class="t">{{ s.label }}</div></{% if s.href %}a{% else %}div{% endif %}>
+        {% endfor %}
+      </div>
+      <div class="dx-tmeta">
+        {% if dx_tracker.pay_date %}<span>Pay date: <b>{{ dx_tracker.pay_date|date:"j M Y" }}</b></span>{% endif %}
+        {% if dx_tracker.run %}<span>Run: <b>{{ dx_tracker.run.month }}</b></span>{% else %}<span>No payroll run for {{ dx_tracker.month }} yet</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if dx_setup %}
+  <div class="card">
+    <div class="card-header"><div><h3>Setup progress</h3><div class="sub">{{ dx_setup.done }} of {{ dx_setup.total }} steps done</div></div></div>
+    <div class="card-body">
+      <div class="dx-setup">
+        <div class="dx-ring" style="--p:{{ dx_setup.pct }}"><span>{{ dx_setup.pct }}%</span></div>
+        <div class="text-sm text-muted">{% if dx_setup.pct == 100 %}Your company is fully set up.{% else %}Finish the open steps so payroll runs without surprises.{% endif %}</div>
+      </div>
+      <ul class="dx-check">
+        {% for s in dx_setup.steps %}
+        <li class="{% if s.done %}done{% endif %}"><span class="box">{% if s.done %}&#10003;{% endif %}</span>{% if s.href %}<a href="{{ s.href }}">{{ s.label }}</a>{% else %}{{ s.label }}{% endif %}{% if s.detail %}<span class="det">{{ s.detail }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="dx-grid dx-2-1">
+  <div class="card" id="dx-attention">
+    <div class="card-header"><div><h3>Needs your attention</h3><div class="sub">To-Do &middot; approvals and things to fix before payroll</div></div></div>
+    <div class="card-body">
+      {% if dx_attention.alerts %}
+      <div class="dx-alerts">
+        {% for a in dx_attention.alerts %}
+        <{% if a.href %}a href="{{ a.href }}"{% else %}div{% endif %} class="dx-alert {{ a.level }}"><span class="n">{{ a.count }}</span><span><b>{{ a.label }}</b><small>{{ a.hint }}</small></span>{% if a.href %}<span class="go">Open &rarr;</span>{% endif %}</{% if a.href %}a{% else %}div{% endif %}>
+        {% endfor %}
+      </div>
+      {% elif dx_attention %}<div class="dx-clear">&#10003; Nothing is blocking payroll right now.</div>{% endif %}
+      <div class="dx-queue stack-gap">
+        <div class="flex-between">
+          <span>Pending Leave Requests</span>
+          <a href="{% url 'leave_management' %}" class="badge {% if pending_leave %}badge-warn{% else %}zero{% endif %}">{{ pending_leave }} pending</a>
+        </div>
+        <div class="flex-between">
+          <span>Pending Reimbursements</span>
+          <a href="{% url 'reimbursement' %}" class="badge {% if pending_reimbursements %}badge-warn{% else %}zero{% endif %}">{{ pending_reimbursements }} pending</a>
+        </div>
+        <div class="flex-between">
+          <span>Unverified Investment Declarations</span>
+          <a href="{% url 'investment_declaration' %}" class="badge {% if pending_investment_declarations %}badge-warn{% else %}zero{% endif %}">{{ pending_investment_declarations }} pending</a>
+        </div>
+        <div class="flex-between">
+          <span>Payroll Runs Awaiting Approval</span>
+          <a href="{% url 'payroll_processing' %}" class="badge {% if pending_approvals %}badge-warn{% else %}zero{% endif %}">{{ pending_approvals }} pending</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if dx_greeting %}<div class="card">
+    <div class="card-header"><div><h3>Coming up</h3><div class="sub">Birthdays, anniversaries, joiners and holidays</div></div></div>
+    <div class="card-body">
+      {% for ev in dx_events %}
+      <div class="dx-ev {{ ev.kind }}">
+        <div class="dx-date"><b>{{ ev.date|date:"j" }}</b><small>{{ ev.date|date:"M" }}</small></div>
+        <div><b>{{ ev.title }}</b><small>{{ ev.text }}</small></div>
+        <span class="when">{% if ev.in_days == 0 %}Today{% elif ev.in_days == 1 %}Tomorrow{% else %}in {{ ev.in_days }} days{% endif %}</span>
+      </div>
+      {% empty %}
+      <div class="empty-state" style="padding:28px 10px;"><div class="icon">&#127881;</div><div class="title">Nothing coming up</div><div class="desc">Birthdays, anniversaries, joiners and holidays will show here.</div></div>
+      {% endfor %}
+    </div>
+  </div>{% endif %}
+</div>
+
+{% if dx_att_bar %}<div class="card">
+  <div class="card-header"><div><h3>Today's attendance</h3><div class="sub">{% if dx_att_bar.total %}{{ dx_att_bar.present_pct }}% of active employees are present{% else %}No active employees yet{% endif %}</div></div></div>
+  <div class="card-body">
+    {% if dx_att_bar.total %}
+    <div class="dx-bar">{% for p in dx_att_bar.parts %}{% if p.pct %}<i class="{{ p.css }}" style="width:{{ p.pct }}%" title="{{ p.label }}: {{ p.n }}"></i>{% endif %}{% endfor %}</div>
+    <div class="dx-legend">{% for p in dx_att_bar.parts %}<span><i class="{{ p.css }}"></i>{{ p.label }} {{ p.n }}</span>{% endfor %}</div>
+    {% endif %}
+  </div>
+</div>{% endif %}
 
 <div class="kpi-row">
   <div class="kpi-card">
@@ -164,32 +344,6 @@
     <div class="card-body"><div class="chart-box sm"><canvas id="runChart"></canvas></div></div>
   </div>
   <div class="card">
-    <div class="card-header">
-      <h3>To-Do</h3>
-    </div>
-    <div class="card-body stack-gap">
-      <div class="flex-between">
-        <span>Pending Leave Requests</span>
-        <a href="{% url 'leave_management' %}" class="badge badge-warn">{{ pending_leave }} pending</a>
-      </div>
-      <div class="flex-between">
-        <span>Pending Reimbursements</span>
-        <a href="{% url 'reimbursement' %}" class="badge badge-warn">{{ pending_reimbursements }} pending</a>
-      </div>
-      <div class="flex-between">
-        <span>Unverified Investment Declarations</span>
-        <a href="{% url 'investment_declaration' %}" class="badge badge-warn">{{ pending_investment_declarations }} pending</a>
-      </div>
-      <div class="flex-between">
-        <span>Payroll Runs Awaiting Approval</span>
-        <a href="{% url 'payroll_processing' %}" class="badge badge-warn">{{ pending_approvals }} pending</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="grid-2">
-  <div class="card">
     <div class="card-header"><h3>Recent Leave Requests</h3></div>
     <div class="table-wrap">
       {% if recent_leaves %}
@@ -211,27 +365,28 @@
       {% endif %}
     </div>
   </div>
-  <div class="card">
-    <div class="card-header"><h3>Recent Reimbursements</h3></div>
-    <div class="table-wrap">
-      {% if recent_reimbursements %}
-      <table>
-        <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for r in recent_reimbursements %}
-          <tr>
-            <td>{{ r.employee.full_name }}</td>
-            <td>{{ r.get_category_display }}</td>
-            <td>&#8377;{{ r.amount }}</td>
-            <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No reimbursement claims yet</div></div>
-      {% endif %}
-    </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Recent Reimbursements</h3></div>
+  <div class="table-wrap">
+    {% if recent_reimbursements %}
+    <table>
+      <thead><tr><th>Employee</th><th>Category</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in recent_reimbursements %}
+        <tr>
+          <td>{{ r.employee.full_name }}</td>
+          <td>{{ r.get_category_display }}</td>
+          <td>&#8377;{{ r.amount }}</td>
+          <td><span class="badge {% if r.status == 'APPROVED' %}badge-success{% elif r.status == 'REJECTED' %}badge-danger{% else %}badge-warn{% endif %}">{{ r.get_status_display }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><div class="icon">&#128179;</div><div class="title">No reimbursement claims yet</div></div>
+    {% endif %}
   </div>
 </div>
 
