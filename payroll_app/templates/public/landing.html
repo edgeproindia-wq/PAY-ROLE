@@ -485,6 +485,237 @@
   </div>
 </footer>
 
+<!-- front3d-start -->
+{% verbatim %}
+<style>
+/* front3d: 3D motion for the front page. Everything here only applies to elements the script tags with an f3d- class. */
+.f3d-hero{position:relative;isolation:isolate}
+.f3d-shapes{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden;perspective:1000px}
+.f3d-px{position:absolute;transition:transform .5s ease-out;transform:translate3d(calc(var(--mx,0) * var(--k,14px)),calc(var(--my,0) * var(--k,14px)),0)}
+.f3d-orb{position:absolute;border-radius:50%;filter:blur(46px);background:radial-gradient(circle,rgba(34,197,94,.34),rgba(34,197,94,0) 70%);animation:f3d-drift 16s ease-in-out infinite}
+.f3d-cube{position:relative;width:var(--s,60px);height:var(--s,60px);transform-style:preserve-3d;animation:f3d-spin var(--t,24s) linear infinite,f3d-bob 7s ease-in-out infinite}
+.f3d-cube i{position:absolute;inset:0;border:1px solid rgba(22,163,74,.38);border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,.22),rgba(22,163,74,.05))}
+.f3d-cube i:nth-child(1){transform:translateZ(calc(var(--s,60px) / 2))}
+.f3d-cube i:nth-child(2){transform:rotateY(90deg) translateZ(calc(var(--s,60px) / 2))}
+.f3d-cube i:nth-child(3){transform:rotateY(180deg) translateZ(calc(var(--s,60px) / 2))}
+.f3d-cube i:nth-child(4){transform:rotateY(270deg) translateZ(calc(var(--s,60px) / 2))}
+.f3d-cube i:nth-child(5){transform:rotateX(90deg) translateZ(calc(var(--s,60px) / 2))}
+.f3d-cube i:nth-child(6){transform:rotateX(-90deg) translateZ(calc(var(--s,60px) / 2))}
+.f3d-coin{position:relative;width:78px;height:78px;transform-style:preserve-3d;animation:f3d-flip 9s linear infinite,f3d-bob 8s ease-in-out infinite}
+.f3d-coin b,.f3d-coin u{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;font:700 34px/1 Inter,system-ui,sans-serif;color:#f0fdf4;text-decoration:none;backface-visibility:hidden;background:radial-gradient(circle at 30% 28%,#86efac,#16a34a 68%,#14532d);box-shadow:inset 0 0 0 5px rgba(255,255,255,.22),0 10px 24px rgba(22,101,52,.28)}
+.f3d-coin u{transform:rotateY(180deg)}
+.f3d-tilt{position:relative;transform-style:preserve-3d;transition:transform .25s ease-out,box-shadow .3s ease-out;will-change:transform;animation:f3d-float 8s ease-in-out infinite;box-shadow:0 30px 60px -20px rgba(15,23,42,.45)}
+.f3d-tilt:hover{animation-play-state:paused;box-shadow:0 40px 80px -24px rgba(15,23,42,.6)}
+.f3d-glare{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(420px circle at var(--gx,50%) var(--gy,0%),rgba(255,255,255,.18),rgba(255,255,255,0) 58%)}
+.f3d-tilt:hover>.f3d-glare{opacity:1}
+.f3d-z{transform:translateZ(16px)}
+.f3d-card{transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}
+.f3d-card:hover{transform:perspective(900px) translateY(-6px) rotateX(2deg);box-shadow:0 24px 44px -18px rgba(15,23,42,.28)}
+.f3d-pre{opacity:0;transform:perspective(900px) translateY(42px) rotateX(16deg);transform-origin:50% 100%}
+.f3d-pre-soft{opacity:0;scale:.94}
+.f3d-pre,.f3d-pre-soft{transition:opacity .75s ease,transform .85s cubic-bezier(.2,.7,.2,1),scale .85s cubic-bezier(.2,.7,.2,1)}
+.f3d-pre.f3d-in{opacity:1;transform:none}
+.f3d-pre-soft.f3d-in{opacity:1;scale:1}
+@keyframes f3d-spin{from{transform:rotateX(-22deg) rotateY(0deg)}to{transform:rotateX(-22deg) rotateY(360deg)}}
+@keyframes f3d-flip{from{transform:rotateY(0deg) rotateX(12deg)}to{transform:rotateY(360deg) rotateX(12deg)}}
+@keyframes f3d-bob{0%,100%{translate:0 0}50%{translate:0 -14px}}
+@keyframes f3d-float{0%,100%{translate:0 0}50%{translate:0 -9px}}
+@keyframes f3d-drift{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(36px,-26px,0) scale(1.12)}}
+@media (max-width:900px){.f3d-cube,.f3d-coin{display:none}}
+@media (prefers-reduced-motion:reduce){.f3d-shapes{display:none}.f3d-tilt,.f3d-cube,.f3d-coin,.f3d-orb{animation:none}.f3d-pre,.f3d-pre-soft{opacity:1;transform:none;scale:1;transition:none}}
+</style>
+<script>
+/* front3d: adds 3D motion to the front page. It finds the headline, the hero area and the dark dashboard cards by how they look,
+   so it needs no class names. Switch it off with ?3d=off in the address (and on again with ?3d=on). */
+(function () {
+  'use strict';
+  if (window.__f3d || window.F3D_OFF) return;
+  window.__f3d = true;
+  try {
+    var q = location.search || '';
+    if (/[?&]3d=off\b/.test(q)) localStorage.setItem('f3d', 'off');
+    if (/[?&]3d=on\b/.test(q)) localStorage.removeItem('f3d');
+    if (localStorage.getItem('f3d') === 'off') return;
+  } catch (e) { }
+  function mq(s) { try { return !!(window.matchMedia && window.matchMedia(s).matches); } catch (e) { return false; } }
+  if (mq('(prefers-reduced-motion: reduce)')) return;
+  var fine = mq('(hover: hover) and (pointer: fine)');
+  var doc = document;
+
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function style(el) { return window.getComputedStyle(el); }
+  function colour(text) {
+    var m = /rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+))?/.exec(text || '');
+    return m ? [num(m[1]), num(m[2]), num(m[3]), m[4] === undefined ? 1 : num(m[4])] : null;
+  }
+  function luminance(c) { return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255; }
+  function backgroundOf(el) {
+    var s = style(el), c = colour(s.backgroundColor);
+    if (c && c[3] > 0.5) return c;
+    return colour(s.backgroundImage);
+  }
+  function isDark(el) { var c = backgroundOf(el); return !!c && c[3] > 0.5 && luminance(c) < 0.22; }
+  function radiusOf(el) { var s = style(el); return Math.max(num(s.borderTopLeftRadius), num(s.borderRadius)); }
+  function rect(el) { return el.getBoundingClientRect(); }
+  function inChrome(el) { return !!(el.closest && el.closest('header,nav,footer,.f3d-shapes')); }
+  function outermost(list) { return list.filter(function (el) { return !list.some(function (o) { return o !== el && o.contains(el); }); }); }
+  function make(html) { var d = doc.createElement('div'); d.innerHTML = html; return d.firstChild; }
+
+  function start() {
+    var h1 = doc.querySelector('main h1') || doc.querySelector('h1');
+    var hero = h1 ? heroOf(h1) : null;
+    if (hero) addShapes(hero);
+    var darkCards = findDarkCards(hero);
+    darkCards.forEach(tilt);
+    liftCards(hero, darkCards);
+    reveal(hero, darkCards);
+  }
+
+  function heroOf(h1) {
+    var el = h1, best = h1.parentElement;
+    for (var i = 0; i < 5 && el.parentElement && el.parentElement !== doc.body; i++) {
+      el = el.parentElement;
+      var r = rect(el);
+      if (r.width >= window.innerWidth * 0.85 && r.height >= 260) { best = el; break; }
+    }
+    return best;
+  }
+
+  function addShapes(hero) {
+    if (hero.querySelector('.f3d-shapes')) return;
+    if (style(hero).position === 'static') hero.style.position = 'relative';
+    hero.classList.add('f3d-hero');
+    var faces = '<i></i><i></i><i></i><i></i><i></i><i></i>';
+    var s = make('<div class="f3d-shapes" aria-hidden="true">' +
+      '<div class="f3d-px" style="left:-6%;top:-18%;--k:26px"><div class="f3d-orb" style="width:520px;height:520px"></div></div>' +
+      '<div class="f3d-px" style="right:-8%;top:30%;--k:34px"><div class="f3d-orb" style="width:460px;height:460px;animation-delay:-6s"></div></div>' +
+      '<div class="f3d-px" style="left:7%;top:24%;--k:18px"><div class="f3d-cube" style="--s:66px;--t:26s">' + faces + '</div></div>' +
+      '<div class="f3d-px" style="left:15%;top:62%;--k:30px"><div class="f3d-cube" style="--s:38px;--t:18s">' + faces + '</div></div>' +
+      '<div class="f3d-px" style="right:9%;top:20%;--k:24px"><div class="f3d-cube" style="--s:50px;--t:22s">' + faces + '</div></div>' +
+      '<div class="f3d-px" style="right:16%;top:60%;--k:36px"><div class="f3d-coin"><b>&#8377;</b><u>&#8377;</u></div></div>' +
+      '</div>');
+    hero.insertBefore(s, hero.firstChild);
+    if (!fine) return;
+    var pending = false, mx = 0, my = 0;
+    hero.addEventListener('pointermove', function (e) {
+      var r = rect(hero);
+      mx = ((e.clientX - r.left) / (r.width || 1) - 0.5) * 2;
+      my = ((e.clientY - r.top) / (r.height || 1) - 0.5) * 2;
+      if (pending) return;
+      pending = true;
+      raf(function () { pending = false; s.style.setProperty('--mx', mx.toFixed(3)); s.style.setProperty('--my', my.toFixed(3)); });
+    }, { passive: true });
+    hero.addEventListener('pointerleave', function () { s.style.setProperty('--mx', '0'); s.style.setProperty('--my', '0'); }, { passive: true });
+  }
+
+  function findDarkCards(hero) {
+    var out = [], all = doc.body.querySelectorAll('div,section,article,aside,figure');
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (inChrome(el)) continue;
+      var r = rect(el);
+      if (r.width < 260 || r.width > 760 || r.height < 140 || r.height > 680) continue;
+      if (radiusOf(el) < 10 || !isDark(el)) continue;
+      out.push(el);
+    }
+    return outermost(out);
+  }
+
+  var cards = [];
+  var scheduled = false;
+  function raf(fn) { return (window.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(fn); }
+  function paint(state) {
+    state.el.style.transform = 'perspective(900px) rotateX(' + (state.rx + state.base).toFixed(2) + 'deg) rotateY(' + state.ry.toFixed(2) + 'deg)';
+  }
+  function baseline() {
+    cards.forEach(function (st) {
+      var r = rect(st.el), n = (r.top + r.height / 2 - window.innerHeight / 2) / (window.innerHeight || 1);
+      st.base = Math.max(-1, Math.min(1, n)) * -7;
+      paint(st);
+    });
+  }
+  function onScroll() { if (scheduled) return; scheduled = true; raf(function () { scheduled = false; baseline(); }); }
+
+  function tilt(el) {
+    if (el.classList.contains('f3d-tilt')) return;
+    if (style(el).transform !== 'none' && style(el).transform !== '') return;
+    el.classList.add('f3d-tilt');
+    var glare = doc.createElement('span');
+    glare.className = 'f3d-glare';
+    glare.setAttribute('aria-hidden', 'true');
+    el.appendChild(glare);
+    for (var i = 0; i < el.children.length; i++) {
+      var k = el.children[i];
+      if (k !== glare && (style(k).transform === 'none' || style(k).transform === '')) k.classList.add('f3d-z');
+    }
+    var st = { el: el, rx: 0, ry: 0, base: 0 };
+    cards.push(st);
+    if (fine) {
+      el.addEventListener('pointermove', function (e) {
+        var r = rect(el), px = (e.clientX - r.left) / (r.width || 1), py = (e.clientY - r.top) / (r.height || 1);
+        st.ry = (px - 0.5) * 14;
+        st.rx = -(py - 0.5) * 12;
+        el.style.setProperty('--gx', (px * 100).toFixed(1) + '%');
+        el.style.setProperty('--gy', (py * 100).toFixed(1) + '%');
+        paint(st);
+      }, { passive: true });
+      el.addEventListener('pointerleave', function () { st.rx = 0; st.ry = 0; paint(st); }, { passive: true });
+    }
+    baseline();
+  }
+
+  function liftCards(hero, dark) {
+    var all = doc.body.querySelectorAll('div,article,li,figure'), found = [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (inChrome(el) || (hero && (hero === el || hero.contains(el))) || dark.indexOf(el) >= 0 || el.closest('.f3d-tilt')) continue;
+      var r = rect(el);
+      if (r.width < 180 || r.width > 520 || r.height < 90 || r.height > 460) continue;
+      var s = style(el);
+      if (radiusOf(el) < 10 || s.transform !== 'none' && s.transform !== '') continue;
+      var bg = backgroundOf(el), shadow = s.boxShadow && s.boxShadow !== 'none';
+      if (!(bg && bg[3] > 0.5) && !shadow) continue;
+      found.push(el);
+    }
+    outermost(found).forEach(function (el) { el.classList.add('f3d-card'); });
+  }
+
+  function reveal(hero, dark) {
+    if (!('IntersectionObserver' in window)) return;
+    var targets = [], h = window.innerHeight;
+    var list = doc.body.querySelectorAll('h2,h2 + p,.f3d-card,.f3d-tilt');
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (inChrome(el) || (hero && (hero === el || hero.contains(el)))) continue;
+      if (rect(el).top > h - 40) targets.push(el);
+    }
+    if (!targets.length) return;
+    var io = new IntersectionObserver(function (entries) {
+      var n = 0;
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target;
+        el.style.transitionDelay = (n++ % 4) * 90 + 'ms';
+        el.classList.add('f3d-in');
+        io.unobserve(el);
+      });
+    }, { threshold: 0.12 });
+    targets.forEach(function (el) {
+      el.classList.add(el.classList.contains('f3d-tilt') ? 'f3d-pre-soft' : 'f3d-pre');
+      io.observe(el);
+    });
+  }
+
+  function run() {
+    try { start(); } catch (e) { if (window.console) console.warn('front3d stopped:', e); return; }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+  }
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', run); else run();
+})();
+</script>
+{% endverbatim %}
+<!-- front3d-end -->
 </body>
 </html>
 
