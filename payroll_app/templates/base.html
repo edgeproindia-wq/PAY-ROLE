@@ -258,6 +258,11 @@
 {% include "partials/pwa_head.html" %}
 {% include "partials/styles_link.html" %}
 {% np_nav_css %}
+<style id="np-sections">
+/* np-sections: the owner menu is grouped under four small headings. The headings are plain labels; the items keep their own look. */
+.sb-nav .sb-label{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.55;padding:18px 16px 6px;line-height:1.2;pointer-events:none;user-select:none}
+.sb-nav .sb-label:first-child{padding-top:8px}
+</style>
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
@@ -302,6 +307,7 @@
       </div>
       {% url 'notifications' as u_emp9 %}{% if u_emp9 %}<a class="sb-top" href="{{ u_emp9 }}"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg><span class="tx">Notifications</span></a>{% endif %}
     {% elif user.is_authenticated %}
+      <div class="sb-label">Workspace</div>
       {% url 'dashboard' as u_s1 %}{% if u_s1 %}<a class="sb-top" href="{{ u_s1 }}"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="tx">Dashboard</span></a>{% endif %}
       <div class="sb-group" data-group="organisation">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span class="tx">Organisation &amp; Payroll Configuration</span><span class="sb-caret"></span></button>
@@ -317,19 +323,7 @@
           {% url 'hr_employee_import' as u_s3_2 %}{% if u_s3_2 %}<a href="{{ u_s3_2 }}"><span class="tx">Employee Data Import / HRMS Integration</span></a>{% endif %}
         </div>
       </div>
-      <div class="sb-group" data-group="salary-component-master">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg><span class="tx">Salary Component Master</span><span class="sb-caret"></span></button>
-        <div class="sb-sub">
-          {% url 'hr_pay_components' as u_s4_1 %}{% if u_s4_1 %}<a href="{{ u_s4_1 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
-        </div>
-      </div>
-      <div class="sb-group" data-group="salary-structure">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">Salary Structure &amp; CTC Management</span><span class="sb-caret"></span></button>
-        <div class="sb-sub">
-          {% url 'salary_structure' as u_s5_1 %}{% if u_s5_1 %}<a href="{{ u_s5_1 }}"><span class="tx">Employee Salary Assignment</span></a>{% endif %}
-          {% url 'salary_history' as u_s5_2 %}{% if u_s5_2 %}<a href="{{ u_s5_2 }}"><span class="tx">Salary Structure History</span></a>{% endif %}
-        </div>
-      </div>
+      <div class="sb-label">Attendance &amp; Leave</div>
       <div class="sb-group" data-group="attendance-payable-days">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="tx">Attendance &amp; Payable Days</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
@@ -341,6 +335,40 @@
           {% url 'shift_assign' as u_s6_6 %}{% if u_s6_6 %}<a href="{{ u_s6_6 }}"><span class="tx">Assign Shifts</span></a>{% endif %}
           {% url 'hr_work_hours' as u_s6_7 %}{% if u_s6_7 %}<a href="{{ u_s6_7 }}"><span class="tx">Working Hours</span></a>{% endif %}
           {% url 'hr_day_hours' as u_s6_8 %}{% if u_s6_8 %}<a href="{{ u_s6_8 }}"><span class="tx">Daily Working Hours</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="approvals">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><span class="tx">Approval &amp; Workflow Management</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'module_approvals' as u_s16_1 %}{% if u_s16_1 %}<a href="{{ u_s16_1 }}"><span class="tx">Overview</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="hrms-integration">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="tx">HRMS &amp; External System Integration</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'hrms_employee_sync' as u_s20_1 %}{% if u_s20_1 %}<a href="{{ u_s20_1 }}"><span class="tx">Employee Master Synchronisation</span></a>{% endif %}
+          {% url 'hrms_attendance_import' as u_s20_2 %}{% if u_s20_2 %}<a href="{{ u_s20_2 }}"><span class="tx">Attendance Import</span></a>{% endif %}
+          {% url 'hrms_leave_import' as u_s20_3 %}{% if u_s20_3 %}<a href="{{ u_s20_3 }}"><span class="tx">Leave Data Import</span></a>{% endif %}
+          {% url 'hrms_joining_exit' as u_s20_4 %}{% if u_s20_4 %}<a href="{{ u_s20_4 }}"><span class="tx">Employee Joining / Exit Updates</span></a>{% endif %}
+          {% url 'bio_setup' as u_s20_5 %}{% if u_s20_5 %}<a href="{{ u_s20_5 }}"><span class="tx">Biometric Integration</span></a>{% endif %}
+          {% url 'hrms_accounting_sw' as u_s20_6 %}{% if u_s20_6 %}<a href="{{ u_s20_6 }}"><span class="tx">Accounting Software Integration</span></a>{% endif %}
+          {% url 'hrms_bank' as u_s20_7 %}{% if u_s20_7 %}<a href="{{ u_s20_7 }}"><span class="tx">Bank Integration</span></a>{% endif %}
+          {% url 'hrms_email' as u_s20_8 %}{% if u_s20_8 %}<a href="{{ u_s20_8 }}"><span class="tx">Email Integration</span></a>{% endif %}
+          {% url 'hrms_import_center' as u_s20_9 %}{% if u_s20_9 %}<a href="{{ u_s20_9 }}"><span class="tx">Secure API / CSV / Excel Integration</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-label">Payroll</div>
+      <div class="sb-group" data-group="salary-component-master">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg><span class="tx">Salary Component Master</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'hr_pay_components' as u_s4_1 %}{% if u_s4_1 %}<a href="{{ u_s4_1 }}"><span class="tx">Other Pay Items</span></a>{% endif %}
+        </div>
+      </div>
+      <div class="sb-group" data-group="salary-structure">
+        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg><span class="tx">Salary Structure &amp; CTC Management</span><span class="sb-caret"></span></button>
+        <div class="sb-sub">
+          {% url 'salary_structure' as u_s5_1 %}{% if u_s5_1 %}<a href="{{ u_s5_1 }}"><span class="tx">Employee Salary Assignment</span></a>{% endif %}
+          {% url 'salary_history' as u_s5_2 %}{% if u_s5_2 %}<a href="{{ u_s5_2 }}"><span class="tx">Salary Structure History</span></a>{% endif %}
         </div>
       </div>
       <div class="sb-group" data-group="monthly-payroll-processing">
@@ -419,6 +447,7 @@
           {% url 'acc_reconcile' as u_s14_9 %}{% if u_s14_9 %}<a href="{{ u_s14_9 }}"><span class="tx">Reconciliation</span></a>{% endif %}
         </div>
       </div>
+      <div class="sb-label">Reports &amp; Settings</div>
       <div class="sb-group" data-group="reports-analytics">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="tx">Payroll Reports &amp; Analytics</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
@@ -446,12 +475,6 @@
           {% url 'reports_analytics' as u_s15_1 %}{% if u_s15_1 %}<a href="{{ u_s15_1 }}"><span class="tx">Reports &amp; Analytics</span></a>{% endif %}
         </div>
       </div>
-      <div class="sb-group" data-group="approvals">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><span class="tx">Approval &amp; Workflow Management</span><span class="sb-caret"></span></button>
-        <div class="sb-sub">
-          {% url 'module_approvals' as u_s16_1 %}{% if u_s16_1 %}<a href="{{ u_s16_1 }}"><span class="tx">Overview</span></a>{% endif %}
-        </div>
-      </div>
       <div class="sb-group" data-group="user-security">
         <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span class="tx">User Management &amp; Security</span><span class="sb-caret"></span></button>
         <div class="sb-sub">
@@ -472,20 +495,6 @@
         <div class="sb-sub">
           {% url 'client_complaints' as u_s19_1 %}{% if u_s19_1 %}<a href="{{ u_s19_1 }}"><span class="tx">Raise Complaint</span></a>{% endif %}
           {% url 'client_requests' as u_s19_2 %}{% if u_s19_2 %}<a href="{{ u_s19_2 }}"><span class="tx">Raise Request</span></a>{% endif %}
-        </div>
-      </div>
-      <div class="sb-group" data-group="hrms-integration">
-        <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="tx">HRMS &amp; External System Integration</span><span class="sb-caret"></span></button>
-        <div class="sb-sub">
-          {% url 'hrms_employee_sync' as u_s20_1 %}{% if u_s20_1 %}<a href="{{ u_s20_1 }}"><span class="tx">Employee Master Synchronisation</span></a>{% endif %}
-          {% url 'hrms_attendance_import' as u_s20_2 %}{% if u_s20_2 %}<a href="{{ u_s20_2 }}"><span class="tx">Attendance Import</span></a>{% endif %}
-          {% url 'hrms_leave_import' as u_s20_3 %}{% if u_s20_3 %}<a href="{{ u_s20_3 }}"><span class="tx">Leave Data Import</span></a>{% endif %}
-          {% url 'hrms_joining_exit' as u_s20_4 %}{% if u_s20_4 %}<a href="{{ u_s20_4 }}"><span class="tx">Employee Joining / Exit Updates</span></a>{% endif %}
-          {% url 'bio_setup' as u_s20_5 %}{% if u_s20_5 %}<a href="{{ u_s20_5 }}"><span class="tx">Biometric Integration</span></a>{% endif %}
-          {% url 'hrms_accounting_sw' as u_s20_6 %}{% if u_s20_6 %}<a href="{{ u_s20_6 }}"><span class="tx">Accounting Software Integration</span></a>{% endif %}
-          {% url 'hrms_bank' as u_s20_7 %}{% if u_s20_7 %}<a href="{{ u_s20_7 }}"><span class="tx">Bank Integration</span></a>{% endif %}
-          {% url 'hrms_email' as u_s20_8 %}{% if u_s20_8 %}<a href="{{ u_s20_8 }}"><span class="tx">Email Integration</span></a>{% endif %}
-          {% url 'hrms_import_center' as u_s20_9 %}{% if u_s20_9 %}<a href="{{ u_s20_9 }}"><span class="tx">Secure API / CSV / Excel Integration</span></a>{% endif %}
         </div>
       </div>
     {% endif %}

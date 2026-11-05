@@ -33,6 +33,25 @@ SECTIONS = {
 }
 
 
+# The company owner's sections sit under four headings in the sidebar (see base.html). This list is the order of the sidebar AND the order of
+# Previous / Next. A section that is not listed here (one added later) simply goes to the end, so no page is ever lost.
+OWNER_HEADINGS = [
+    ('Workspace', ['dashboard', 'organisation', 'employee-payroll-master']),
+    ('Attendance & Leave', ['attendance-payable-days', 'approvals', 'hrms-integration']),
+    ('Payroll', ['salary-component-master', 'salary-structure', 'monthly-payroll-processing', 'statutory-compliance', 'arrears-adjustments', 'loan-advance',
+                 'payslip-management', 'bank-payments', 'full-final-settlement', 'accounting-integration']),
+    ('Reports & Settings', ['reports-analytics', 'user-security', 'notifications', 'system-administration']),
+]
+
+
+def _by_headings(sections):
+    rank = {key: i for i, key in enumerate(k for _heading, keys in OWNER_HEADINGS for k in keys)}
+    return sorted(sections, key=lambda s: rank.get(s[0], len(rank)))          # a stable sort: the unlisted ones keep their order at the end
+
+
+SECTIONS['COMPANY_OWNER'] = _by_headings(SECTIONS['COMPANY_OWNER'])
+
+
 def flat_pages(role):
     """Every page of a role in order, each with its section and the address its main sidebar item opens (the first page of the section)."""
     out, seen = [], set()

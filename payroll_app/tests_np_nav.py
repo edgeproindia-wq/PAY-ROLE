@@ -13,11 +13,11 @@ from .tests import make_company, make_user
 
 OWNER = 'COMPANY_OWNER'
 ADDED_LATER = {'shift_assign', 'hr_day_hours'}          # pages from later packs: in the order when they exist, skipped when they do not
-MAIN_ITEMS = ['Dashboard', 'Organisation & Payroll Configuration', 'Employee Payroll Master', 'Salary Component Master',
-              'Salary Structure & CTC Management', 'Attendance & Payable Days', 'Monthly Payroll Processing', 'Statutory Compliance',
-              'Arrears & Adjustments', 'Loan & Advance Management', 'Payslip Management', 'Bank Payment Management',
-              'Full & Final Settlement', 'Accounting Integration', 'Payroll Reports & Analytics', 'Approval & Workflow Management',
-              'User Management & Security', 'Notifications & Automation', 'System Administration', 'HRMS & External System Integration']
+MAIN_ITEMS = ['Dashboard', 'Organisation & Payroll Configuration', 'Employee Payroll Master', 'Attendance & Payable Days', 'Approval & Workflow Management',
+              'HRMS & External System Integration', 'Salary Component Master', 'Salary Structure & CTC Management', 'Monthly Payroll Processing',
+              'Statutory Compliance', 'Arrears & Adjustments', 'Loan & Advance Management', 'Payslip Management', 'Bank Payment Management',
+              'Full & Final Settlement', 'Accounting Integration', 'Payroll Reports & Analytics', 'User Management & Security', 'Notifications & Automation',
+              'System Administration']
 # every page the owner's sidebar had before the 20-section structure: none of them may become unreachable
 OLD_OWNER_PAGES = ['dashboard', 'employee_master', 'hr_employee_logins', 'user_roles_permissions', 'ess', 'attendance', 'attendance_bulk',
                    'working_calendar', 'hr_shifts', 'hr_work_hours', 'leave_management', 'pay_cycles', 'salary_structure', 'salary_history',
@@ -149,7 +149,9 @@ class FooterTests(TestCase):
                 self.assertEqual(np_nav(dict(request=request))['hide_bar'], idx == 0, (role, idx))
 
     def test_next_stays_inside_its_section_and_previous_still_goes_back_across_it(self):
-        att, pay = names(OWNER, 'attendance-payable-days'), names(OWNER, 'monthly-payroll-processing')
+        keys = [s[0] for s in SECTIONS[OWNER]]
+        att = names(OWNER, 'attendance-payable-days')
+        pay = names(OWNER, keys[keys.index('attendance-payable-days') + 1])         # the section that follows Attendance in the sidebar order
         footer = self.get(att[-1]).split('class="np-pager"')[1].split('</footer>')[0]
         self.assertNotIn(reverse(pay[0]), footer)
         self.assertNotIn('Finish', footer)
