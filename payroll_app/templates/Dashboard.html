@@ -73,6 +73,18 @@
   .dx-queue .flex-between{padding:9px 0;border-bottom:1px solid var(--line-soft)}
   .dx-queue .flex-between:last-child{border-bottom:0}
   .dx-queue .zero{background:var(--success-soft);color:var(--success)}
+  /* dx-neat: readable, compact and calm */
+  .kpi-card .text-muted,.kpi-card .text-sm{color:rgba(255,255,255,.92) !important;font-weight:500}
+  .dx-sumrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+  .dx-stat{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}
+  .dx-stat .l{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .dx-stat .v{font-size:21px;font-weight:800;color:var(--ink);margin-top:4px;line-height:1.15}
+  .dx-stat .s{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .dx-stat.good .v{color:var(--success)}
+  .dx-stat.warn .v{color:var(--warn)}
+  .dx-stat.bad .v{color:var(--danger)}
+  .dx-stat.info .v{color:var(--info)}
+  .dx-section{margin-bottom:20px}
 </style>
 
 <div class="page-header">
@@ -89,10 +101,10 @@
 {% if dx_greeting %}
 <div class="dx-hello">
   <div>
-    <b>{{ dx_greeting.hello }}{% if dx_greeting.name %}, {{ dx_greeting.name }}{% endif %}</b>
+    <b>{{ dx_greeting.hello }}{% if dx_greeting.name %}, {{ dx_greeting.name|capfirst }}{% endif %}</b>
     <span class="d">{% if dx_greeting.company %}{{ dx_greeting.company }} &middot; {% endif %}{{ dx_today|date:"l, j F Y" }}</span>
   </div>
-  {% if dx_attention.total %}<a class="dx-pill warn" href="#dx-attention">{{ dx_attention.total }} item{{ dx_attention.total|pluralize }} need your attention</a>
+  {% if dx_attention.total %}<a class="dx-pill warn" href="#dx-attention">{% if dx_attention.total == 1 %}1 thing needs{% else %}{{ dx_attention.total }} things need{% endif %} your attention</a>
   {% else %}<span class="dx-pill ok">&#10003; All clear</span>{% endif %}
 </div>
 {% endif %}
@@ -140,6 +152,13 @@
         {% if dx_tracker.pay_date %}<span>Pay date: <b>{{ dx_tracker.pay_date|date:"j M Y" }}</b></span>{% endif %}
         {% if dx_tracker.run %}<span>Run: <b>{{ dx_tracker.run.month }}</b></span>{% else %}<span>No payroll run for {{ dx_tracker.month }} yet</span>{% endif %}
       </div>
+      {% if latest_payroll_run %}
+      <div class="dx-sumrow">
+        <div class="dx-stat good"><div class="l">Net payout</div><div class="v">&#8377;{{ latest_run_net_pay|floatformat:2 }}</div><div class="s">{{ latest_payroll_run.month }}</div></div>
+        <div class="dx-stat"><div class="l">Employees paid</div><div class="v">{{ latest_run_employee_count }}</div><div class="s">of {{ total_employees }} active</div></div>
+        {% if payroll_cards_run %}<div class="dx-stat bad"><div class="l">Total deductions</div><div class="v">&#8377;{{ latest_deductions|floatformat:2 }}</div><div class="s">{{ payroll_cards_run.month }}</div></div>{% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -209,66 +228,34 @@
   </div>{% endif %}
 </div>
 
-{% if dx_att_bar %}<div class="card">
-  <div class="card-header"><div><h3>Today's attendance</h3><div class="sub">{% if dx_att_bar.total %}{{ dx_att_bar.present_pct }}% of active employees are present{% else %}No active employees yet{% endif %}</div></div></div>
+<div class="card dx-section">
+  <div class="card-header"><div><h3>Today's attendance</h3><div class="sub">{% if dx_att_bar.total %}{{ dx_att_bar.present_pct }}% of active employees are present{% else %}Attendance for today{% endif %}</div></div><a class="btn btn-outline btn-sm" href="{% url 'employee_master' %}">Employees</a></div>
   <div class="card-body">
     {% if dx_att_bar.total %}
     <div class="dx-bar">{% for p in dx_att_bar.parts %}{% if p.pct %}<i class="{{ p.css }}" style="width:{{ p.pct }}%" title="{{ p.label }}: {{ p.n }}"></i>{% endif %}{% endfor %}</div>
-    <div class="dx-legend">{% for p in dx_att_bar.parts %}<span><i class="{{ p.css }}"></i>{{ p.label }} {{ p.n }}</span>{% endfor %}</div>
     {% endif %}
-  </div>
-</div>{% endif %}
-
-<div class="kpi-row">
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--accent);">&#9989;</span>
-    <div class="label">Present Today</div>
-    <div class="value">{{ present_today }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--info);">&#127796;</span>
-    <div class="label">On Leave Today</div>
-    <div class="value">{{ on_leave_today }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--warn);">&#128221;</span>
-    <div class="label">Attendance Not Marked</div>
-    <div class="value">{{ not_marked_today }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--danger);">&#10060;</span>
-    <div class="label">Absent Today</div>
-    <div class="value">{{ absent_today }}</div>
+    <div class="dx-sumrow" style="margin-top:{% if dx_att_bar.total %}16{% else %}0{% endif %}px">
+      <div class="dx-stat good"><div class="l">Present Today</div><div class="v">{{ present_today }}</div></div>
+      <div class="dx-stat info"><div class="l">On Leave Today</div><div class="v">{{ on_leave_today }}</div></div>
+      <div class="dx-stat warn"><div class="l">Attendance Not Marked</div><div class="v">{{ not_marked_today }}</div></div>
+      <div class="dx-stat bad"><div class="l">Absent Today</div><div class="v">{{ absent_today }}</div></div>
+    </div>
   </div>
 </div>
 
 {% if payroll_cards_run %}
-<div class="kpi-row">
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--danger);">&#8377;</span>
-    <div class="label">Total Deductions &middot; {{ payroll_cards_run.month }}</div>
-    <div class="value">&#8377;{{ latest_deductions|floatformat:2 }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--warn);">&#128197;</span>
-    <div class="label">Employees with LOP &middot; {{ payroll_cards_run.month }}</div>
-    <div class="value">{{ lop_people }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--danger);">&#9888;</span>
-    <div class="label">Failed Salary Payments</div>
-    <div class="value">{{ failed_payments }}</div>
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--info);">&#8644;</span>
-    <div class="label">Net Pay vs Previous Run</div>
-    <div class="value">{% if net_change_pct is not None %}{% if net_change > 0 %}+{% endif %}{{ net_change_pct }}%{% else %}&mdash;{% endif %}</div>
-    {% if previous_run %}<div class="text-sm">against {{ previous_run.month }}</div>{% endif %}
-  </div>
-  <div class="kpi-card">
-    <span class="icon-badge" style="background:#fff;color:var(--accent);">&#128100;</span>
-    <div class="label">Joined This Month / Exited</div>
-    <div class="value">{{ joiners_this_month }} / {{ exited_employees }}</div>
+<div class="card dx-section">
+  <div class="card-header"><div><h3>Payroll and people at a glance</h3><div class="sub">{{ payroll_cards_run.month }}</div></div></div>
+  <div class="card-body">
+    <div class="dx-sumrow" style="margin-top:0">
+      <div class="dx-stat bad"><div class="l">Total Deductions &middot; {{ payroll_cards_run.month }}</div><div class="v">&#8377;{{ latest_deductions|floatformat:2 }}</div></div>
+      <div class="dx-stat warn"><div class="l">Employees with LOP &middot; {{ payroll_cards_run.month }}</div><div class="v">{{ lop_people }}</div></div>
+      <div class="dx-stat {% if failed_payments %}bad{% else %}good{% endif %}"><div class="l">Failed Salary Payments</div><div class="v">{{ failed_payments }}</div></div>
+      <div class="dx-stat info"><div class="l">Net Pay vs Previous Run</div>
+        <div class="v">{% if net_change_pct is not None and previous_run and previous_run.month == dx_prev_label %}{% if net_change > 0 %}+{% endif %}{{ net_change_pct }}%{% else %}&mdash;{% endif %}</div>
+        <div class="s">{% if previous_run and previous_run.month == dx_prev_label %}against {{ previous_run.month }}{% elif dx_prev_label %}no payroll run for {{ dx_prev_label }}{% endif %}</div></div>
+      <div class="dx-stat"><div class="l">Joined This Month / Exited</div><div class="v">{{ joiners_this_month }} / {{ exited_employees }}</div></div>
+    </div>
   </div>
 </div>
 {% endif %}

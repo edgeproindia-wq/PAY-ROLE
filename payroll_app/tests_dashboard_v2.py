@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from . import dashboard_extras
 from .bank_batch_models import BankBatch
-from .models import Attendance, CompanySettings, Employee, LeaveRequest, PayrollRun, SalaryStructure
+from .models import Attendance, CompanySettings, Employee, LeaveRequest, PayrollRun, PayrollRunLine, SalaryStructure
 from .models_documents import EmployeeDocument
 from .pay_cycle_models import CalendarDay, PayCycle, WorkingCalendar
 from .tests import make_company, make_user
@@ -16,6 +16,11 @@ from .tests import make_company, make_user
 
 def days(n):
     return datetime.timedelta(days=n)
+
+
+def months_from(today, n):
+    y, m = divmod(today.year * 12 + today.month - 1 + n, 12)
+    return datetime.date(y, m + 1, 1)
 
 
 def person(company, code, email, **extra):
@@ -83,6 +88,70 @@ class PageTests(Base):
             self.assertNotIn('dx_setup', r.context)
 
 
+class NeatnessTests(Base):
+    def line(self, run, emp, net, deductions=0):
+        return PayrollRunLine.objects.create(payroll_run=run, employee=emp, basic=net, gross_salary=net + deductions, total_deductions=deductions, net_pay=net)
+
+    def test_the_header_counts_things_to_fix_not_people(self):
+        for i in range(3):
+            person(self.co, 'N%d' % i, 'n%d@dash.test' % i)                                   # three people: no structure, no bank details, attendance not marked
+        r = self.get()
+        self.assertEqual(r.context['dx_attention']['total'], 3)                               # three kinds of problem, not nine people
+        self.assertContains(r, '3 things need your attention')
+
+    def test_one_thing_reads_correctly(self):
+        e = person(self.co, 'N1', 'n1@dash.test')
+        complete(e)
+        self.assertContains(self.get(), '1 thing needs your attention')                       # only the attendance of today is open
+
+    def test_the_greeting_capitalises_the_name(self):
+        self.assertContains(self.get(), ', Dash_owner')
+
+    def test_todays_attendance_is_one_card_with_the_four_numbers(self):
+        h = self.get().content.decode()
+        self.assertEqual(h.count('Present Today'), 1)
+        order = [h.index(x) for x in ("Today's attendance", 'Present Today', 'On Leave Today', 'Attendance Not Marked', 'Absent Today', 'Latest Payroll Run')]
+        self.assertEqual(order, sorted(order))
+        self.assertEqual(h.count('class="kpi-card"'), 4)                                      # only the four main cards are big and coloured
+
+    def test_the_change_against_the_previous_run_is_shown_only_when_it_is_last_month(self):
+        e = person(self.co, 'P1', 'p1@dash.test')
+        last = months_from(self.today, -1).strftime('%B %Y')
+        old_run = PayrollRun.objects.create(company=self.co, month=last, status='RELEASED')
+        new_run = PayrollRun.objects.create(company=self.co, month=self.today.strftime('%B %Y'), status='RELEASED')
+        self.line(old_run, e, 1000)
+        self.line(new_run, e, 1100)
+        r = self.get()
+        self.assertEqual(r.context['dx_prev_label'], last)
+        self.assertContains(r, '+10.0%')
+        self.assertContains(r, 'against %s' % last)
+
+    def test_a_run_from_long_ago_is_not_called_the_previous_run(self):
+        e = person(self.co, 'P1', 'p1@dash.test')
+        far = months_from(self.today, -15).strftime('%B %Y')
+        old_run = PayrollRun.objects.create(company=self.co, month=far, status='RELEASED')
+        new_run = PayrollRun.objects.create(company=self.co, month=self.today.strftime('%B %Y'), status='RELEASED')
+        self.line(old_run, e, 175)
+        self.line(new_run, e, 37219)                                                          # this used to show +21000%
+        r = self.get()
+        h = r.content.decode()
+        self.assertNotIn('%against', h.replace(' ', ''))
+        self.assertNotRegex(h, r'\+\d{4,}\.\d%')
+        self.assertContains(r, 'no payroll run for %s' % months_from(self.today, -1).strftime('%B %Y'))
+
+    def test_the_tracker_card_shows_the_months_numbers(self):
+        e = person(self.co, 'P1', 'p1@dash.test')
+        run = PayrollRun.objects.create(company=self.co, month=self.today.strftime('%B %Y'), status='RELEASED')
+        self.line(run, e, 37219, 500)
+        h = self.get().content.decode()
+        self.assertIn('Net payout', h)
+        self.assertIn('37219.00', h)
+        self.assertIn('Employees paid', h)
+
+    def test_the_text_on_the_coloured_cards_is_made_readable(self):
+        self.assertIn('.kpi-card .text-muted', self.get().content.decode())
+
+
 class SetupTests(Base):
     def steps(self):
         return {s['label']: s['done'] for s in self.get().context['dx_setup']['steps']}
@@ -144,7 +213,7 @@ class AttentionTests(Base):
         self.assertEqual(got['Employee documents expired or expiring within 30 days'], 1)
         legacy = {r['label']: r['count'] for r in self.get().context['dx_attention']['legacy']}
         self.assertEqual(legacy['Pending Leave Requests'], 1)
-        self.assertEqual(self.get().context['dx_attention']['total'], sum(got.values()) + 1)
+        self.assertEqual(self.get().context['dx_attention']['total'], len(got) + 1)                      # six alerts and one approval row with something waiting
 
     def test_the_worst_things_come_first(self):
         person(self.co, 'A1', 'a1@dash.test')

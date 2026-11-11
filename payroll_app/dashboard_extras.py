@@ -91,7 +91,8 @@ def _attention(company, employees, runs, ctx, today):
     order = {'danger': 0, 'warn': 1, 'info': 2}
     shown = sorted(({'label': l, 'count': c, 'level': lv, 'href': _href(u), 'hint': h} for l, c, lv, u, h in alerts if c), key=lambda i: order[i['level']])
     rows = [{'label': l, 'count': c, 'href': _href(u)} for l, c, u in legacy]
-    return {'legacy': rows, 'alerts': shown, 'total': sum(r['count'] for r in rows) + sum(i['count'] for i in shown)}
+    # 'total' counts how many different things need attention (not how many people are affected by each)
+    return {'legacy': rows, 'alerts': shown, 'total': len(shown) + sum(1 for r in rows if r['count'])}
 
 
 def _tracker(company, employees, runs, today):
@@ -166,7 +167,9 @@ def owner_extras(request, employees, today, runs, ctx):
     """The extra dashboard panels, as a dict of context entries (all prefixed dx_)."""
     company = request.user.company
     attention = _safe('attention', {'legacy': [], 'alerts': [], 'total': 0}, _attention, company, employees, runs, ctx, today)
+    last_month = (today.replace(day=1) - datetime.timedelta(days=1)).strftime('%B %Y')
     return {
+        'dx_prev_label': last_month,
         'dx_greeting': _safe('greeting', {'hello': 'Hello', 'name': '', 'company': ''}, _greeting, request, today),
         'dx_today': today,
         'dx_setup': _safe('setup', None, _setup_progress, company, employees, runs),
