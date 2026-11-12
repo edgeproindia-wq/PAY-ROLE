@@ -63,7 +63,7 @@ def _static(name):
 
 def manifest(request):
     data = {'id': '/', 'name': 'Namma Payroll', 'short_name': 'Namma', 'description': 'Payroll, attendance, leave and payslips for your company and employees.',
-            'start_url': '/login/', 'scope': '/', 'display': 'standalone', 'orientation': 'portrait', 'lang': 'en-IN',
+            'start_url': '/', 'scope': '/', 'display': 'standalone', 'orientation': 'portrait', 'lang': 'en-IN',
             'theme_color': THEME, 'background_color': '#ffffff', 'categories': ['business', 'finance', 'productivity'],
             'icons': [{'src': _static('pwa/icon-192.png'), 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
                       {'src': _static('pwa/icon-512.png'), 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'},

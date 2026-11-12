@@ -183,6 +183,8 @@ class RoleRoutingAudit(World):
         for route, name in all_routes():
             if '<' in route or route.startswith('sbx-'):
                 continue
+            if route == '':
+                continue                                              # the empty address is the public home page for visitors (see tests_home_entry)
             self.client.logout()
             r = self.client.get('/' + route)
             if r.status_code == 200 and not any(w in (name or route).lower() for w in public_words):

@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .home_entry import home_entry as _home_entry
 from .forms import LoginForm
 
 urlpatterns = [
@@ -49,7 +50,7 @@ urlpatterns = [
     path('employee/<int:pk>/create-account/', views.employee_create_account, name='employee_create_account'),
 
     # ---- Core payroll app (existing routes, now access-controlled) --------
-    path('', views.dashboard, name='dashboard'),
+    path('', _home_entry, name='dashboard'),
 
     path('employee_master/', views.employee_master, name='employee_master'),
     path('employee_master/export/csv/', views.employee_master_export_csv, name='employee_master_export_csv'),

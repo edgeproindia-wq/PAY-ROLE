@@ -186,14 +186,20 @@ class PasswordAndSessionTests(TestCase):
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(reverse('logout')).status_code, 405)
         self.client.post(reverse('logout'))
-        self.assertRedirects(self.client.get(reverse('dashboard')), '/login/?next=/')
+        home = self.client.get(reverse('dashboard'))                  # after logout a visitor sees the public home page, never the dashboard
+        self.assertTemplateUsed(home, 'public/landing.html')
+        self.assertRedirects(self.client.get(reverse('employee_master')), '/login/?next=' + reverse('employee_master'))
         self.assertTrue(AuditLog.objects.filter(action='LOGOUT', actor=self.owner).exists())
 
     def test_anonymous_blocked_everywhere(self):
-        for name in ['dashboard', 'employee_master', 'payslips', 'bank_transfer', 'admin_dashboard', 'attendance']:
+        for name in ['employee_master', 'payslips', 'bank_transfer', 'admin_dashboard', 'attendance']:
             resp = self.client.get(reverse(name))
             self.assertEqual(resp.status_code, 302, name)
             self.assertIn('/login/', resp['Location'])
+        home = self.client.get(reverse('dashboard'))                  # the empty address is the public home page for visitors: it must never show the dashboard
+        self.assertEqual(home.status_code, 200)
+        self.assertTemplateUsed(home, 'public/landing.html')
+        self.assertTemplateNotUsed(home, 'Dashboard.html')
 
     def test_csrf_enforced(self):
         from django.test import Client
@@ -217,7 +223,9 @@ class SuspensionTests(TestCase):
         self.assertEqual(comp.status, 'SUSPENDED')
         self.assertTrue(User.objects.filter(pk=owner.pk).exists(), 'suspension must not delete the account')
 
-        self.assertIn('/login/', self.client.get(reverse('dashboard'))['Location'])
+        home = self.client.get(reverse('dashboard'))                  # the session is gone: a visitor sees the public home page, never the dashboard
+        self.assertTemplateUsed(home, 'public/landing.html')
+        self.assertIn('/login/', self.client.get(reverse('employee_master'))['Location'])
         resp = self.client.post(reverse('login'), {'username': 'own', 'password': PWD})
         self.assertContains(resp, 'suspended')
 

@@ -176,7 +176,11 @@ class RoleBasedAccessControlTests(TestCase):
                              fetch_redirect_response=False)
 
     def test_anonymous_redirected_to_login(self):
+        # the empty address is the public home page for visitors; every private page still sends them to Login
         resp = self.client.get(reverse('dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'public/landing.html')
+        resp = self.client.get(reverse('employee_master'))
         self.assertEqual(resp.status_code, 302)
         self.assertIn(reverse('login'), resp.url)
 
