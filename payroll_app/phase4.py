@@ -238,6 +238,8 @@ class ComponentForm(forms.ModelForm):
 def hr_pay_components(request):
     company = request.user.company
     form = _style(ComponentForm(company, request.POST or None))
+    from .employee_id_select import use_employee_id_select
+    use_employee_id_select(form)                                     # the Employee box lists IDs only and shows the name by itself
     if request.method == 'POST' and request.POST.get('end'):
         c = get_object_or_404(PayComponent, pk=request.POST['end'], company=company)
         c.active = False

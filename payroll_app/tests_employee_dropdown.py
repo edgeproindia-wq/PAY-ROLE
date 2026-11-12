@@ -8,6 +8,7 @@ from .models import Loan
 from .tests import make_company, make_employee, make_user
 
 PAGES = ('hr_loans', 'hr_insurance', 'hr_pay_components')
+ID_ONLY_PAGES = ('hr_pay_components',)               # these pages list the ID only and carry the name next to it (data-name)
 
 
 def options(html):
@@ -44,8 +45,13 @@ class EmployeeDropdownTests(TestCase):
         for name, url in self.pages():
             html = self.client.get(url).content.decode()
             opts = options(html)
-            self.assertTrue(any(o.startswith('ALPHA1 - ') for o in opts), f'{name}: {opts}')
-            self.assertTrue(any(o.startswith('ALPHA2 - ') for o in opts), name)
+            if name in ID_ONLY_PAGES:
+                self.assertIn('ALPHA1', opts, f'{name}: {opts}')
+                self.assertIn('ALPHA2', opts, name)
+                self.assertIn('data-name="', html, name)                       # the name travels with each ID
+            else:
+                self.assertTrue(any(o.startswith('ALPHA1 - ') for o in opts), f'{name}: {opts}')
+                self.assertTrue(any(o.startswith('ALPHA2 - ') for o in opts), name)
             self.assertNotIn('No employees found for your company yet', html, name)
 
     def test_another_companys_employees_are_never_listed(self):
