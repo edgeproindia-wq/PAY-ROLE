@@ -79,6 +79,10 @@ def salary_history(request):
     company = request.user.company
     employees = Employee.objects.filter(company=company).order_by('employee_code')
     chosen = employees.filter(pk=request.GET.get('employee') or request.POST.get('employee') or 0).first()
+    from .salary_history_bulk import filter_context, handle_extras
+    extra = handle_extras(request, company, employees, chosen)       # the all-employees list, the filters and salary changes for many at once
+    if extra is not None:
+        return extra
     errors = []
     if request.method == 'POST' and chosen is not None:
         try:
@@ -126,7 +130,7 @@ def salary_history(request):
         history.reverse()
     latest = history[0]['rev'] if history else None
     current = next((h['rev'] for h in history if h['in_force']), latest)
-    return render(request, 'salary_history.html', {'employees': employees, 'chosen': chosen, 'history': history, 'errors': errors,
+    return render(request, 'salary_history.html', {**filter_context(request, employees), 'employees': employees, 'chosen': chosen, 'history': history, 'errors': errors,
                                                    'months': month_choices(), 'current': current, 'post': request.POST if request.method == 'POST' else {}})
 
 

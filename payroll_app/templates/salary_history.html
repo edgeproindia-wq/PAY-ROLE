@@ -1,21 +1,157 @@
 {% extends "base.html" %}
 {% block title %}Salary history{% endblock %}
 {% block content %}
+<style id="sh-style">
+  /* sh-: the filters, the all-employees list and the new-salary panels of the salary history page */
+  .sh-filters{display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 1fr;gap:14px 18px}
+  @media (max-width:1100px){.sh-filters{grid-template-columns:1fr 1fr}}
+  @media (max-width:640px){.sh-filters{grid-template-columns:1fr}}
+  .sh-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .sh-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line-soft)}
+  .sh-bar .count{font-size:13px;color:var(--muted)}
+  .sh-bar .count b{color:var(--ink)}
+  .sh-tabs{display:flex;gap:6px}
+  .sh-tabs a{padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:700;text-decoration:none;color:var(--body);border:1px solid var(--line);background:#fff}
+  .sh-tabs a.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .sh-pick{width:17px;height:17px;cursor:pointer}
+  .sh-new>summary{list-style:none;cursor:pointer;display:inline-flex}
+  .sh-new>summary::-webkit-details-marker{display:none}
+  .sh-new[open]>summary{margin-bottom:14px}
+  .sh-panel{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;background:#fff}
+  .sh-method{display:grid;gap:10px;margin:6px 0 14px}
+  .sh-method label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin:0}
+  .sh-sum{display:flex;gap:22px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--muted)}
+  .sh-sum b{color:var(--ink)}
+  .sh-skip td{color:var(--muted);background:#fafbfd}
+  .sh-skip .why{color:var(--warn);font-weight:600}
+  .sh-up{color:var(--success);font-weight:700}
+</style>
+
 <div class="page-header"><div><h1 class="page-title">Salary history</h1>
   <p class="page-subtitle">Every salary change is kept with the month it starts. Payroll automatically uses the salary in force for the payroll month, and released payslips never change.</p></div></div>
 
 <div class="card"><div class="card-header"><h3>Choose an employee</h3></div><div class="card-body">
-  <form method="get" id="pickForm"><div class="form-grid"><div class="field"><label>Employee</label>
-    <select name="employee" required><option value="">- Select an employee -</option>
-      {% for e in employees %}<option value="{{ e.pk }}"{% if chosen and chosen.pk == e.pk %} selected{% endif %}>{{ e }}</option>{% endfor %}</select></div></div>
-    <div style="margin-top:12px"><button class="btn btn-primary" type="submit">Confirm - show salary history</button></div></form>
+  <form method="get" id="pickForm">
+    <div class="sh-filters">
+      <div class="field"><label>Employee</label>
+        <select name="employee"><option value="">All employees</option>
+          {% for e in employees %}<option value="{{ e.pk }}"{% if chosen and chosen.pk == e.pk %} selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Search</label><input type="search" name="q" value="{{ f.q }}" maxlength="60" placeholder="Name or employee code"></div>
+      <div class="field"><label>Department</label>
+        <select name="department"><option value="">All</option>{% for d in departments %}<option value="{{ d }}"{% if f.department == d %} selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Designation</label>
+        <select name="designation"><option value="">All</option>{% for d in designations %}<option value="{{ d }}"{% if f.designation == d %} selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+      <div class="field"><label>Status</label>
+        <select name="status"><option value="">All</option>{% for val, label in status_choices %}<option value="{{ val }}"{% if f.status == val %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="sh-actions"><button class="btn btn-primary" type="submit">Confirm - show salary history</button>
+      {% if filters_active or chosen %}<a class="btn btn-outline" href="{% url 'salary_history' %}">Clear</a>{% endif %}</div></form>
   {% if not employees %}<div class="alert alert-warning" style="margin-top:10px">No employees found for your company yet. <a href="{% url 'hr_employee_import' %}" onclick="if(window.openEmpImport){openEmpImport();return false;}">Import employees</a> or add one in Employee Master.</div>{% endif %}
 </div></div>
 
-{% if chosen %}
+{% if bulk %}
+<div class="card" style="margin-top:16px"><div class="card-header"><div><h3>Check before saving</h3><div class="sub">{{ bulk.method_label }} &middot; starting {{ bulk.eff|date:"F Y" }} &middot; nothing is saved yet</div></div></div>
+  <div class="sh-sum"><span>Will be saved: <b>{{ bulk.ok }}</b></span><span>Skipped: <b>{{ bulk.skipped }}</b></span>{% if bulk.ok %}<span>Monthly gross before: <b>&#8377;{{ bulk.total_before }}</b></span><span>after: <b>&#8377;{{ bulk.total_after }}</b></span>{% endif %}</div>
+  <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Gross now</th><th>Basic</th><th>HRA</th><th>Conveyance</th><th>Special</th><th>New gross</th><th>Result</th></tr></thead><tbody>
+    {% for r in bulk.rows %}<tr{% if r.skip %} class="sh-skip"{% endif %}>
+      <td>{{ r.emp }}</td><td>{% if r.before is not None %}&#8377;{{ r.before }}{% else %}-{% endif %}</td>
+      {% if r.new %}<td>&#8377;{{ r.new.basic }}</td><td>&#8377;{{ r.new.hra }}</td><td>&#8377;{{ r.new.conveyance }}</td><td>&#8377;{{ r.new.special_allowance }}</td><td><b>&#8377;{{ r.gross }}</b></td><td><span class="badge badge-success">Will be saved</span></td>
+      {% else %}<td colspan="5">&nbsp;</td><td class="why"><span class="badge badge-warn">Skipped</span> {{ r.skip }}</td>{% endif %}</tr>{% endfor %}
+  </tbody></table></div>
+  <div class="card-body"><form method="post" onsubmit="return confirm('Save these {{ bulk.ok }} salary changes? Payroll for the starting month onward will use them.');">{% csrf_token %}
+    <input type="hidden" name="action" value="bulk_save">
+    {% for i in bulk.ids %}<input type="hidden" name="ids" value="{{ i }}">{% endfor %}
+    <input type="hidden" name="effective_from" value="{{ bulk.eff|date:'Y-m-d' }}"><input type="hidden" name="method" value="{{ bulk.method }}">
+    {% for k, v in bulk.params.items %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <input type="hidden" name="note" value="{{ bulk.note }}">
+    <input type="hidden" name="q" value="{{ f.q }}"><input type="hidden" name="department" value="{{ f.department }}"><input type="hidden" name="designation" value="{{ f.designation }}"><input type="hidden" name="status" value="{{ f.status }}">
+    <div class="sh-actions" style="margin-top:0">{% if bulk.ok %}<button class="btn btn-primary" type="submit">Confirm and save {{ bulk.ok }} salar{{ bulk.ok|pluralize:"y,ies" }}</button>{% endif %}<a class="btn btn-outline" href="{{ bulk.back }}">Back to the list</a></div>
+  </form></div></div>
+
+{% elif listing %}
+<div class="card" style="margin-top:16px">
+  <form method="post" id="bulkForm">{% csrf_token %}
+  <input type="hidden" name="action" value="bulk_preview">
+  <input type="hidden" name="q" value="{{ f.q }}"><input type="hidden" name="department" value="{{ f.department }}"><input type="hidden" name="designation" value="{{ f.designation }}"><input type="hidden" name="status" value="{{ f.status }}"><input type="hidden" name="view" value="{{ view }}">
+  <div class="card-header"><div><h3>{% if filters_active %}Matching employees{% else %}All employees{% endif %}</h3>
+    <div class="sub">{{ total }} employee{{ total|pluralize }}{% if capped %} (the first {{ shown }} are shown - use the filters to narrow it down){% endif %}</div></div>
+    <div class="sh-tabs"><a class="{% if view == 'current' %}on{% endif %}" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}view=current">Current salaries</a><a class="{% if view == 'changes' %}on{% endif %}" href="?{{ request.GET.urlencode }}{% if request.GET %}&amp;{% endif %}view=changes">All salary changes</a></div></div>
+
+  {% if view == 'current' %}
+  <div class="sh-bar"><label style="display:flex;align-items:center;gap:8px;margin:0;font-weight:600"><input type="checkbox" class="sh-pick" id="shAll"> Select all</label>
+    <span class="count"><b id="shCount">0</b> selected</span></div>
+  <div class="table-wrap"><table><thead><tr><th style="width:36px"></th><th>Employee</th><th>Department</th><th>Designation</th><th>Status</th><th>Current gross</th><th>In force since</th><th></th></tr></thead><tbody>
+    {% for r in rows %}<tr>
+      <td><input type="checkbox" class="sh-pick sh-row" name="ids" value="{{ r.emp.pk }}"{% if r.emp.pk in picked %} checked{% endif %} aria-label="Select {{ r.emp.employee_code }}"></td>
+      <td class="cell-title">{{ r.emp }}</td><td>{{ r.emp.department|default:"-" }}</td><td>{{ r.emp.designation|default:"-" }}</td><td>{{ r.emp.get_employment_status_display }}</td>
+      <td>{% if r.current %}<b>&#8377;{{ r.current.rev.gross_salary }}</b>{% elif r.has_any %}<span class="text-muted">Starts later</span>{% else %}<span class="text-muted">No salary saved</span>{% endif %}</td>
+      <td class="text-sm">{% if r.current %}{% if r.current.rev.effective_from.year < 2001 %}Opening salary{% else %}{{ r.current.rev.effective_from|date:"d M Y" }}{% endif %}{% else %}-{% endif %}</td>
+      <td><a class="btn btn-outline btn-sm" href="?employee={{ r.emp.pk }}">History</a></td></tr>
+    {% empty %}<tr><td colspan="8"><div class="empty-state"><div class="title">No employees match</div></div></td></tr>{% endfor %}
+  </tbody></table></div>
+
+  <div class="card-body">
+    {% if bulk_errors %}<div class="alert alert-error"><ul style="margin:0;padding-left:18px">{% for e in bulk_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+    <details class="sh-new"{% if bulk_errors %} open{% endif %}><summary class="btn btn-primary">+ New salary for selected</summary>
+      <div class="sh-panel">
+        <div class="form-grid">
+          <div class="field"><label>Starts from (month) *</label>
+            <select name="effective_from"><option value="">- Select the month -</option>{% for iso, label in months %}<option value="{{ iso }}"{% if bulk_post.effective_from == iso %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <div class="helptext">A salary change always starts on the 1st of a month. For a mid-month change use Arrears.</div></div>
+          <div class="field"><label>Note (optional)</label><input type="text" name="note" maxlength="255" value="{{ bulk_post.note|default:'' }}" placeholder="e.g. Annual increment"></div>
+        </div>
+        <div class="sh-method">
+          {% for val, label in methods %}<label><input type="radio" name="method" value="{{ val }}"{% if bulk_post.method == val or not bulk_post and val == 'percent' %} checked{% endif %}> {{ label }}</label>{% endfor %}
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Percentage raise (%)</label><input type="number" step="0.01" min="0" max="100" name="percent" value="{{ bulk_post.percent|default:'' }}" placeholder="e.g. 8"></div>
+          <div class="field"><label>Fixed amount added to Basic</label><input type="number" step="0.01" min="0" name="amount" value="{{ bulk_post.amount|default:'' }}" placeholder="e.g. 2000"></div>
+          <div class="field"><label>Basic (same for everyone)</label><input type="number" step="0.01" min="0" name="basic" value="{{ bulk_post.basic|default:'' }}"></div>
+          <div class="field"><label>HRA</label><input type="number" step="0.01" min="0" name="hra" value="{{ bulk_post.hra|default:'' }}"></div>
+          <div class="field"><label>Conveyance</label><input type="number" step="0.01" min="0" name="conveyance" value="{{ bulk_post.conveyance|default:'' }}"></div>
+          <div class="field"><label>Special allowance</label><input type="number" step="0.01" min="0" name="special_allowance" value="{{ bulk_post.special_allowance|default:'' }}"></div>
+        </div>
+        <div class="helptext" style="margin-bottom:12px">You will see every employee's new salary and can check it before anything is saved. Only the boxes for the method you chose are used.</div>
+        <button class="btn btn-primary" type="submit" id="shPreview">Preview the new salaries</button>
+      </div>
+    </details>
+  </div>
+
+  {% else %}
+  <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Starts</th><th>Ends</th><th>Basic</th><th>HRA</th><th>Conveyance</th><th>Special</th><th>Gross</th><th>Note</th><th>Saved by</th></tr></thead><tbody>
+    {% for c in changes %}<tr>
+      <td class="cell-title">{{ c.emp }}</td>
+      <td>{% if c.rev.effective_from.year < 2001 %}Opening salary{% else %}{{ c.rev.effective_from|date:"d M Y" }}{% endif %}{% if c.in_force %} <span class="badge badge-success">In force now</span>{% endif %}</td>
+      <td>{% if c.effective_to %}{{ c.effective_to|date:"d M Y" }}{% else %}Open{% endif %}</td>
+      <td>&#8377;{{ c.rev.basic }}</td><td>&#8377;{{ c.rev.hra }}</td><td>&#8377;{{ c.rev.conveyance }}</td><td>&#8377;{{ c.rev.special_allowance }}</td>
+      <td><b>&#8377;{{ c.rev.gross_salary }}</b></td><td>{{ c.rev.note|default:"-" }}</td><td>{{ c.rev.created_by.username|default:"-" }}</td></tr>
+    {% empty %}<tr><td colspan="10"><div class="empty-state"><div class="title">No salary changes for these employees yet</div></div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% endif %}
+  </form>
+</div>
+<script>
+(function () {
+  var all = document.getElementById('shAll'), count = document.getElementById('shCount'), go = document.getElementById('shPreview');
+  if (!all) return;
+  var rows = function () { return Array.prototype.slice.call(document.querySelectorAll('#bulkForm .sh-row')); };
+  function refresh() {
+    var n = rows().filter(function (b) { return b.checked; }).length;
+    count.textContent = n;
+    all.checked = n > 0 && n === rows().length;
+    all.indeterminate = n > 0 && n < rows().length;
+    if (go) go.disabled = n === 0;
+  }
+  all.addEventListener('change', function () { rows().forEach(function (b) { b.checked = all.checked; }); refresh(); });
+  rows().forEach(function (b) { b.addEventListener('change', refresh); });
+  refresh();
+})();
+</script>
+
+{% elif chosen %}
 {% if errors %}<div class="alert alert-error" style="margin-top:16px"><ul style="margin:0;padding-left:18px">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
 
-<div class="card" style="margin-top:16px"><div class="card-header"><h3>{{ chosen }} - salary timeline</h3></div><div class="table-wrap">
+<div class="card" style="margin-top:16px"><div class="card-header"><h3>{{ chosen }} - salary timeline</h3><a class="btn btn-outline btn-sm" href="{% url 'salary_history' %}">&laquo; All employees</a></div><div class="table-wrap">
   <table><thead><tr><th>Starts</th><th>Ends</th><th>Basic</th><th>HRA</th><th>Conveyance</th><th>Special</th><th>Gross</th><th>Note</th><th>Saved by</th></tr></thead><tbody>
   {% for h in history %}<tr>
     <td>{% if h.rev.effective_from.year < 2001 %}Opening salary{% else %}{{ h.rev.effective_from|date:"d M Y" }}{% endif %}{% if h.in_force %} <span class="badge badge-success">In force now</span>{% endif %}</td>
@@ -26,7 +162,8 @@
   {% empty %}<tr><td colspan="9">No salary saved for this employee yet. Add the first salary below.</td></tr>{% endfor %}
   </tbody></table></div></div>
 
-<div class="card" style="margin-top:16px"><div class="card-header"><h3>New salary for {{ chosen.employee_code }}</h3></div><div class="card-body">
+<details class="sh-new" style="margin-top:16px"{% if errors or post %} open{% endif %}><summary class="btn btn-primary">+ New salary</summary>
+<div class="card" style="margin-top:0"><div class="card-header"><h3>New salary for {{ chosen.employee_code }}</h3></div><div class="card-body">
   <form method="post" onsubmit="return confirm('Save this salary change? Payroll for the starting month onward will use it.');">{% csrf_token %}
     <input type="hidden" name="employee" value="{{ chosen.pk }}">
     <div class="form-grid">
@@ -40,6 +177,6 @@
       <div class="field"><label>Note (optional)</label><input type="text" name="note" maxlength="255" value="{{ post.note|default:'' }}" placeholder="e.g. Annual increment"></div>
     </div>
     <div class="form-actions" style="justify-content:flex-start"><button class="btn btn-primary" type="submit">Save new salary</button></div>
-  </form></div></div>
+  </form></div></div></details>
 {% endif %}
 {% endblock %}
