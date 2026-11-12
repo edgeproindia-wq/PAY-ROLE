@@ -44,8 +44,9 @@ class ScriptTests(TestCase):
             self.assertNotIn(banned, js, banned)
         self.assertEqual(js.count('innerHTML'), 1)                                     # only the fixed rules box, built from numbers
 
-    def test_the_rules_start_with_hra_50_and_nothing_is_guessed_for_the_other_two(self):
-        self.assertIn('DEFAULT_RULES = { hra: 50, conv: 0, special: 0 }', self.source())
+    def test_the_rules_start_with_hra_50_conveyance_10_and_special_40_percent_of_basic(self):
+        self.assertIn('DEFAULT_RULES = { hra: 50, conv: 10, special: 40 }', self.source())
+        self.assertIn('np_salary_autofill_rules_v2', self.source())                    # older remembered percentages (all empty) are not used
 
     def test_it_only_touches_forms_that_have_no_effective_date(self):
         js = self.source()

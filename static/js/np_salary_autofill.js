@@ -1,11 +1,11 @@
 /* Namma Payroll - Add Salary Structure: fill HRA, Conveyance and Special Allowance from Basic.
  * Works only on a form that has employee, basic, hra, conveyance and special_allowance and NO effective_from field (so the Salary history form is not touched).
  * The numbers are suggestions: the boxes stay editable, a box you type in yourself is never overwritten, and nothing is saved until you press Save.
- * The percentages are kept in this browser only (localStorage). No data is sent anywhere. */
+ * Rules used by default: HRA 50%, Conveyance 10% and Special allowance 40% of Basic. Changed percentages are kept in this browser only (localStorage). No data is sent anywhere. */
 (function () {
   'use strict';
-  var KEY = 'np_salary_autofill_rules_v1';
-  var DEFAULT_RULES = { hra: 50, conv: 0, special: 0 };
+  var KEY = 'np_salary_autofill_rules_v2';
+  var DEFAULT_RULES = { hra: 50, conv: 10, special: 40 };
 
   function num(v) {
     var n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/,/g, ''));
