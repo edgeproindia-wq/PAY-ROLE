@@ -49,6 +49,8 @@ body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-seri
 @media (max-width:900px){.wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}.left{padding:28px 24px 24px;text-align:center;align-items:center}.left>*{max-width:560px}.logo-badge{align-self:center}.left h1{font-size:28px;margin:20px 0 10px}.lead{font-size:15px}.points{display:none}.card{box-shadow:none;padding:28px 22px 32px;justify-content:flex-start}.card>*{max-width:460px}.card h2{font-size:26px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+{% include "partials/pwa_head.html" %}
+{% include "partials/styles_link.html" %}
 </head>
 <body>
 <main class="wrap">
@@ -85,7 +87,7 @@ body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-seri
       <button class="btn" type="submit" id="loginBtn">Sign In</button>
     </form>
     {% url 'company_register' as reg_url %}{% if reg_url %}<p class="foot">New company? <a href="{{ reg_url }}">Register here</a></p>{% endif %}
-    <p class="copy">Namma Payroll &copy; {% now "Y" %}</p>
+    <p class="copy">Namma Payroll &copy; {% now "Y" %} &middot; <a href="{% url 'public_privacy' %}" style="color:inherit">Privacy policy</a> &middot; <a href="{% url 'public_terms' %}" style="color:inherit">Terms</a></p>
   </section>
 </main>
 <script>
