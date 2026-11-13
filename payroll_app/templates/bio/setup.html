@@ -10,10 +10,39 @@
 <div class="card" style="padding:12px 16px;margin-bottom:16px;"><span class="text-sm">Website address for the sync program: <code>{{ endpoint }}</code></span></div>
 
 {% if new_key %}
-<div class="card" style="padding:16px;margin-bottom:16px;border:2px solid #b45309;">
+<div class="card" id="newKeyCard" style="padding:16px;margin-bottom:16px;border:2px solid #b45309;">
   <strong>Copy this key now. It is shown only once and cannot be read back later.</strong>
   <p class="text-sm" style="margin:8px 0;">Website address: <code>{{ endpoint }}</code></p>
   <p class="text-sm" style="margin:8px 0;">Device key: <code id="newKey" style="user-select:all;">{{ new_key }}</code></p>
+  <p style="margin:12px 0 4px;">
+    <button type="button" class="btn btn-primary" id="copyKeyBtn">Copy key</button>
+    <button type="button" class="btn btn-outline" id="downloadKeyBtn">Download key file</button>
+    <span class="text-sm text-muted" id="keyMsg" role="status" style="margin-left:8px;"></span>
+  </p>
+  <script>
+  (function () {
+    var card = document.getElementById("newKeyCard"), code = document.getElementById("newKey"), msg = document.getElementById("keyMsg");
+    if (!card || !code) { return; }
+    function say(t) { msg.textContent = t; }
+    function pick() { var r = document.createRange(); r.selectNodeContents(code); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+    card.scrollIntoView({ block: "center" });
+    pick();
+    document.getElementById("copyKeyBtn").addEventListener("click", function () {
+      var key = code.textContent.trim();
+      function fallback() { pick(); try { say(document.execCommand("copy") ? "Key copied." : "Press Ctrl+C to copy the selected key."); } catch (e) { say("Press Ctrl+C to copy the selected key."); } }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(key).then(function () { say("Key copied."); }, fallback); } else { fallback(); }
+    });
+    document.getElementById("downloadKeyBtn").addEventListener("click", function () {
+      var blob = new Blob([code.textContent.trim() + "\n"], { type: "text/plain" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "namma-payroll-device-key.txt";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      say("Saved as namma-payroll-device-key.txt in your Downloads folder.");
+    });
+  })();
+  </script>
   <p class="text-sm text-muted">Put the key and the address in the sync program's config file on your server. If you lose the key, revoke the device below and add it again.</p>
 </div>
 {% endif %}
