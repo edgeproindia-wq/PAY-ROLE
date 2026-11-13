@@ -7,6 +7,15 @@
 </div>
 <div class="page-actions no-print"><a class="btn btn-primary" href="{% url 'bio_month' %}">Month-end summary</a><a class="btn btn-outline" href="{% url 'bio_punches' %}">Punch log</a><a class="btn btn-outline" href="{% url 'hrms_attendance_import' %}">Attendance import (file)</a></div></div>
 
+<div class="card" id="pairCard" style="padding:16px;margin-bottom:16px;border:2px solid #15803d;">
+  <strong>Pair a sync program with a code (no key to copy)</strong>
+  <p class="text-sm text-muted" style="margin:6px 0 10px;">Run the sync program setup with the option <code>-Pair</code>. It shows a short code on its own screen. Type that code here and press Approve. The program then receives its key by itself.</p>
+  <form method="post" action="{% url 'bio_pair_approve' %}" class="toolbar no-print">{% csrf_token %}
+    <input type="text" name="code" maxlength="14" placeholder="Code, for example K7QX-29MD" required autocomplete="off" autocapitalize="characters" style="min-width:220px;text-transform:uppercase;">
+    <input type="text" name="name" maxlength="80" placeholder="Device name, e.g. Main office" style="min-width:220px;">
+    <button class="btn btn-primary" type="submit">Approve</button>
+  </form>
+</div>
 <div class="card" style="padding:12px 16px;margin-bottom:16px;"><span class="text-sm">Website address for the sync program: <code>{{ endpoint }}</code></span></div>
 
 {% if new_key %}

@@ -245,6 +245,8 @@ urlpatterns += _tally.urlpatterns
 # ---- Biometric month-end summary ----
 from . import biometric_month as _bio_month  # noqa: E402
 urlpatterns += _bio_month.urlpatterns
+from . import biometric_pairing as _bio_pair  # noqa: E402
+urlpatterns += _bio_pair.urlpatterns
 
 # ---- Company Monitoring (platform admins only) ----
 from . import company_monitor as _monitor  # noqa: E402
