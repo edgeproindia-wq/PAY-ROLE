@@ -21,7 +21,8 @@ class SalaryHistoryButtonTests(TestCase):
         html = self.client.get(self.url).content.decode()
         self.assertIn('Confirm - show salary history', html)
         self.assertNotIn("getElementById('pickForm').submit()", html)         # picking a name no longer reloads the page
-        self.assertIn('<select name="employee" required>', html)               # the browser asks for a choice before confirming
+        self.assertIn('<select name="employee">', html)                                 # the box starts on "All employees"; pick one person and press Confirm to see that person
+        self.assertIn('<option value="">All employees</option>', html)
 
     def test_confirming_shows_that_employees_history(self):
         resp = self.client.get(self.url, {'employee': self.emp.pk})
