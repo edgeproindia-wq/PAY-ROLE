@@ -251,3 +251,7 @@ urlpatterns += _bio_pair.urlpatterns
 # ---- Company Monitoring (platform admins only) ----
 from . import company_monitor as _monitor  # noqa: E402
 urlpatterns += _monitor.urlpatterns
+
+# ---- Assign Shifts and Daily Working Hours ----
+from . import shift_pages as _shift_pages  # noqa: E402
+urlpatterns += _shift_pages.urlpatterns

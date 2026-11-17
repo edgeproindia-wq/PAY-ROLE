@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Assign shifts{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Assign shifts</h1><div class="muted">Pick a shift and a start date, tick the employees, and save. A new assignment ends the earlier one the day before it starts. Create or change shifts on the Shifts page.</div></div>
+  {% if not shifts %}<div class="fx-card">There is no active shift yet. Create one on the Shifts page first.</div>{% endif %}
+  <form method="post" class="fx-card">{% csrf_token %}
+    <div class="fx-filters">
+      <label>Shift <select name="shift" required>{% for s in shifts %}<option value="{{ s.pk }}">{{ s }}</option>{% endfor %}</select></label>
+      <label>Effective from <input type="date" name="effective_from" value="{{ today }}" required></label>
+      <label>Effective to (optional) <input type="date" name="effective_to"></label>
+      <button class="fx-btn" type="submit">Assign to ticked employees</button>
+    </div>
+    <div class="fx-table"><table>
+      <tr><th style="width:60px"><input type="checkbox" onclick="document.querySelectorAll('.pick').forEach(function(c){c.checked=this.checked}.bind(this))" aria-label="Tick all"></th><th>Employee</th><th>Current shift (today)</th></tr>
+      {% for r in rows %}<tr><td><input class="pick" type="checkbox" name="employee" value="{{ r.e.pk }}"></td><td>{{ r.e.employee_code }} - {{ r.e.first_name }} {{ r.e.last_name }}</td><td>{{ r.shift|default:"No shift" }}</td></tr>
+      {% empty %}<tr><td colspan="3" class="muted">No employees.</td></tr>{% endfor %}
+    </table></div>
+  </form>
+</div>{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Daily working hours{% endblock %}
+{% block content %}{% include "features/_ui.html" %}
+<div class="fx">
+  <div class="fx-card"><h1>Daily working hours</h1><div class="muted">Everyone's check-in, check-out and hours for one day. Hours are taken after the shift break. Overtime is shown for information and is not paid automatically.</div></div>
+  <form method="get" class="fx-filters"><a class="fx-btn ghost" href="?date={{ prev }}">&larr; Previous day</a><input type="date" name="date" value="{{ day }}"><button class="fx-btn ghost" type="submit">Show</button><a class="fx-btn ghost" href="?date={{ next }}">Next day &rarr;</a><a class="fx-btn" href="?date={{ day }}&export=csv">Download CSV</a></form>
+  <div class="fx-card">Present or half day: <b>{{ counts.present }}</b> &nbsp;|&nbsp; No attendance record: <b>{{ counts.no_record }}</b> &nbsp;|&nbsp; Late: <b>{{ counts.late }}</b></div>
+  <div class="fx-card fx-table"><table><tr><th>Employee</th><th>Shift</th><th>Status</th><th>Check in</th><th>Check out</th><th>Hours</th><th>Late</th><th>Overtime</th></tr>
+    {% for r in rows %}<tr><td>{{ r.e.employee_code }} - {{ r.e.first_name }} {{ r.e.last_name }}</td><td>{{ r.shift|default:"-" }}</td><td>{% if r.rec %}{{ r.rec.get_status_display }}{% else %}No record{% endif %}</td><td>{{ r.rec.check_in|time:"H:i"|default:"-" }}</td><td>{{ r.rec.check_out|time:"H:i"|default:"-" }}</td><td>{{ r.hours }}</td><td>{% if r.late %}Late{% endif %}</td><td>{{ r.overtime }}</td></tr>
+    {% empty %}<tr><td colspan="8" class="muted">No employees.</td></tr>{% endfor %}</table></div>
+</div>{% endblock %}
