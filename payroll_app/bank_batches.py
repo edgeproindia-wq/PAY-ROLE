@@ -29,6 +29,7 @@ from django.views.decorators.http import require_POST
 
 from .audit import log_action
 from .bank_batch_models import BankBatch, BankBatchItem
+from .bank_refs import normalise_utr, utr_problem
 from .models import AuditLog, BankPayment, Company, Employee, PayrollRun, PayrollRunLine, User
 from .permissions import company_owner_required
 
@@ -636,13 +637,13 @@ def analyse_statement(company, rows):
     # One query for every UTR in the file (instead of one per row): which ones are already used, and by which payment.
     used_utr = {}
     if 'utr' in cols:
-        wanted = {_cell_text(r[cols['utr']]) for r in rows[head_i + 1:] if cols['utr'] < len(r)} - {''}
+        wanted = {normalise_utr(_cell_text(r[cols['utr']])) for r in rows[head_i + 1:] if cols['utr'] < len(r)} - {''}
         used_utr = dict(BankPayment.objects.filter(reference_number__in=wanted).values_list('reference_number', 'pk'))
     for n, raw in enumerate(rows[head_i + 1:], start=head_i + 2):
         if not any(_cell_text(c) for c in raw):
             continue
         get = lambda k: _cell_text(raw[cols[k]]) if k in cols and cols[k] < len(raw) else ''   # noqa: E731
-        utr, status_text, reason = get('utr'), get('status').lower(), get('reason')
+        utr, status_text, reason = normalise_utr(get('utr')), get('status').lower(), get('reason')
         amount = _money(get('amount')) if get('amount') else None
         row = {'n': n, 'payment_id': None, 'who': '', 'amount': '' if amount is None else str(amount), 'utr': utr,
                'action': 'SKIP', 'note': '', 'outcome': 'skip'}
@@ -676,8 +677,8 @@ def analyse_statement(company, rows):
             elif is_fail:
                 row['action'], row['outcome'], row['note'] = 'FAILED', 'ok', (reason or 'Rejected by bank')[:255]
             elif is_ok:
-                if not utr or len(utr) > 60:
-                    row['action'], row['outcome'], row['note'] = 'REVIEW', 'review', 'UTR is missing or longer than 60 characters'
+                if utr_problem(utr):
+                    row['action'], row['outcome'], row['note'] = 'REVIEW', 'review', ('UTR is missing' if not utr else 'UTR does not look like a bank reference (8 to 35 letters or digits)')
                 elif utr in seen_utr or used_utr.get(utr, payment.pk) != payment.pk:
                     row['action'], row['outcome'], row['note'] = 'REVIEW', 'review', f'UTR {utr} is already used by another payment'
                 else:

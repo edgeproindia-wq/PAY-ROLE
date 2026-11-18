@@ -1,0 +1,366 @@
+# install_landing.ps1 - gives the public home page (the page people see before login) a modern HR-software layout: sticky top bar with Login and Register, hero with a product preview, feature cards, payroll and employee showcases, how it works, modules, security, FAQ, call-to-action and footer.
+# Only public/landing.html is replaced (the old file is saved in backups/). No data, payroll or login logic is touched. Layout is original; no other company's text or logo is used.
+# Run it from the payroll project folder. It installs, tests and commits on this PC; it pushes only if you type YES.
+& {
+$ErrorActionPreference = 'Continue'
+$root = $PWD.Path
+$enc = New-Object System.Text.UTF8Encoding($false)
+if (-not (Test-Path "$root/manage.py") -or -not (Test-Path "$root/payroll_app/templates/public/landing.html")) { "STOP: open PowerShell in the payroll project folder (the one with manage.py), then run this again."; return }
+"New public home page"
+git fetch origin 2>&1 | Out-Null
+$dirty = @(git status --porcelain --untracked-files=no)
+$other = @($dirty)
+if ($other.Count -gt 0) { "NOTHING WAS CHANGED: you have uncommitted edits to tracked files. Commit or undo them first:"; $other | ForEach-Object { "    $_" }; return }
+$behind = [int](git rev-list --count HEAD..origin/main)
+if ($behind -gt 0) { "NOTHING WAS CHANGED: this PC is $behind commit(s) behind GitHub. Run: git pull --ff-only   then run this again."; return }
+$answer = Read-Host "Type YES (capital letters) to also push to GitHub at the end, or just press Enter to stop before pushing"
+$push = ($answer.Trim() -ceq 'YES')
+$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$tmp = [IO.Path]::GetTempPath()
+$work = Join-Path $tmp "landing_$stamp"
+New-Item -ItemType Directory -Path $work -Force | Out-Null
+$files = [ordered]@{}
+$files['patch_land.py'] = @'
+"""Replaces the public landing page with the new layout. Usage: python patch_land.py <stamp> <workdir>   (run from the project folder)"""
+import os, shutil, sys
+stamp, work = sys.argv[1], sys.argv[2]
+L = 'payroll_app/templates/public/landing.html'
+if not os.path.exists(L): print('STOP: %s is missing, so this is not the expected project. Nothing was written.' % L); sys.exit(1)
+old = open(L, encoding='utf-8', newline='').read()
+if 'np-landing-v2' in old: print('ALREADY APPLIED: the landing page already has the new layout.'); sys.exit(0)
+for need in ("{% url 'request_demo' %}", "{% url 'login' %}", "{% url 'company_register' %}", 'Modern Payroll Management'):
+    if need not in old: print('STOP: the old landing page does not contain %r, so it is not the page I expected. Nothing was written.' % need); sys.exit(1)
+new = open(os.path.join(work, 'landing.html'), encoding='utf-8').read()
+if '\r\n' in old: new = new.replace('\n', '\r\n')
+os.makedirs('backups', exist_ok=True)
+bk = 'backups/landing_%s' % stamp
+os.makedirs(os.path.dirname('%s/%s' % (bk, L)), exist_ok=True); shutil.copy2(L, '%s/%s' % (bk, L))
+open(L, 'w', encoding='utf-8', newline='').write(new)
+shutil.copy2(os.path.join(work, 'tests_landing_v2.py'), 'payroll_app/tests_landing_v2.py')
+print('The public landing page now has: sticky top bar, hero with a product preview, feature cards, payroll and employee showcases, how it works, modules, security, FAQ, call-to-action and footer.')
+print('Backup of the old page: ' + bk)
+print('CHANGED_FILES=%s payroll_app/tests_landing_v2.py' % L)
+'@
+$files['landing.html'] = @'
+{% load static %}<!DOCTYPE html>
+<!-- np-landing-v2 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Namma Payroll — Modern Payroll &amp; HR Platform</title>
+<meta name="description" content="Namma Payroll: employees, attendance, salary, payroll runs, PF, ESI, PT and TDS compliance, payslips and employee self-service in one platform.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0f172a;--body:#475569;--muted:#64748b;--line:#e5e9f0;--paper:#f6f9fb;--teal:#0e9fb0;--teal-dark:#0b7f8d;--teal-soft:#e8f7f9;--green:#12a37a;--amber:#f5a524;--red:#ef6c5a;--navy:#0b1730}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,Arial,sans-serif;color:var(--body);line-height:1.6;background:#fff;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .container{max-width:1180px;margin:0 auto;padding:0 24px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer;border:1.5px solid transparent;transition:.15s}
+  .btn-primary{background:var(--teal);color:#fff}.btn-primary:hover{background:var(--teal-dark)}
+  .btn-outline{border-color:#cfe3e8;color:var(--ink);background:#fff}.btn-outline:hover{border-color:var(--teal);color:var(--teal-dark)}
+  .btn-lg{padding:15px 30px;font-size:15.5px}
+  /* top bar */
+  .nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px;gap:20px}
+  .nav-logo-img{height:38px;display:block}
+  .nav-links{display:flex;gap:26px;font-size:14.5px;font-weight:600;color:var(--ink)}
+  .nav-links a:hover{color:var(--teal-dark)}
+  .nav-actions{display:flex;gap:10px;align-items:center}
+  .nav-actions .btn{padding:9px 18px;font-size:14px}
+  /* hero */
+  .hero{background:linear-gradient(180deg,#eefafc 0%,#fff 100%);padding:70px 0 56px;overflow:hidden}
+  .hero-inner{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .eyebrow{display:inline-block;background:var(--teal-soft);color:var(--teal-dark);font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:18px}
+  .hero h1{font-size:50px;line-height:1.1;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+  .accent{color:var(--teal)}
+  .hero p.lead{font-size:18px;margin:20px 0 28px;max-width:540px}
+  .hero-ctas{display:flex;gap:12px;flex-wrap:wrap}
+  .ticks{display:flex;gap:22px;flex-wrap:wrap;margin-top:26px;font-size:14px;font-weight:600;color:var(--ink)}
+  .ticks span:before{content:"\2713";color:var(--green);font-weight:800;margin-right:7px}
+  /* hero product card */
+  .dash{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px rgba(15,60,80,.14);padding:18px}
+  .dash-top{display:flex;align-items:center;gap:6px;margin-bottom:14px}
+  .dash-top i{width:9px;height:9px;border-radius:50%;background:#d6dde6}
+  .dash-top b{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+  .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .kp div{border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kp small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .kp strong{display:block;font-size:20px;color:var(--ink);margin-top:3px}
+  .kp em{font-style:normal;font-size:11px;color:var(--green);font-weight:700}
+  .bars{display:flex;align-items:flex-end;gap:9px;height:96px;margin:16px 4px 6px}
+  .bars span{flex:1;background:linear-gradient(180deg,#34c3d3,var(--teal));border-radius:6px 6px 0 0}
+  .months{display:flex;gap:9px;margin:0 4px 14px;font-size:10px;color:var(--muted);text-align:center}.months span{flex:1}
+  .rows div{display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-top:1px solid var(--line);font-size:13px;color:var(--ink);font-weight:600}
+  .chip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .chip.g{background:#e3f8f0;color:#0b7a5a}.chip.a{background:#fff4e0;color:#9a6200}.chip.t{background:var(--teal-soft);color:var(--teal-dark)}
+  .sample{text-align:right;font-size:11px;color:var(--muted);margin-top:8px}
+  /* sections */
+  .section{padding:84px 0}.alt{background:var(--paper)}
+  .head{text-align:center;max-width:720px;margin:0 auto 46px}
+  .head h2{font-size:34px;line-height:1.2;color:var(--ink);font-weight:800;letter-spacing:-.01em}
+  .head p{margin-top:12px;font-size:16.5px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;transition:.18s}
+  .card:hover{border-color:#bfe3e8;box-shadow:0 14px 34px rgba(15,60,80,.09);transform:translateY(-2px)}
+  .ico{width:44px;height:44px;border-radius:12px;background:var(--teal-soft);color:var(--teal-dark);display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:14px}
+  .card h3{font-size:16.5px;color:var(--ink);margin-bottom:6px}.card p{font-size:14px}
+  /* showcase */
+  .show{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;padding:30px 0}
+  .show.rev .show-vis{order:-1}
+  .show h3{font-size:28px;color:var(--ink);line-height:1.2;margin-bottom:12px}
+  .show ul{list-style:none;margin-top:16px}.show li{padding:6px 0 6px 28px;position:relative;font-size:15px}
+  .show li:before{content:"\2713";position:absolute;left:0;color:var(--green);font-weight:800}
+  .show-vis{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 22px 50px rgba(15,60,80,.1)}
+  .flow{display:flex;flex-direction:column;gap:10px}
+  .flow div{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;font-weight:700;color:var(--ink);font-size:14px}
+  .flow div b{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .flow div span{margin-left:auto}
+  .slip{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center}
+  .ring{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--green) 0 82%,var(--red) 82% 100%);margin:auto;position:relative}
+  .ring:after{content:"";position:absolute;inset:20px;background:#fff;border-radius:50%}
+  .slip dl div{border-left:3px solid var(--green);padding:2px 0 2px 10px;margin-bottom:10px}.slip dl div.r{border-color:var(--red)}
+  .slip dt{font-size:12px;color:var(--muted)}.slip dd{font-size:15px;font-weight:800;color:var(--ink)}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .step{padding:26px;border-radius:16px;background:#fff;border:1px solid var(--line)}
+  .step b{display:flex;width:38px;height:38px;border-radius:50%;background:var(--teal);color:#fff;align-items:center;justify-content:center;margin-bottom:14px}
+  .step h3{color:var(--ink);font-size:17px;margin-bottom:6px}
+  /* modules */
+  .mods{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .mods span{padding:10px 18px;border:1px solid #cfe3e8;background:#fff;border-radius:999px;font-weight:600;color:var(--ink);font-size:14px}
+  /* security */
+  .sec{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  /* faq */
+  .faq{max-width:820px;margin:0 auto}
+  details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:12px}
+  summary{cursor:pointer;font-weight:700;color:var(--ink);font-size:16px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+  summary:after{content:"+";color:var(--teal);font-size:22px;line-height:1}details[open] summary:after{content:"\2212"}
+  details p{margin-top:10px;font-size:15px}
+  /* cta + footer */
+  .cta{background:linear-gradient(135deg,#0b7f8d,#0e9fb0);color:#fff;text-align:center;padding:64px 0}
+  .cta h2{font-size:34px;font-weight:800}.cta p{margin:10px 0 26px;opacity:.92;font-size:17px}
+  .cta .btn-primary{background:#fff;color:var(--teal-dark)}.cta .btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+  footer{background:var(--navy);color:#a9b6c9;padding:48px 0 24px;font-size:14px}
+  .fg{display:grid;grid-template-columns:2fr 1fr 1fr 1.4fr;gap:30px}
+  footer h4{color:#fff;font-size:14px;margin-bottom:12px}footer a{display:block;padding:3px 0}footer a:hover{color:#fff}
+  .fb{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid #1d2c47;margin-top:30px;padding-top:18px;font-size:13px}
+  .showcase-row{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease}.showcase-row.in-view{opacity:1;transform:none}
+  @media(max-width:980px){.hero-inner,.show{grid-template-columns:1fr}.grid4{grid-template-columns:1fr 1fr}.steps,.sec{grid-template-columns:1fr}.hero h1{font-size:38px}.nav-links{display:none}.fg{grid-template-columns:1fr 1fr}.show.rev .show-vis{order:0}}
+  @media(max-width:560px){.grid4{grid-template-columns:1fr}.hero{padding-top:44px}.kp{grid-template-columns:1fr 1fr}.nav-actions .btn-outline{display:none}.head h2{font-size:27px}}
+  @media(prefers-reduced-motion:reduce){.showcase-row{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+{% include "partials/styles_link.html" %}
+{% include "partials/pwa_head.html" %}
+</head>
+<body>
+<header class="nav"><div class="container nav-inner">
+  <a href="/" class="nav-logo"><img src="{% static 'img/namma-payroll-logo.png' %}" alt="Namma Payroll" class="nav-logo-img"></a>
+  <nav class="nav-links" aria-label="Main"><a href="#features">Features</a><a href="#how">How it works</a><a href="#modules">Modules</a><a href="#security">Security</a><a href="#faq">FAQ</a></nav>
+  <div class="nav-actions"><a href="{% url 'login' %}" class="btn btn-outline">Login</a><a href="{% url 'company_register' %}" class="btn btn-primary">Register</a></div>
+</div></header>
+
+<section class="hero"><div class="container hero-inner">
+  <div>
+    <span class="eyebrow">Payroll &amp; HR for growing teams</span>
+    <h1>Modern Payroll Management, <span class="accent">Made Simple</span></h1>
+    <p class="lead">Manage employees, attendance, salary, payroll, compliance, payslips and employee self-service from one unified platform built for growing businesses.</p>
+    <div class="hero-ctas"><a href="{% url 'request_demo' %}" class="btn btn-primary btn-lg">Request a Demo</a><a href="{% url 'company_register' %}" class="btn btn-outline btn-lg">Get Started</a></div>
+    <div class="ticks"><span>PF, ESI, PT and TDS</span><span>Payslips and Form 16</span><span>Employee self-service</span></div>
+  </div>
+  <div aria-hidden="true">
+    <div class="dash">
+      <div class="dash-top"><i></i><i></i><i></i><b>Payroll overview</b></div>
+      <div class="kp"><div><small>Active Employees</small><strong>114</strong><em>+4 this month</em></div><div><small>Net pay</small><strong>&#8377;38.6L</strong><em>On track</em></div><div><small>Pending approvals</small><strong>3</strong><em style="color:#9a6200">Review</em></div></div>
+      <div class="bars"><span style="height:48%"></span><span style="height:62%"></span><span style="height:55%"></span><span style="height:74%"></span><span style="height:68%"></span><span style="height:88%"></span></div>
+      <div class="months"><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span></div>
+      <div class="rows"><div>November payroll <span class="chip a">Awaiting approval</span></div><div>October payroll <span class="chip g">Released</span></div><div>Attendance import <span class="chip t">Completed</span></div></div>
+    </div>
+    <p class="sample">Sample data for illustration</p>
+  </div>
+</div></section>
+
+<section class="section" id="features"><div class="container">
+  <div class="head showcase-row"><h2>Everything your payroll team needs</h2><p>One platform for the whole employee and payroll cycle, from joining to final settlement.</p></div>
+  <div class="grid4">
+    <div class="card showcase-row"><div class="ico">&#128101;</div><h3>Employee management</h3><p>Employee records, salary structure and history, bulk import and exits in one place.</p></div>
+    <div class="card showcase-row"><div class="ico">&#128197;</div><h3>Attendance &amp; leave</h3><p>Attendance register, shifts, holidays, leave balances and biometric punch sync.</p></div>
+    <div class="card showcase-row"><div class="ico">&#129534;</div><h3>Payroll Processing</h3><p>Draft, validate, approve and release payroll runs, then lock the month.</p></div>
+    <div class="card showcase-row"><div class="ico">&#127970;</div><h3>Statutory compliance</h3><p>PF, ESI, professional tax and income tax with registers and challan-ready reports.</p></div>
+    <div class="card showcase-row"><div class="ico">&#128196;</div><h3>Payslips &amp; Form 16</h3><p>Branded PDF payslips that employees can view and download any time.</p></div>
+    <div class="card showcase-row"><div class="ico">&#127974;</div><h3>Bank payments</h3><p>Payment files, approvals, status tracking and bank reconciliation.</p></div>
+    <div class="card showcase-row"><div class="ico">&#128176;</div><h3>Loans &amp; reimbursements</h3><p>Loan EMIs, arrears, salary revisions and employee claims with approval.</p></div>
+    <div class="card showcase-row"><div class="ico">&#128202;</div><h3>Reports &amp; analytics</h3><p>21 ready reports and exports for finance, HR and management.</p></div>
+  </div>
+</div></section>
+
+<section class="section alt"><div class="container">
+  <div class="show showcase-row">
+    <div><h3>Run payroll with clear steps and control</h3><p>Every month follows the same safe path, so nothing is paid before it is checked and approved.</p>
+      <ul><li>Validation checks before approval</li><li>Approve, release and lock the month</li><li>Salary revisions go through approval first</li><li>A full audit trail of who did what</li></ul></div>
+    <div class="show-vis" aria-hidden="true"><div class="flow"><div><b>1</b>Create payroll run<span class="chip t">Done</span></div><div><b>2</b>Validate<span class="chip t">Done</span></div><div><b>3</b>Approve<span class="chip a">Pending</span></div><div><b>4</b>Release payments<span class="chip">&nbsp;</span></div><div><b>5</b>Lock the month<span class="chip">&nbsp;</span></div></div></div>
+  </div>
+  <div class="show rev showcase-row">
+    <div><h3>A home page employees actually use</h3><p>Employees open their own page for payslips, leave, attendance, declarations and documents, with no calls to HR.</p>
+      <ul><li>Payslips with a clear take-home view</li><li>Apply leave and track claims</li><li>Investment declaration and Form 16</li><li>Announcements from the company</li></ul></div>
+    <div class="show-vis" aria-hidden="true"><div class="slip"><div class="ring"></div><dl><div><dt>Take home</dt><dd>&#8377; ****</dd></div><div class="r"><dt>Deductions</dt><dd>&#8377; ****</dd></div></dl></div></div>
+  </div>
+</div></section>
+
+<section class="section" id="how"><div class="container">
+  <div class="head showcase-row"><h2>How it works</h2><p>Get a company running in three steps.</p></div>
+  <div class="steps">
+    <div class="step showcase-row"><b>1</b><h3>Set up your company</h3><p>Add your company details, pay calendar, salary structures and employees, or import them from a file.</p></div>
+    <div class="step showcase-row"><b>2</b><h3>Run the month</h3><p>Bring in attendance and leave, validate, approve and release the payroll run.</p></div>
+    <div class="step showcase-row"><b>3</b><h3>Pay and report</h3><p>Generate bank files, payslips and statutory reports. Employees see their payslips immediately.</p></div>
+  </div>
+</div></section>
+
+<section class="section alt" id="modules"><div class="container">
+  <div class="head showcase-row"><h2>A complete payroll suite</h2><p>Everything below is part of the platform.</p></div>
+  <div class="mods showcase-row"><span>Organisation setup</span><span>Employee master</span><span>Attendance &amp; payable days</span><span>Salary structure &amp; CTC</span><span>Monthly payroll</span><span>Statutory compliance</span><span>Arrears &amp; adjustments</span><span>Loans &amp; advances</span><span>Payslips</span><span>Bank payments</span><span>Full &amp; final settlement</span><span>Reports</span><span>Users &amp; roles</span><span>Notifications</span></div>
+</div></section>
+
+<section class="section" id="security"><div class="container">
+  <div class="head showcase-row"><h2>Built with security in mind</h2><p>Payroll data is sensitive, so access is controlled and every change is recorded.</p></div>
+  <div class="sec">
+    <div class="card showcase-row"><div class="ico">&#128273;</div><h3>Role-based access</h3><p>Owners, HR and employees each see only what they should.</p></div>
+    <div class="card showcase-row"><div class="ico">&#127970;</div><h3>Company data separation</h3><p>Every company's data is kept separate from every other company.</p></div>
+    <div class="card showcase-row"><div class="ico">&#128220;</div><h3>Audit trail</h3><p>Important actions are logged with who did them and when.</p></div>
+  </div>
+</div></section>
+
+<section class="section alt" id="faq"><div class="container">
+  <div class="head showcase-row"><h2>Questions</h2></div>
+  <div class="faq">
+    <details><summary>Who is Namma Payroll for?</summary><p>Growing companies that want one place for employees, attendance, payroll, compliance and payslips.</p></details>
+    <details><summary>Does it handle PF, ESI, professional tax and TDS?</summary><p>Yes. It calculates them in the payroll run and gives you registers and reports. Please have your tax advisor confirm the setup for your company.</p></details>
+    <details><summary>Can employees see their own payslips?</summary><p>Yes. Each employee has a home page with payslips, leave, attendance and documents.</p></details>
+    <details><summary>Can I bring in my existing employee data?</summary><p>Yes. You can import employees, attendance and leave from a file.</p></details>
+    <details><summary>How do I see it before I decide?</summary><p>Request a demo and our team will contact you to arrange it.</p></details>
+  </div>
+</div></section>
+
+<section class="cta"><div class="container"><h2>Ready to simplify your payroll?</h2><p>See Namma Payroll with your own use case.</p>
+  <a href="{% url 'request_demo' %}" class="btn btn-primary btn-lg">Request a Demo</a> <a href="{% url 'login' %}" class="btn btn-outline btn-lg">Login</a></div></section>
+
+<footer><div class="container">
+  <div class="fg">
+    <div><p style="max-width:300px">A modern payroll and HR platform built to simplify employee and salary management for growing teams.</p></div>
+    <div><h4>Product</h4><a href="#features">Features</a><a href="#modules">Modules</a><a href="{% url 'request_demo' %}">Request Demo</a></div>
+    <div><h4>Account</h4><a href="{% url 'login' %}">Login</a><a href="{% url 'company_register' %}">Register</a></div>
+    <div><h4>Contact</h4>{% if public_contact_email %}<a href="mailto:{{ public_contact_email }}">{{ public_contact_email }}</a>{% endif %}{% if public_contact_phone %}<a href="tel:{{ public_contact_phone }}">{{ public_contact_phone }}</a>{% endif %}</div>
+  </div>
+  <div class="fb"><span>&copy; 2026 Namma Payroll. All rights reserved.</span><span>Privacy Policy &nbsp;&middot;&nbsp; Terms &amp; Conditions</span></div>
+</div></footer>
+<script>
+(function(){
+  var els=document.querySelectorAll(".showcase-row");
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add("in-view")});return;}
+  var io=new IntersectionObserver(function(es){es.forEach(function(x){if(x.isIntersecting){x.target.classList.add("in-view");io.unobserve(x.target);}});},{threshold:.12});
+  els.forEach(function(e){io.observe(e)});
+})();
+</script>
+</body>
+</html>
+'@
+$files['tests_landing_v2.py'] = @'
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+BANNED = ('preserve-3d', 'perspective', 'rotateX', 'rotateY', 'translateZ', 'translate3d')
+
+
+class LandingV2Tests(TestCase):
+    def body(self):
+        r = self.client.get(reverse('landing'))
+        self.assertEqual(r.status_code, 200)
+        return r.content.decode()
+
+    def test_the_new_page_has_its_sections_and_buttons(self):
+        b = self.body()
+        for text in ('Modern Payroll Management', 'Made Simple', 'Request a Demo', 'Get Started', 'Everything your payroll team needs', 'How it works', 'Built with security in mind', 'Ready to simplify your payroll?'):
+            self.assertIn(text, b, text)
+        for url in (reverse('login'), reverse('company_register'), reverse('request_demo')):
+            self.assertIn('href="%s"' % url, b, url)
+
+    def test_the_menu_links_point_to_sections_that_exist(self):
+        b = self.body()
+        for anchor in ('features', 'how', 'modules', 'security', 'faq'):
+            self.assertIn('href="#%s"' % anchor, b)
+            self.assertIn('id="%s"' % anchor, b)
+
+    def test_sample_numbers_are_labelled_and_there_are_no_invented_customers(self):
+        b = self.body()
+        self.assertIn('Sample data for illustration', b)
+        for word in ('Trusted by', 'testimonial', 'customers love'):
+            self.assertNotIn(word, b)
+
+    def test_no_3d_and_no_leftover_template_tags(self):
+        b = self.body()
+        for word in BANNED + ('{%', '{{'):
+            self.assertNotIn(word, b, word)
+
+    @override_settings(PUBLIC_CONTACT_EMAIL='hello@company.example', PUBLIC_CONTACT_PHONE='+91 80000 00000')
+    def test_contact_details_come_from_settings(self):
+        b = self.body()
+        self.assertIn('hello@company.example', b)
+        self.assertIn('+91 80000 00000', b)
+'@
+foreach ($k in $files.Keys) { [IO.File]::WriteAllText((Join-Path $work $k), ($files[$k] + "`n"), $enc) }
+$out = @(python (Join-Path $work 'patch_land.py') $stamp $work 2>&1 | ForEach-Object { "$_" })
+$code = $LASTEXITCODE
+Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
+$out | Where-Object { $_ -notmatch '^CHANGED_FILES=' } | ForEach-Object { Write-Host $_ }
+if ($code -ne 0) { "Stopped. Nothing was written."; return }
+if (($out -join "`n") -match '(?m)^ALREADY APPLIED') { "Already installed. Nothing to do."; return }
+$changed = @(($out | Where-Object { $_ -match '^CHANGED_FILES=' }) -replace '^CHANGED_FILES=', '' -split ' ' | Where-Object { $_ })
+
+# the tests, one file at a time: the new one plus every test about the front page, login, home entry and branding
+$modules = @('payroll_app.tests_landing_v2')
+foreach ($f in Get-ChildItem (Join-Path $root 'payroll_app') -Filter 'tests*.py') {
+    if ($f.BaseName -match 'front|landing|home_entry|phase6|public|audit|pwa|brand') { $modules += ('payroll_app.' + $f.BaseName) }
+}
+$modules = @($modules | Select-Object -Unique | Where-Object { Test-Path (Join-Path $root ('payroll_app/' + $_.Split('.')[-1] + '.py')) })
+""; "Testing $($modules.Count) test files, one at a time. Please do not press Ctrl+C and do not close this window."
+$allLog = Join-Path $tmp "landing_all_$stamp.txt"
+'' | Out-File $allLog -Encoding utf8
+$bad = @()
+$n = 0
+foreach ($m in $modules) {
+    $n++
+    $t0 = Get-Date
+    $ml = Join-Path $tmp ("landing_mod_" + $m.Split('.')[-1] + "_$stamp.txt")
+    python manage.py test $m 2>&1 | Out-File $ml -Encoding utf8
+    $secs = [int]((Get-Date) - $t0).TotalSeconds
+    $res = @(Select-String -Path $ml -Pattern '^(Ran |OK|FAILED)|^(FAIL|ERROR): ' | ForEach-Object { $_.Line })
+    $ran = ($res | Where-Object { $_ -match '^Ran (\d+) test' } | Select-Object -First 1)
+    $count = if ($ran -match '^Ran (\d+) test') { $Matches[1] } else { '?' }
+    $okRun = (@($res | Where-Object { $_ -match '^OK' }).Count -gt 0) -and (@($res | Where-Object { $_ -match '^FAILED' }).Count -eq 0)
+    if ($okRun) { "[{0,2}/{1}] OK     {2}   ({3} tests, {4}s)" -f $n, $modules.Count, $m, $count, $secs }
+    else {
+        $bad += $m
+        $names = @($res | Where-Object { $_ -match '^(FAIL|ERROR): ' } | ForEach-Object { ($_ -replace '^(FAIL|ERROR): (\w+).*', '$2') })
+        $why = if ($names.Count -eq 0) { 'the test file did not run (it could not be loaded)' } else { ($names -join ', ') }
+        "[{0,2}/{1}] FAILED {2}   -> {3}" -f $n, $modules.Count, $m, $why
+    }
+    Get-Content $ml | Add-Content $allLog
+}
+if ($bad.Count -gt 0) {
+    ""; "NOT COMMITTED: $($bad.Count) of $($modules.Count) test files had a failure: $($bad -join ', ')"
+    "Undoing the change now so nothing is left behind..."
+    git restore -- payroll_app/templates/public/landing.html 2>&1 | Out-Null
+    Remove-Item (Join-Path $root 'payroll_app/tests_landing_v2.py') -Force -ErrorAction SilentlyContinue
+    "Undone. Send me the lines above that say FAILED."
+    return
+}
+""; "All $($modules.Count) test files passed."
+git add -- @($changed)
+git commit -m "New public home page: modern HR-software layout (hero, features, showcases, FAQ, footer)" 2>&1 | ForEach-Object { "$_" } | Where-Object { $_.Trim() } | ForEach-Object { "  $_" }
+if ($LASTEXITCODE -ne 0) { "The commit did not work. Send me the lines above."; return }
+if ($push) { git push origin HEAD 2>&1 | ForEach-Object { "$_" } | Where-Object { $_.Trim() -and $_ -notmatch 'RemoteException' } | ForEach-Object { "  $_" } } else { "Committed on this PC, not pushed. To publish it run:  git push origin HEAD" }
+""; "DONE. After Render shows 'Deploy live': press Ctrl+F5 and open your website address (the page before login)."
+"To go back to the old page: copy the file from the backups folder (backups/landing_<time>/payroll_app/templates/public/landing.html) over payroll_app/templates/public/landing.html."
+}

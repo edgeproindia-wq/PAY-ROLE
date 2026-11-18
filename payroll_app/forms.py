@@ -544,8 +544,12 @@ class BankPaymentUpdateForm(forms.Form):
         cleaned = super().clean()
         action = cleaned.get('action')
         ref = (cleaned.get('reference_number') or '').strip()
-        if action == 'PAID' and not ref:
-            raise forms.ValidationError('A bank UTR / reference number is required to mark a payment as paid.')
+        from .bank_refs import normalise_utr, utr_problem
+        if action == 'PAID':
+            problem = utr_problem(ref)
+            if problem:
+                raise forms.ValidationError(problem if ref else 'A bank UTR / reference number is required to mark a payment as paid.')
+            ref = normalise_utr(ref)
         if action == 'FAILED' and not (cleaned.get('failure_reason') or '').strip():
             raise forms.ValidationError('Please record why the payment failed.')
         cleaned['reference_number'] = ref

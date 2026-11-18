@@ -1,0 +1,21 @@
+﻿Machine time now: 2026-11-11 14:38 | punches stored: 12717 | different IDs: 95
+
+GROUP / ID                       IDs   total last 7d last 30d  (active IDs = punched in the last 30 days)
+EPRO four-digit (EPRO0076)        34    3762     170     980   active IDs: 30
+EPRO three-digit (EPRO077)        19    5138       0       0   active IDs: 0
+plain number                      24    2204       0       0   active IDs: 0
+NKP                               10     697      27     112   active IDs: 4
+TR                                 7     893      48     251   active IDs: 7
+other                              1      23       0       0   active IDs: 0
+
+=== IDs that punched in the last 30 days (these are the ones that matter for payroll now) ===
+EPRO four-digit (EPRO0076): EPRO0074(22), EPRO0076(25), EPRO0077(26), EPRO0079(31), EPRO0080(35), EPRO0081(26), EPRO0083(31), EPRO0084(34), EPRO0085(37), EPRO0086(36), EPRO0087(28), EPRO0088(37), EPRO0089(44), EPRO0090(32), EPRO0092(34), EPRO0093(33), EPRO0096(36), EPRO0097(37), EPRO0099(5), EPRO0100(33), EPRO0101(23), EPRO0118(39), EPRO0119(34), EPRO0130(35), EPRO0137(36), EPRO0138(34), EPRO0143(44), EPRO0144(36), EPRO0145(38), EPRO0146(39)
+NKP: NKP1001(4), NKP1003(33), NKP1004(40), NKP1005(35)
+TR: TR02(40), TR03(35), TR04(35), TR05(36), TR06(35), TR08(37), TR09(33)
+
+=== IDs with NO punch in the last 30 days (old history only) ===
+EPRO four-digit (EPRO0076): EPRO0029(last 24 Sep 2026), EPRO0078(last 31 Aug 2026), EPRO0125(last 01 Oct 2026), EPRO0139(last 07 Aug 2026)
+EPRO three-digit (EPRO077): EPRO077(last 03 Aug 2026), EPRO078(last 04 Aug 2026), EPRO079(last 03 Aug 2026), EPRO080(last 29 Jul 2026), EPRO081(last 03 Aug 2026), EPRO082(last 27 Feb 2026), EPRO083(last 04 Aug 2026), EPRO084(last 04 Aug 2026), EPRO085(last 03 Aug 2026), EPRO086(last 07 Jul 2026), EPRO087(last 06 Mar 2026), EPRO088(last 04 Aug 2026), EPRO089(last 04 Aug 2026), EPRO090(last 04 Aug 2026), EPRO092(last 04 Aug 2026), EPRO093(last 04 Aug 2026), EPRO094(last 12 Feb 2026), EPRO095(last 08 Dec 2025), EPRO096(last 04 Aug 2026)
+plain number: 1(last 19 Nov 2025), 10(last 29 Jul 2026), 11(last 29 May 2026), 119(last 29 Jul 2026), 12(last 05 Feb 2026), 122(last 29 Jul 2026), 123(last 28 Jul 2026), 125(last 29 Jul 2026), 13(last 12 Jun 2026), 14(last 12 Feb 2026), 143(last 06 Oct 2026), 15(last 04 Aug 2026), 16(last 21 May 2026), 17(last 04 Aug 2026), 2(last 31 Dec 2025), 200(last 19 Nov 2025), 3(last 24 Jul 2026), 4(last 27 Jan 2026), 5(last 04 Aug 2026), 555(last 08 Oct 2026), 6(last 29 Jul 2026), 71(last 03 Jul 2026), 8(last 31 Jul 2026), 9(last 14 Jan 2026)
+NKP: NKP001(last 12 Jun 2026), NKP002(last 29 Jul 2026), NKP004(last 10 Aug 2026), NKP008(last 18 Aug 2026), NKP010(last 17 Aug 2026), NKP1002(last 28 Aug 2026)
+other: Admin(last 13 May 2026)

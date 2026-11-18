@@ -1,0 +1,164 @@
+﻿=== THE FAILING TESTS (2) FROM THE FULL RUN ===
+
+FAIL: test_public_pages_with_passwords_load_the_script 
+    (payroll_app.tests_password_view.PasswordViewTests.test_public_pages_with_passwords_load_the_script)
+    Traceback (most recent call last):
+      File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_password_view.py", line 27, in
+    test_public_pages_with_passwords_load_the_script
+        self.assertIn('password-toggle.js', html, f'{name} page does not load the password script')
+    AssertionError: 'password-toggle.js' not found in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta
+    charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Login &middot; Namma
+    Payroll</title>\n<link rel="icon" href="/static/img/namma-payroll-logo.png">\n<style>/* login-light: the sign-in page,
+    light theme, full-screen split layout. Same form fields, messages and links as before; only the look is new. */\n:root{--g1
+    :#22c55e;--g2:#16a34a;--g3:#15803d;--ink:#0f2a1a;--muted:#4b6b58;--line:#d5e8dc}\n*{box-sizing:border-box}\nhtml,body{margi
+    n:0;height:100%}\nbody{font-family:Inter,system-ui,-apple-system,"Segoe
+    UI",Roboto,Arial,sans-serif;color:var(--ink);background:#fff}\n.wrap{display:grid;grid-template-columns:1.1fr 1fr;width:100
+    %;min-height:100vh;min-height:100dvh}\n.left{display:flex;flex-direction:column;justify-content:center;padding:clamp(32px,6
+    vw,110px);\n  background:radial-gradient(900px 560px at 10% 12%,rgba(34,197,94,.20),transparent 62%),radial-gradient(760px
+    520px at 95% 95%,rgba(16,185,129,.16),transparent 60%),linear-gradient(135deg,#f1faf4 0%,#e2f5e9 55%,#f4fbf7 100%)}\n.left>
+    *{max-width:640px}\n.logo-badge{display:inline-flex;align-items:center;align-self:flex-start;background:#fff;border:1px
+    solid var(--line);border-radius:20px;padding:14px 24px;box-shadow:0 12px 34px rgba(22,101,52,.14)}\n.logo-badge
+    img{height:clamp(52px,4.2vw,72px);width:auto;display:block}\n.left
+    h1{font-size:clamp(34px,3.7vw,62px);line-height:1.12;margin:clamp(26px,3vw,48px) 0
+    18px;font-weight:800;letter-spacing:-.8px;color:var(--ink)}\n.left h1 .hl{color:var(--g3)}\n.lead{color:var(--muted);font-s
+    ize:clamp(16px,1.3vw,21px);line-height:1.65;margin:0}\n.points{list-style:none;margin:clamp(24px,2.6vw,40px) 0
+    0;padding:0;display:grid;gap:14px;color:var(--muted);font-size:clamp(14.5px,1.1vw,18px)}\n.points
+    li{display:flex;gap:12px;align-items:center}\n.points
+    li:before{content:"";width:9px;height:9px;border-radius:50%;background:var(--g1);box-shadow:0 0 0 5px
+    rgba(34,197,94,.2);flex:0 0 auto}\n.card{display:flex;flex-direction:column;align-items:center;justify-content:center;backg
+    round:#fff;padding:clamp(32px,5vw,96px);box-shadow:-20px 0 60px
+    rgba(22,101,52,.08);position:relative}\n.card>*{width:100%;max-width:480px}\n.card h2{margin:0 0
+    8px;font-size:clamp(28px,2.4vw,40px);text-align:left;font-weight:800;letter-spacing:-.4px;color:var(--ink)}\n.sub{margin:0
+    0 clamp(22px,2.2vw,34px);text-align:left;color:var(--muted);font-size:clamp(14px,1.05vw,17px)}\n.alert{background:#fef2f2;b
+    order:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:12px 16px;font-size:14px;margin:0 0 16px}\n.alert.ok{backg
+    round:#f0fdf4;border-color:#bbf7d0;color:#166534}\n.alert.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}\n.fie
+    ld{margin:0 0 clamp(16px,1.6vw,22px)}\n.field
+    label{display:block;font-size:clamp(13px,.95vw,15px);font-weight:600;color:#244a35;margin:0 0
+    8px}\n.field-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}\n.field-head a,.foot
+    a{color:var(--g3);text-decoration:none;font-size:clamp(13px,.95vw,15px);font-weight:600}\n.field-head a:hover,.foot
+    a:hover{text-decoration:underline}\n.field input{width:100%;height:clamp(50px,3.6vw,60px);border-radius:14px;border:1px
+    solid #cfe3d6;background:#f8fcf9;color:var(--ink);font-size:clamp(15px,1.1vw,18px);padding:0
+    16px;outline:none;transition:box-shadow .15s,border-color .15s,background .15s}\n.field
+    input:focus{border-color:var(--g1);background:#fff;box-shadow:0 0 0 4px rgba(34,197,94,.22)}\n.pw{position:relative}\n.pw i
+    nput{padding-right:54px}\n.eye{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:42px;height:42px;border
+    :0;background:transparent;color:#3b6b4e;cursor:pointer;border-radius:10px;display:flex;align-items:center;justify-content:c
+    enter;padding:0}\n.eye:hover{background:rgba(22,163,74,.12)}\n.btn{width:100%;height:clamp(52px,3.8vw,62px);border:0;border
+    -radius:14px;background:linear-gradient(135deg,var(--g2),var(--g3));color:#fff;font-size:clamp(16px,1.2vw,19px);font-weight
+    :700;cursor:pointer;margin-top:8px;box-shadow:0 14px 30px rgba(21,128,61,.3);transition:transform .12s,filter .12s}\n.btn:h
+    over{filter:brightness(1.07)}\n.btn:active{transform:translateY(1px)}\n.btn[disabled]{opacity:.75;cursor:wait}\n.foot{margi
+
+FAIL: test_the_page_has_a_visible_confirm_button_and_no_automatic_reload 
+    (payroll_app.tests_sh_button.SalaryHistoryButtonTests.test_the_page_has_a_visible_confirm_button_and_no_automatic_reload)
+    Traceback (most recent call last):
+      File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_sh_button.py", line 24, in
+    test_the_page_has_a_visible_confirm_button_and_no_automatic_reload
+        self.assertIn('<select name="employee" required>', html)               # the browser asks for a choice before
+    confirming
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    AssertionError: '<select name="employee" required>' not found in '\n<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta
+    charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Salary
+    history</title>\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">\n<style>\n
+    :root{\n    --navy:#0f172a; --navy-soft:#1e293b; --navy-line:#334155;\n    --ink:#0f172a; --body:#334155; --muted:#64748b;
+    --faint:#94a3b8;\n    --paper:#f4f6f9; --card:#ffffff; --line:#e6e9f0; --line-soft:#eef1f6;\n    --accent:#147d39;
+    --accent-dark:#1b6635; --accent-soft:#effaf3;\n    --success:#0f9d6a; --success-soft:#e5f8f1;\n    --warn:#b45309;
+    --warn-soft:#fef3e0;\n    --danger:#dc2626; --danger-soft:#fdeceb;\n    --info:#0369a1; --info-soft:#e6f4fb;\n
+    --radius:12px; --radius-sm:8px;\n    --shadow:0 1px 2px rgba(15,23,42,.04), 0 1px 8px rgba(15,23,42,.05);\n
+    --shadow-md:0 4px 20px rgba(15,23,42,.08);\n  }\n  * { box-sizing:border-box; }\n  html,body{ height:100%; }\n  body {
+    margin:0; font-family:\'Inter\',Arial,sans-serif; display:flex; background:var(--paper); color:var(--body);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }\n  a{ color:inherit; }\n\n  .sidebar { width:230px;
+    background:var(--navy); color:#fff; height:100vh; overflow-y:auto; padding:15px; position:fixed; z-index:50; }\n  .sidebar
+    h2 { font-size:16px; border-bottom:1px solid #334155; padding-bottom:10px; }\n  .sidebar a { display:block; color:#cbd5e1;
+    text-decoration:none; padding:6px 8px; font-size:13px; border-radius:4px; }\n  .sidebar a:hover, .sidebar a.active {
+    background:#1e293b; color:#fff; }\n  .sidebar .group-title { color:#64748b; font-size:11px; text-transform:uppercase;
+    margin:12px 0 4px 8px; }\n  .more-toggle { display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer; margin-top:8px; font-weight:bold; }\n  .more-menu { display:none; margin-left:8px; border-left:1px solid
+    #334155; padding-left:8px; }\n  .more-menu a { font-size:12.5px; }\n\n  .content { margin-left:230px; padding:28px 32px
+    60px; flex:1; min-width:0; }\n  .page-header{ display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; margin-bottom:22px; flex-wrap:wrap; }\n  .page-title{ font-size:22px; font-weight:800; color:var(--ink);
+    margin:0 0 4px; letter-spacing:-0.01em; }\n  .page-subtitle{ font-size:13px; color:var(--muted); margin:0; }\n
+    .page-actions{ display:flex; gap:10px; flex-wrap:wrap; }\n  .breadcrumb{ font-size:12px; color:var(--faint);
+    margin-bottom:6px; }\n  .breadcrumb a{ text-decoration:none; color:var(--faint); }\n  .breadcrumb a:hover{
+    color:var(--accent); }\n\n  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px;
+    margin-bottom:22px; }\n  .kpi-card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; box-shadow:var(--shadow); position:relative; overflow:hidden; }\n  .kpi-card .label {
+    color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }\n  .kpi-card
+    .value { font-size:24px; font-weight:800; color:var(--ink); margin-top:6px; letter-spacing:-0.01em; }\n  .kpi-card .delta{
+    font-size:11.5px; margin-top:6px; font-weight:600; }\n  .kpi-card .delta.up{ color:var(--success); }\n  .kpi-card
+    .delta.down{ color:var(--danger); }\n  .kpi-card .icon-badge{ position:absolute; top:16px; right:16px; width:34px;
+    height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; }\n\n  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+    margin-bottom:20px; }\n  .card-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px;
+    border-bottom:1px solid var(--line-soft); flex-wrap:wrap; gap:10px; }\n  .card-header h3{ font-size:14.5px;
+    font-weight:700; color:var(--ink); margin:0; }\n  .card-header .sub{ font-size:12px; color:var(--muted); margin-top:2px;
+    }\n  .card-body{ padding:20px; }\n  .card-body.flush{ padding:0; }\n  .grid-2{ display:grid; grid-template-columns:1fr
+    1fr; gap:20px; }\n  .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }\n  @media (max-width:1080px){
+
+=== THE RESULT LINES ===
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+Ran 1014 tests in 53163.449s
+FAILED (failures=2, skipped=7)

@@ -1,0 +1,93 @@
+﻿DJANGO PROJECT DIAGNOSTIC - 11/11/2026 16:01:36
+
+========== DJANGO SYSTEM CHECK ==========
+
+> python manage.py check
+System check identified no issues (0 silenced).
+
+========== DEPLOYMENT SECURITY CHECK ==========
+
+> python manage.py check --deploy
+System check identified some issues:
+
+WARNINGS:
+?: (security.W004) You have not set a value for the SECURE_HSTS_SECONDS setting. If your entire site is served only over SSL, you may want to consider setting a value and enabling HTTP Strict Transport Security. Be sure to read the documentation first; enabling HSTS carelessly can cause serious, irreversible problems.
+?: (security.W008) Your SECURE_SSL_REDIRECT setting is not set to True. Unless your site should be available over both SSL and non-SSL connections, you may want to either set this setting True or configure a load balancer or reverse-proxy server to redirect all connections to HTTPS.
+?: (security.W009) Your SECRET_KEY has less than 50 characters, less than 5 unique characters, or it's prefixed with 'django-insecure-' indicating that it was generated automatically by Django. Please generate a long and random value, otherwise many of Django's security-critical features will be vulnerable to attack.
+?: (security.W012) SESSION_COOKIE_SECURE is not set to True. Using a secure-only session cookie makes it more difficult for network traffic sniffers to hijack user sessions.
+?: (security.W016) You have 'django.middleware.csrf.CsrfViewMiddleware' in your MIDDLEWARE, but you have not set CSRF_COOKIE_SECURE to True. Using a secure-only CSRF cookie makes it more difficult for network traffic sniffers to steal the CSRF token.
+?: (security.W018) You should not have DEBUG set to True in deployment.
+
+System check identified 6 issues (0 silenced).
+
+========== MIGRATION CONSISTENCY ==========
+
+> python manage.py makemigrations --check --dry-run
+No changes detected
+
+========== MIGRATION STATUS ==========
+
+> python manage.py showmigrations
+admin
+ [X] 0001_initial
+ [X] 0002_logentry_remove_auto_add
+ [X] 0003_logentry_add_action_flag_choices
+auth
+ [X] 0001_initial
+ [X] 0002_alter_permission_name_max_length
+ [X] 0003_alter_user_email_max_length
+ [X] 0004_alter_user_username_opts
+ [X] 0005_alter_user_last_login_null
+ [X] 0006_require_contenttypes_0002
+ [X] 0007_alter_validators_add_error_messages
+ [X] 0008_alter_user_username_max_length
+ [X] 0009_alter_user_last_name_max_length
+ [X] 0010_alter_group_name_max_length
+ [X] 0011_update_proxy_permissions
+ [X] 0012_alter_user_first_name_max_length
+contenttypes
+ [X] 0001_initial
+ [X] 0002_remove_content_type_name
+payroll_app
+ [X] 0001_initial
+ [X] 0002_audit_enhancements
+ [X] 0003_backfill_existing_data
+ [X] 0002_payrollrunline_failure_reason_and_more
+ [X] 0004_merge_20260928_1109
+ [X] 0005_phase3_features
+ [X] 0006_backfill_demo_request_codes
+ [X] 0007_phase4_shifts_components
+ [X] 0008_phase5_completion
+ [X] 0009_record_versions
+ [X] 0010_pay_cycle_calendar
+ [X] 0011_profile_photo
+ [X] 0012_payroll_integrity
+ [X] 0013_salary_history
+ [X] 0014_seed_four_shifts
+ [X] 0015_approve_pending_companies
+ [X] 0016_announcement_priority_and_role_audience
+ [X] 0017_bank_batches
+ [X] 0018_accounting
+ [X] 0019_biometric
+sessions
+ [X] 0001_initial
+
+========== DATABASE MIGRATION CHECK ==========
+
+> python manage.py migrate --check
+
+========== URL CONFIGURATION ==========
+
+> python manage.py check --tag urls
+System check identified no issues (0 silenced).
+
+========== INSTALLED PACKAGES ==========
+
+> python -m pip check
+No broken requirements found.
+
+========== PROJECT TESTS ==========
+
+> python manage.py test --verbosity 1
+
+DIAGNOSTIC COMPLETED: 11/11/2026 16:30:21

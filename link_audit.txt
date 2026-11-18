@@ -1,0 +1,67 @@
+
+======== 1 {% url %} NAMES USED IN TEMPLATES THAT DO NOT EXIST ========
+BROKEN LINK NAME  home   in backups/watermark_removed_20261007_123859/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in backups/watermark_removed_20261007_123859/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in backups/watermark_removed_20261007_123859/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in backups/watermark_removed_20261007_123859/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in backups/watermark_removed_20261007_123859/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  shift_assign   in payroll_app/templates/base.html
+BROKEN LINK NAME  hr_day_hours   in payroll_app/templates/base.html
+BROKEN LINK NAME  send_registration_otp   in payroll_app/templates/public/employee_register.html
+BROKEN LINK NAME  home   in payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  send_registration_otp   in _brand_backup/payroll_app/templates/public/employee_register.html
+BROKEN LINK NAME  home   in _brand_backup/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in _brand_backup/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  send_registration_otp   in _brand_backup2/payroll_app/templates/public/employee_register.html
+BROKEN LINK NAME  home   in _brand_backup2/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup2/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup2/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup2/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in _brand_backup2/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup3/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup3/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup3/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup3/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in _brand_backup3/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup4/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup4/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup4/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  home   in _brand_backup4/payroll_app/templates/public/marketing_base.html
+BROKEN LINK NAME  employee_register   in _brand_backup4/payroll_app/templates/public/marketing_base.html
+-> 35 broken
+
+======== 2 TEMPLATES THAT EXTEND / INCLUDE A FILE THAT DOES NOT EXIST ========
+-> none
+
+======== 3 STATIC FILES NAMED IN TEMPLATES THAT DO NOT EXIST ========
+-> none
+
+======== 4 HARD-CODED href="/..." LINKS THAT GO NOWHERE ========
+-> none
+
+======== 5 PAGES THAT EXIST BUT NO TEMPLATE LINKS TO (possible unlinked features) ========
+bio_pair_poll, bio_pair_start, data_check, generate_payslip, generic_page, hrms_attendance_import_template, hrms_biometric, hrms_employee_sync_template, hrms_joining_exit_template, hrms_leave_import_template, module_accounting_integration, module_arrears_adjustments, module_attendance_payable_days, module_bank_payments, module_employee_payroll_master, module_full_final_settlement, module_hrms_integration, module_loan_advance, module_monthly_payroll_processing, module_notifications, module_organisation, module_payslip_management, module_reports_analytics, module_salary_component_master, module_salary_structure, module_statutory_compliance, module_system_administration, module_user_security, notification_mark_read, payroll_approval, payroll_release, payroll_validation, public_account_deletion, public_assetlinks, public_manifest, public_offline, public_service_worker, public_version
+
+======== 6 OPEN EVERY PAGE (no-argument pages) AS COMPANY OWNER AND AS EMPLOYEE ========
+OWNER: 163 pages open, 6 redirect, 0 ERRORS
+EMPLOYEE: 163 pages open, 6 redirect, 0 ERRORS
+
+======== 7 PAYROLL CHAIN: are the parts present and linked? ========
+Employees                          pages:  20   linked from a template:  17   OK
+Salary structure                   pages:   5   linked from a template:   3   OK
+Attendance                         pages:   6   linked from a template:   4   OK
+Leave                              pages:   6   linked from a template:   5   OK
+Loans / advances                   pages:   4   linked from a template:   3   OK
+Other allowances & deductions      pages:   1   linked from a template:   1   OK
+Payroll run / process              pages:  12   linked from a template:   7   OK
+Payslips                           pages:   9   linked from a template:   7   OK
+Bank transfer                      pages:  16   linked from a template:  15   OK
+PF / ESI / PT / TDS statutory      pages:   6   linked from a template:   5   OK
+Reports                            pages:   9   linked from a template:   8   OK

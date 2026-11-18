@@ -246,6 +246,8 @@ SECURE_HSTS_SECONDS = 0 if DEBUG else 60 * 60 * 24 * 30
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = False  # opt in deliberately once the domain is final
 SECURE_CONTENT_TYPE_NOSNIFF = True
+# Reverse proxies in front of the app (Render = 1; 2 if also behind Cloudflare; 0 = local). Used to find the real client IP.
+TRUSTED_PROXY_COUNT = int(os.environ.get('TRUSTED_PROXY_COUNT', '1' if ON_RENDER else '0'))
 
 # ---------------------------------------------------------------------------
 # File upload validation

@@ -54,6 +54,10 @@ def run_checks(run):
         if missing:
             issues.append(Issue(WARNING, 'NOT_IN_RUN', f'{len(missing)} active employee(s) are not in this run (usually no salary structure): {_codes(missing)}.'))
 
+        if period and people and not Attendance.objects.filter(employee__company=run.company, date__range=period).exists():
+            issues.append(Issue(WARNING, 'NO_ATTENDANCE_AT_ALL', f'No attendance has been marked for anyone in {run.month}, so all {len(people)} '
+                                                                  'employee(s) are paid the full month with no loss of pay. If you track attendance, '
+                                                                  'mark it (Attendance or Bulk attendance) and reprocess this run before approving.'))
         if period and Attendance.objects.filter(employee__company=run.company, date__range=period).exists():
             marked = set(Attendance.objects.filter(employee__in=in_run, date__range=period).values_list('employee_id', flat=True))
             on_leave = set(LeaveRequest.objects.filter(employee__in=in_run, status='APPROVED', from_date__lte=period[1],

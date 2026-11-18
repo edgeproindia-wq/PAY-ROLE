@@ -1,0 +1,169 @@
+=== THE 8 FAILING TESTS: THEIR CODE AND THEIR EXACT FAILURE ===
+Result line: Ran 8 tests in 25.470s | FAILED (failures=6, errors=2)
+
+--- tests_home_entry :: test_the_home_page_buttons_lead_to_login_and_register
+    TEST CODE:
+    | def test_the_home_page_buttons_lead_to_login_and_register(self):
+    |         h = self.client.get('/').content.decode()
+    |         self.assertIn('href="%s"' % reverse('login'), h)
+    |         self.assertIn('href="%s"' % reverse('register'), h)
+    ERROR - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_home_entry.py", line 30, in test_the_home_page_buttons_lead_to_login_and_register
+    !     self.assertIn('href="%s"' % reverse('register'), h)
+    !                                 ^^^^^^^^^^^^^^^^^^^
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    !     resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+    !                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\urls\resolvers.py", line 842, in _reverse_with_prefix
+    !     raise NoReverseMatch(msg)
+    ! django.urls.exceptions.NoReverseMatch: Reverse for 'register' not found. 'register' is not a valid view function or pattern name.
+
+--- tests :: test_anonymous_redirected_to_login
+    setUp of RoleBasedAccessControlTests:
+    | def setUp(self):
+    |         self.company_a = make_company('CompanyA')
+    |         self.company_b = make_company('CompanyB')
+    |         self.admin = make_user('admin1', 'ADMIN', is_superuser=True)
+    |         self.owner_a = make_user('owner_a', 'COMPANY_OWNER', company=self.company_a)
+    |         self.owner_b = make_user('owner_b', 'COMPANY_OWNER', company=self.company_b)
+    |         self.emp_a = make_employee(self.company_a, code='A001', email='a1@example.com')
+    |         self.emp_b = make_employee(self.company_b, code='B001', email='b1@example.com')
+    |         self.emp_a_user = make_user('emp_a_user', 'EMPLOYEE', company=self.company_a)
+    |         self.emp_a.user = self.emp_a_user
+    |         self.emp_a.save()
+    TEST CODE:
+    | def test_anonymous_redirected_to_login(self):
+    |         resp = self.client.get(reverse('dashboard'))
+    |         self.assertEqual(resp.status_code, 302)
+    |         self.assertIn(reverse('login'), resp.url)
+    FAIL - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests.py", line 180, in test_anonymous_redirected_to_login
+    !     self.assertEqual(resp.status_code, 302)
+    ! AssertionError: 200 != 302
+
+--- tests_audit :: test_suspend_blocks_active_session_and_login_then_reactivate
+    TEST CODE:
+    | def test_suspend_blocks_active_session_and_login_then_reactivate(self):
+    |         comp = company()
+    |         owner = user('own', 'COMPANY_OWNER', comp)
+    |         admin = User.objects.create_superuser('root', 'root@ex.com', PWD)
+    |         self.client.force_login(owner)
+    |         self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)
+    | 
+    |         admin_client = self.client_class()
+    |         admin_client.force_login(admin)
+    |         admin_client.post(reverse('admin_company_decide', args=[comp.pk]), {'decision': 'SUSPENDED', 'next': 'admin_company_list'})
+    |         comp.refresh_from_db()
+    |         self.assertEqual(comp.status, 'SUSPENDED')
+    |         self.assertTrue(User.objects.filter(pk=owner.pk).exists(), 'suspension must not delete the account')
+    | 
+    |         self.assertIn('/login/', self.client.get(reverse('dashboard'))['Location'])
+    |         resp = self.client.post(reverse('login'), {'username': 'own', 'password': PWD})
+    |         self.assertContains(resp, 'suspended')
+    | 
+    |         admin_client.post(reverse('admin_company_decide', args=[comp.pk]), {'decision': 'REACTIVATE'})
+    |         self.assertTrue(self.client.login(username='own', password=PWD))
+    ERROR - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_audit.py", line 220, in test_suspend_blocks_active_session_and_login_then_reactivate
+    !     self.assertIn('/login/', self.client.get(reverse('dashboard'))['Location'])
+    !                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\http\response.py", line 207, in __getitem__
+    !     return self.headers[header]
+    !            ~~~~~~~~~~~~^^^^^^^^
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\utils\datastructures.py", line 310, in __getitem__
+    !     return self._store[key.lower()][1]
+    !            ~~~~~~~~~~~^^^^^^^^^^^^^
+    ! KeyError: 'location'
+
+--- tests_audit :: test_anonymous_blocked_everywhere
+    setUp of PasswordAndSessionTests:
+    | def setUp(self):
+    |         self.comp = company()
+    |         self.owner = user('own', 'COMPANY_OWNER', self.comp, email='own@ex.com')
+    TEST CODE:
+    | def test_anonymous_blocked_everywhere(self):
+    |         for name in ['dashboard', 'employee_master', 'payslips', 'bank_transfer', 'admin_dashboard', 'attendance']:
+    |             resp = self.client.get(reverse(name))
+    |             self.assertEqual(resp.status_code, 302, name)
+    |             self.assertIn('/login/', resp['Location'])
+    FAIL - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_audit.py", line 195, in test_anonymous_blocked_everywhere
+    !     self.assertEqual(resp.status_code, 302, name)
+    ! AssertionError: 200 != 302 : dashboard
+
+--- tests_audit :: test_logout_requires_post_and_ends_session
+    setUp of PasswordAndSessionTests:
+    | def setUp(self):
+    |         self.comp = company()
+    |         self.owner = user('own', 'COMPANY_OWNER', self.comp, email='own@ex.com')
+    TEST CODE:
+    | def test_logout_requires_post_and_ends_session(self):
+    |         self.client.force_login(self.owner)
+    |         self.assertEqual(self.client.get(reverse('logout')).status_code, 405)
+    |         self.client.post(reverse('logout'))
+    |         self.assertRedirects(self.client.get(reverse('dashboard')), '/login/?next=/')
+    |         self.assertTrue(AuditLog.objects.filter(action='LOGOUT', actor=self.owner).exists())
+    FAIL - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_audit.py", line 189, in test_logout_requires_post_and_ends_session
+    !     self.assertRedirects(self.client.get(reverse('dashboard')), '/login/?next=/')
+    ! AssertionError: 200 != 302 : Response didn't redirect as expected: Response code was 200 (expected 302)
+
+--- tests_launch_audit :: test_anonymous_visitors_only_reach_public_pages
+    TEST CODE:
+    | def test_anonymous_visitors_only_reach_public_pages(self):
+    |         """Anonymous GET: any page that answers 200 must be on the public list"""
+    |         public_words = ('home', 'login', 'register', 'features', 'about', 'demo', 'contact', 'pricing', 'privacy', 'terms', 'password', 'verify',
+    |                         'otp', 'logout', 'landing', 'faq', 'security', 'integrat', 'solution', 'blog', 'help', 'docs', 'support', 'robots', 'sitemap', 'public_')
+    |         open_pages = []
+    |         for route, name in all_routes():
+    |             if '<' in route or route.startswith('sbx-'):
+    |                 continue
+    |             self.client.logout()
+    |             r = self.client.get('/' + route)
+    |             if r.status_code == 200 and not any(w in (name or route).lower() for w in public_words):
+    |                 open_pages.append(f'/{route} ({name})')
+    |         self.assertEqual(open_pages, [], f'private-looking pages open to anonymous visitors: {open_pages}')
+    (it PASSED when run on its own)
+
+--- tests_pwa :: test_login_page_and_app_pages_carry_the_manifest_service_worker_and_legal_links
+    TEST CODE:
+    | def test_login_page_and_app_pages_carry_the_manifest_service_worker_and_legal_links(self):
+    |         html = self.client.get('/login/').content.decode()
+    |         self.assertIn('rel="manifest" href="/manifest.webmanifest"', html)
+    |         self.assertIn("serviceWorker.register('/sw.js'", html)
+    |         self.assertIn('theme-color', html)
+    |         self.assertIn('href="/privacy/"', html)
+    |         co = make_company('Pwa Co')
+    |         self.client.force_login(make_user('pwaowner', 'COMPANY_OWNER', co))
+    |         app = self.client.get(reverse('dashboard'))
+    |         self.assertContains(app, 'rel="manifest" href="/manifest.webmanifest"')
+    |         self.assertContains(app, 'href="/privacy/"')
+    FAIL - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_pwa.py", line 86, in test_login_page_and_app_pages_carry_the_manifest_service_worker_and_legal_links
+    !     self.assertIn('rel="manifest" href="/manifest.webmanifest"', html)
+    ! AssertionError: 'rel="manifest" href="/manifest.webmanifest"' not found in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>
+
+--- tests_styles_css :: test_the_public_layouts_link_it_too
+    setUp of StylesCssTests:
+    | def setUp(self):
+    |         self.co = make_company('Css Co')
+    |         self.owner = make_user('cssowner', 'COMPANY_OWNER', self.co)
+    TEST CODE:
+    | def test_the_public_layouts_link_it_too(self):
+    |         self.client.logout()
+    |         for url in ('/login/', '/register/', '/welcome/'):
+    |             resp = self.client.get(url, follow=True)
+    |             self.assertEqual(resp.status_code, 200, url)
+    |             self.assertIn('css/styles.css', resp.content.decode(), url)
+    FAIL - the last 18 lines:
+    ! Traceback (most recent call last):
+    !   File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_styles_css.py", line 38, in test_the_public_layouts_link_it_too
+    !     self.assertIn('css/styles.css', resp.content.decode(), url)
+    ! AssertionError: 'css/styles.css' not found in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Login &middot; Namma Payroll<
+

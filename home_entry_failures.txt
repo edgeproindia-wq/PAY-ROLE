@@ -1,0 +1,43 @@
+=== TESTS THAT FAILED AFTER THE HOME PAGE CHANGE (3) ===
+
+--- FAIL test_anonymous_redirected_to_login (payroll_app.tests.RoleBasedAccessControlTests.test_anonymous_redirected_to_login)
+    Traceback (most recent call last):
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests.py", line 180, in
+    self.assertEqual(resp.status_code, 302)
+    AssertionError: 200 != 302
+    + FullyQualifiedErrorId : NativeCommandError
+    Traceback (most recent call last):
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\notifications.py", line 31, in send_email_safe
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\utils\deprecation.py", line
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\core\mail\__init__.py",
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\.venv\Lib\site-packages\django\core\mail\message.py", line
+    SOURCE (payroll_app/tests.py line 178):
+    | def test_anonymous_redirected_to_login(self):
+    |         resp = self.client.get(reverse('dashboard'))
+    |         self.assertEqual(resp.status_code, 302)
+    |         self.assertIn(reverse('login'), resp.url)
+
+--- FAIL test_anonymous_blocked_everywhere (payroll_app.tests_audit.PasswordAndSessionTests.test_anonymous_blocked_everywhere)
+    Traceback (most recent call last):
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_audit.py", line 195, in
+    self.assertEqual(resp.status_code, 302, name)
+    AssertionError: 200 != 302 : dashboard
+    SOURCE (payroll_app/tests_audit.py line 192):
+    | def test_anonymous_blocked_everywhere(self):
+    |         for name in ['dashboard', 'employee_master', 'payslips', 'bank_transfer', 'admin_dashboard', 'attendance']:
+    |             resp = self.client.get(reverse(name))
+    |             self.assertEqual(resp.status_code, 302, name)
+    |             self.assertIn('/login/', resp['Location'])
+
+--- FAIL test_the_public_layouts_link_it_too (payroll_app.tests_styles_css.StylesCssTests.test_the_public_layouts_link_it_too)
+    Traceback (most recent call last):
+    File "C:\edgepro_working_copy\payroll_professional_theme_and_templates\payroll_app\tests_styles_css.py", line 38, in
+    self.assertIn('css/styles.css', resp.content.decode(), url)
+    AssertionError: 'css/styles.css' not found in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta
+    SOURCE (payroll_app/tests_styles_css.py line 33):
+    | def test_the_public_layouts_link_it_too(self):
+    |         self.client.logout()
+    |         for url in ('/login/', '/register/', '/welcome/'):
+    |             resp = self.client.get(url, follow=True)
+    |             self.assertEqual(resp.status_code, 200, url)
+    |             self.assertIn('css/styles.css', resp.content.decode(), url)

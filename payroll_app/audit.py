@@ -6,10 +6,8 @@ logger = logging.getLogger('payroll_app.audit')
 
 
 def _client_ip(request):
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
+    from .login_throttle import _ip
+    return _ip(request)
 
 
 def log_action(request, action, obj=None, details='', company=None):

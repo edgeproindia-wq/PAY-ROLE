@@ -1,0 +1,77 @@
+﻿=== 1 FILES WITH THESE WORDS IN THE NAME ===
+payroll_app/accounting.py
+payroll_app/accounting_models.py
+payroll_app/migrations/0018_accounting.py
+payroll_app/tally.py
+payroll_app/templates/accounting/_tabs.html
+payroll_app/templates/accounting/allocation.html
+payroll_app/templates/accounting/employer.html
+payroll_app/templates/accounting/export.html
+payroll_app/templates/accounting/journal_detail.html
+payroll_app/templates/accounting/journals.html
+payroll_app/templates/accounting/loans.html
+payroll_app/templates/accounting/mapping.html
+payroll_app/templates/accounting/payable.html
+payroll_app/templates/accounting/reconcile.html
+payroll_app/templates/accounting/statutory.html
+payroll_app/tests_accounting.py
+payroll_app/tests_accounting_menu.py
+payroll_app/tests_tally.py
+=== 2 OTHER FILES THAT MENTION THEM (file:line) ===
+payroll_app/hrms_imports.py:6: Pages: Biometric, Accounting Software, Bank and Email connection status, and the Import Center.
+payroll_app/hrms_imports.py:699: ('accounting', {'title': 'Accounting Software Integration', 'name': 'hrms_accounting_sw', 'state': 'No live connection', 'tone': 'badge-neutral',
+payroll_app/hrms_imports.py:700: 'summary': 'Payroll is not connected to Tally, Zoho Books or any other accounting software. Journals leave as a file.',
+payroll_app/hrms_imports.py:701: 'today': ['Post the salary journal in Accounting Integration.', 'Set the ledger names your software uses in General Ledger Mapping.',
+payroll_app/hrms_imports.py:702: 'Download the posted journal lines as CSV or Excel from Accounting Export and import them into your software.'],
+payroll_app/hrms_imports.py:703: 'needs': 'A live link needs the accounting software API and its access details.',
+payroll_app/hrms_imports.py:704: 'links': (('Accounting Export', 'acc_export'), ('General Ledger Mapping', 'acc_mapping'), ('Salary Expense Journal', 'acc_journals'))}),
+payroll_app/migrations/0019_biometric.py:10: ('payroll_app', '0018_accounting'),
+payroll_app/models.py:756: from .accounting_models import AccountingSettings, JournalEntry, JournalLine, JournalPaymentLink, LedgerMapping  # noqa: E402,F401
+payroll_app/payroll_structure.py:176: 14|accounting-integration|Accounting Integration
+payroll_app/payroll_structure.py:177: Salary Expense Journal|acc_journals
+payroll_app/payroll_structure.py:183: General Ledger Mapping|acc_mapping
+payroll_app/payroll_structure.py:184: Accounting Export|acc_export
+payroll_app/payroll_structure.py:264: Accounting Software Integration|hrms_accounting_sw
+payroll_app/reports.py:79: from .accounting_models import AccountingSettings
+payroll_app/reports.py:81: acc = AccountingSettings.objects.filter(company=company).first()
+payroll_app/reports.py:191: notes.append('Employer PF / ESI percentages are not set (Accounting Integration > Employer Contribution Entries), so only the gross salary is counted.
+payroll_app/reports.py:251: notes.append('Employer PF percentage is not set (Accounting Integration > Employer Contribution Entries), so the employer share shows 0.')
+payroll_app/reports.py:265: notes = [] if rates[3] else ['Employer ESI percentage is not set (Accounting Integration > Employer Contribution Entries), so the employer share shows
+payroll_app/templates/base.html:354: {% url 'hrms_accounting_sw' as u_s20_6 %}{% if u_s20_6 %}<a href="{{ u_s20_6 }}"><span class="tx">Accounting Software Integration</span></a>{% endif %
+payroll_app/templates/base.html:436: <div class="sb-group" data-group="accounting-integration">
+payroll_app/templates/base.html:437: <button type="button" class="sb-group-head" aria-expanded="false"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 
+payroll_app/templates/base.html:439: {% url 'acc_journals' as u_s14_1 %}{% if u_s14_1 %}<a href="{{ u_s14_1 }}"><span class="tx">Salary Expense Journal</span></a>{% endif %}
+payroll_app/templates/base.html:445: {% url 'acc_mapping' as u_s14_7 %}{% if u_s14_7 %}<a href="{{ u_s14_7 }}"><span class="tx">General Ledger Mapping</span></a>{% endif %}
+payroll_app/templates/base.html:446: {% url 'acc_export' as u_s14_8 %}{% if u_s14_8 %}<a href="{{ u_s14_8 }}"><span class="tx">Accounting Export</span></a>{% endif %}
+payroll_app/templatetags/np_nav.py:42: 'payslip-management', 'bank-payments', 'full-final-settlement', 'accounting-integration']),
+payroll_app/tests_bank_menu.py:35: # the Accounting section has its own built pages now; they are checked in tests_accounting_menu
+payroll_app/tests_hrms_imports.py:149: names = [sp.name for sp in SPECS.values()] + [sp.name + '_template' for sp in SPECS.values()] + ['hrms_biometric', 'hrms_accounting_sw', 'hrms_bank', 
+payroll_app/tests_hrms_imports.py:361: for name, text in (('hrms_biometric', 'No live connection'), ('hrms_accounting_sw', 'No live connection'), ('hrms_bank', 'No live connection')):
+payroll_app/tests_np_nav.py:19: 'Full & Final Settlement', 'Accounting Integration', 'Payroll Reports & Analytics', 'User Management & Security', 'Notifications & Automation',
+payroll_app/tests_reports.py:12: from .accounting_models import AccountingSettings
+payroll_app/tests_reports.py:139: AccountingSettings.objects.create(company=self.co, employer_pf_percent=D('12'), employer_esi_percent=D('3.25'))
+payroll_app/tests_reports.py:162: AccountingSettings.objects.create(company=self.co, employer_pf_percent=D('12'), employer_esi_percent=D('0'))
+payroll_app/tests_structure.py:68: r = self.client.get(self.url('approvals'))                  # accounting now has pages, so this uses a section that has none yet
+payroll_app/urls.py:225: # ---- Accounting Integration: journals, payment entries, ledger mapping, export, reconciliation ----
+payroll_app/urls.py:226: from . import accounting as _acc  # noqa: E402
+payroll_app/urls.py:241: # ---- Tally export of the accounting journals (voucher XML and ledger XML) ----
+payroll_app/urls.py:242: from . import tally as _tally  # noqa: E402
+payroll_app/urls.py:243: urlpatterns += _tally.urlpatterns
+=== 3 MIGRATION FILES MENTIONING THEM ===
+payroll_app/migrations/0018_accounting.py
+payroll_app/migrations/0019_biometric.py
+=== 4 MODEL CLASSES ===
+payroll_app/accounting_models.py:12: class AccountingSettings(models.Model):
+payroll_app/accounting_models.py:26: class LedgerMapping(models.Model):
+payroll_app/accounting_models.py:38: class JournalEntry(models.Model):
+payroll_app/accounting_models.py:72: class JournalLine(models.Model):
+payroll_app/accounting_models.py:87: class JournalPaymentLink(models.Model):
+=== 5 TEST FILES MENTIONING THEM (count of lines) ===
+payroll_app/tests_accounting.py  (100 lines)
+payroll_app/tests_accounting_menu.py  (7 lines)
+payroll_app/tests_bank_menu.py  (1 lines)
+payroll_app/tests_hrms_imports.py  (2 lines)
+payroll_app/tests_np_nav.py  (1 lines)
+payroll_app/tests_reports.py  (3 lines)
+payroll_app/tests_structure.py  (1 lines)
+payroll_app/tests_tally.py  (74 lines)
