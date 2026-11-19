@@ -170,7 +170,7 @@ class BatchCreationTests(BankBase):
 
     def test_a_paid_payment_can_never_be_added(self):
         BankPayment.objects.create(payroll_line=self.lines[0], company=self.co, amount='30000', account_no='111111111111', ifsc_code='HDFC0001234',
-                                   status='PAID', reference_number='UTR1')
+                                   status='PAID', reference_number='UTR000000011')
         self.create(lines=[self.lines[0]])
         self.assertEqual(BankBatch.objects.count(), 0)
 
@@ -401,7 +401,7 @@ class ReconcileTests(BankBase):
 
     def test_preview_changes_nothing_and_confirm_marks_paid_with_the_utr(self):
         b = self.sent_batch()
-        r = self.upload([['Payment ID', 'UTR', 'Status', 'Amount'], [self.p1.pk, 'UTR0001', 'SUCCESS', '30000.00'], [self.p2.pk, 'UTR0002', 'Processed', '25,000.50']])
+        r = self.upload([['Payment ID', 'UTR', 'Status', 'Amount'], [self.p1.pk, 'UTR000000001', 'SUCCESS', '30000.00'], [self.p2.pk, 'UTR000000002', 'Processed', '25,000.50']])
         self.assertContains(r, 'Will be marked Paid')
         self.assertContains(r, 'Confirm and save 2 changes')
         self.p1.refresh_from_db()
@@ -409,16 +409,16 @@ class ReconcileTests(BankBase):
         self.confirm()
         self.p1.refresh_from_db()
         self.p2.refresh_from_db()
-        self.assertEqual((self.p1.status, self.p1.reference_number, self.p1.verified_by), ('PAID', 'UTR0001', self.owner))
+        self.assertEqual((self.p1.status, self.p1.reference_number, self.p1.verified_by), ('PAID', 'UTR000000001', self.owner))
         self.assertIsNotNone(self.p1.paid_at)
-        self.assertEqual((self.p2.status, self.p2.reference_number), ('PAID', 'UTR0002'))
+        self.assertEqual((self.p2.status, self.p2.reference_number), ('PAID', 'UTR000000002'))
         b.refresh_from_db()
         self.assertEqual(b.status, 'COMPLETED')
         self.assertTrue(AuditLog.objects.filter(action='PAYMENT_STATUS_CHANGE', details__contains='bank reconciliation').exists())
 
     def test_a_failed_row_marks_the_payment_failed_with_the_reason(self):
         b = self.sent_batch()
-        self.upload([['Payment ID', 'UTR', 'Status', 'Remarks'], [self.p1.pk, '', 'REJECTED', 'Invalid account'], [self.p2.pk, 'UTR0002', 'Success', '']])
+        self.upload([['Payment ID', 'UTR', 'Status', 'Remarks'], [self.p1.pk, '', 'REJECTED', 'Invalid account'], [self.p2.pk, 'UTR000000002', 'Success', '']])
         self.confirm()
         self.p1.refresh_from_db()
         self.assertEqual((self.p1.status, self.p1.failure_reason), ('FAILED', 'Invalid account'))
@@ -427,7 +427,7 @@ class ReconcileTests(BankBase):
 
     def test_an_amount_that_does_not_match_is_never_applied(self):
         self.sent_batch()
-        r = self.upload([['Payment ID', 'UTR', 'Status', 'Amount'], [self.p1.pk, 'UTR0001', 'SUCCESS', '29000.00']])
+        r = self.upload([['Payment ID', 'UTR', 'Status', 'Amount'], [self.p1.pk, 'UTR000000001', 'SUCCESS', '29000.00']])
         self.assertContains(r, 'is not the payment amount')
         self.assertNotContains(r, 'Confirm and save')
         self.p1.refresh_from_db()
@@ -435,25 +435,25 @@ class ReconcileTests(BankBase):
 
     def test_a_repeated_or_used_utr_is_not_applied(self):
         self.sent_batch()
-        BankPayment.objects.filter(pk=self.p1.pk).update(reference_number='TAKEN')       # another payment already holds this UTR
-        r = self.upload([['Payment ID', 'UTR'], [self.p2.pk, 'TAKEN']])
+        BankPayment.objects.filter(pk=self.p1.pk).update(reference_number='TAKEN0000001')       # another payment already holds this UTR
+        r = self.upload([['Payment ID', 'UTR'], [self.p2.pk, 'TAKEN0000001']])
         self.assertContains(r, 'already used by another payment')
         self.assertNotContains(r, 'Confirm and save')
-        rows, _err = analyse_statement(self.co, [['Payment ID', 'UTR'], [self.p1.pk, 'DUP'], [self.p2.pk, 'DUP']])
+        rows, _err = analyse_statement(self.co, [['Payment ID', 'UTR'], [self.p1.pk, 'DUPLICATE001'], [self.p2.pk, 'DUPLICATE001']])
         self.assertEqual([r['outcome'] for r in rows], ['ok', 'review'])
 
     def test_matching_by_account_and_amount_without_a_payment_id(self):
         self.sent_batch()
-        self.upload([['Beneficiary Account Number', 'Amount', 'UTR No'], ['111111111111', '30000', 'UTRA']])
+        self.upload([['Beneficiary Account Number', 'Amount', 'UTR No'], ['111111111111', '30000', 'UTRA00000001']])
         self.confirm()
         self.p1.refresh_from_db()
-        self.assertEqual((self.p1.status, self.p1.reference_number), ('PAID', 'UTRA'))
+        self.assertEqual((self.p1.status, self.p1.reference_number), ('PAID', 'UTRA00000001'))
 
     def test_a_payment_whose_file_was_not_generated_is_not_matched(self):
         b = self.batch()
         self.act(b, 'approve')                                   # approved, but no file yet
         p = BankPayment.objects.get(payroll_line=self.lines[0])
-        r = self.upload([['Payment ID', 'UTR'], [p.pk, 'UTRZ']])
+        r = self.upload([['Payment ID', 'UTR'], [p.pk, 'UTRZ00000001']])
         self.assertContains(r, 'not in a generated or sent batch')
         p.refresh_from_db()
         self.assertEqual(p.status, 'PENDING')
@@ -465,14 +465,14 @@ class ReconcileTests(BankBase):
         ob = BankBatch.objects.create(company=self.other, reference='BB-X-1', payroll_run=olines[0].payroll_run, status='SENT')
         BankBatchItem.objects.create(batch=ob, payment=op, amount='500')
         self.sent_batch()
-        r = self.upload([['Payment ID', 'UTR'], [op.pk, 'UTRO']])
+        r = self.upload([['Payment ID', 'UTR'], [op.pk, 'UTRO00000001']])
         self.assertContains(r, 'not in a generated or sent batch')
         self.assertEqual(BankPayment.objects.get(pk=op.pk).status, 'PENDING')
 
     def test_an_already_paid_payment_is_left_alone(self):
         self.sent_batch()
         BankPayment.objects.filter(pk=self.p1.pk).update(status='PAID', reference_number='OLD')
-        r = self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'NEW']])
+        r = self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'NEWUTR000001']])
         self.assertContains(r, 'Already marked paid')
         self.assertEqual(BankPayment.objects.get(pk=self.p1.pk).reference_number, 'OLD')
 
@@ -488,20 +488,20 @@ class ReconcileTests(BankBase):
 
     def test_a_preview_expires_and_cannot_be_confirmed_twice(self):
         self.sent_batch()
-        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR1']])
+        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR000000011']])
         s = self.client.session
         s['bank_recon']['at'] = time.time() - 3600
         s.save()
         self.assertContains(self.confirm(), 'preview has expired')
         self.p1.refresh_from_db()
         self.assertEqual(self.p1.status, 'PENDING')
-        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR1']])
+        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR000000011']])
         self.confirm()
         self.assertContains(self.confirm(), 'preview has expired')
 
     def test_a_payment_that_changed_after_the_preview_is_skipped(self):
         self.sent_batch()
-        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR1']])
+        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR000000011']])
         BankPayment.objects.filter(pk=self.p1.pk).update(status='FAILED')
         r = self.confirm()
         self.assertContains(r, 'skipped because the payment changed')
@@ -509,7 +509,7 @@ class ReconcileTests(BankBase):
 
     def test_discard_clears_the_preview(self):
         self.sent_batch()
-        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR1']])
+        self.upload([['Payment ID', 'UTR'], [self.p1.pk, 'UTR000000011']])
         self.client.post(reverse('bank_reconcile'), {'step': 'cancel'})
         self.assertNotContains(self.client.get(reverse('bank_reconcile')), 'Confirm and save')
 
@@ -520,13 +520,13 @@ class ReconcileTests(BankBase):
         ws = wb.active
         ws.append(['Bank statement'])
         ws.append(['Payment ID', 'Transaction Reference', 'Transaction Status'])
-        ws.append([self.p1.pk, 'XLUTR1', 'Success'])
+        ws.append([self.p1.pk, 'XLUTR0000001', 'Success'])
         buf = io.BytesIO()
         wb.save(buf)
         r = self.client.post(reverse('bank_reconcile'), {'step': 'upload', 'statement': SimpleUploadedFile('s.xlsx', buf.getvalue())}, follow=True)
         self.assertContains(r, 'Confirm and save 1 change')
         self.confirm()
-        self.assertEqual(BankPayment.objects.get(pk=self.p1.pk).reference_number, 'XLUTR1')
+        self.assertEqual(BankPayment.objects.get(pk=self.p1.pk).reference_number, 'XLUTR0000001')
 
     def test_status_and_success_words(self):
         self.sent_batch()
