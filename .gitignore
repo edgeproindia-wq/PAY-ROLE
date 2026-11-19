@@ -42,3 +42,7 @@ audit_*.txt
 pagination_dump.txt
 *_out.txt
 *_err.txt
+
+test_out*.txt
+test_run.txt
+*.bak
