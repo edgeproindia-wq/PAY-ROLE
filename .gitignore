@@ -46,3 +46,6 @@ pagination_dump.txt
 test_out*.txt
 test_run.txt
 *.bak
+
+.venv/
+.venv_new/
