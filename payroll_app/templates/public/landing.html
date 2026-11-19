@@ -58,7 +58,7 @@
   .head{text-align:center;max-width:720px;margin:0 auto 46px}
   .head h2{font-size:34px;line-height:1.2;color:var(--ink);font-weight:800;letter-spacing:-.01em}
   .head p{margin-top:12px;font-size:16.5px}
-  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;width:100%;max-width:100%;margin:0}.grid4>*{min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
   .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;transition:.18s}
   .card:hover{border-color:#bfe3e8;box-shadow:0 14px 34px rgba(15,60,80,.09);transform:translateY(-2px)}
   .ico{width:44px;height:44px;border-radius:12px;background:var(--teal-soft);color:var(--teal-dark);display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:14px}
