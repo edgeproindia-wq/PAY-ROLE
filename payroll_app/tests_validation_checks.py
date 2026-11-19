@@ -61,7 +61,10 @@ class Base(TestCase):
 
 class CheckTests(Base):
     def test_a_clean_run_has_no_issues_and_validates(self):
-        import datetime; from .models import Attendance        e = self.employee('K1')        Attendance.objects.create(employee=e, date=datetime.date(2026, 11, 2), status='PRESENT')
+        import datetime
+        from .models import Attendance
+        e = self.employee('K1')
+        Attendance.objects.create(employee=e, date=datetime.date(2026, 11, 2), status='PRESENT')
         run = self.make_run()
         self.assertEqual(run_checks(run), [])
         self.validate(run)
