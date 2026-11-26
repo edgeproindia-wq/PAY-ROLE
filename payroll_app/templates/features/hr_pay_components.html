@@ -9,4 +9,44 @@
       <td><span class="fx-tag {% if c.active %}ACTIVE{% else %}INACTIVE{% endif %}">{% if c.active %}Active{% else %}Ended{% endif %}</span></td>
       <td>{% if c.active %}<form method="post">{% csrf_token %}<button class="fx-btn danger" name="end" value="{{ c.pk }}">End</button></form>{% endif %}</td></tr>{% endfor %}</table>
   {% else %}<p class="muted">No items.</p>{% endif %}</div>
-</div>{% endblock %}
+</div>
+<script>
+(function () {
+  /* Amount and Percent follow each other using the chosen employee's basic salary. */
+  var emp = document.getElementById('id_employee'), amt = document.getElementById('id_amount'),
+      pct = document.getElementById('id_percent'), calc = document.getElementById('id_calc_type');
+  if (!emp || !amt || !pct) return;
+  var note = document.createElement('div');
+  note.style.cssText = 'font-size:12px;margin-top:4px;color:#14532d;min-height:16px';
+  pct.parentNode.appendChild(note);
+  function basic() {
+    var o = emp.options[emp.selectedIndex], b = o ? parseFloat(o.getAttribute('data-basic')) : NaN;
+    return b > 0 ? b : 0;
+  }
+  function r2(n) { return (Math.round(n * 100) / 100).toString(); }
+  function info() {
+    var b = basic();
+    note.textContent = b ? ('Basic salary: \u20B9' + b.toLocaleString('en-IN')) : (emp.value ? 'This employee has no salary structure yet, so % cannot be calculated.' : '');
+  }
+  function fromPercent() {
+    var b = basic(), p = parseFloat(pct.value);
+    if (!b || isNaN(p)) return;
+    amt.value = r2(b * p / 100);
+    if (calc && p > 0) calc.value = 'PERCENT_BASIC';
+  }
+  function fromAmount() {
+    var b = basic(), a = parseFloat(amt.value);
+    if (!b || isNaN(a)) return;
+    var p = a / b * 100;
+    pct.value = r2(p);
+    if (p > 100) { note.style.color = '#b91c1c'; note.textContent = 'This amount is more than 100% of basic (' + r2(p) + '%). Use Fixed amount instead.'; }
+    else { note.style.color = '#14532d'; info(); }
+    if (calc && p > 0 && p <= 100) calc.value = 'PERCENT_BASIC';
+    else if (calc && p > 100) calc.value = 'FIXED';
+  }
+  pct.addEventListener('input', fromPercent);
+  amt.addEventListener('input', fromAmount);
+  emp.addEventListener('change', function () { info(); if (amt.value) fromAmount(); });
+  info();
+})();
+</script>{% endblock %}

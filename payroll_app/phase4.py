@@ -239,7 +239,9 @@ def hr_pay_components(request):
     company = request.user.company
     form = _style(ComponentForm(company, request.POST or None))
     from .employee_id_select import use_employee_id_select
-    use_employee_id_select(form)                                     # the Employee box lists IDs only and shows the name by itself
+    from .models import SalaryStructure
+    basics = {str(pk): str(b) for pk, b in SalaryStructure.objects.filter(employee__company=company).values_list('employee_id', 'basic')}
+    use_employee_id_select(form, extra={'basic': basics})            # IDs only, the name by itself, and the employee's basic for the % <-> amount link
     if request.method == 'POST' and request.POST.get('end'):
         c = get_object_or_404(PayComponent, pk=request.POST['end'], company=company)
         c.active = False
