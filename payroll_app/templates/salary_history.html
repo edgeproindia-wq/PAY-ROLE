@@ -3,7 +3,7 @@
 {% block content %}
 <style id="sh-style">
   /* sh-: the filters, the all-employees list and the new-salary panels of the salary history page */
-  .sh-filters{display:grid;grid-template-columns:2fr 1.4fr 1fr 1fr 1fr;gap:14px 18px}
+  .sh-filters{display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;gap:14px 18px}
   @media (max-width:1100px){.sh-filters{grid-template-columns:1fr 1fr}}
   @media (max-width:640px){.sh-filters{grid-template-columns:1fr}}
   .sh-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
@@ -36,7 +36,6 @@
       <div class="field"><label>Employee</label>
         <select name="employee"><option value="">All employees</option>
           {% for e in employees %}<option value="{{ e.pk }}"{% if chosen and chosen.pk == e.pk %} selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
-      <div class="field"><label>Search</label><input type="search" name="q" value="{{ f.q }}" maxlength="60" placeholder="Name or employee code"></div>
       <div class="field"><label>Department</label>
         <select name="department"><option value="">All</option>{% for d in departments %}<option value="{{ d }}"{% if f.department == d %} selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
       <div class="field"><label>Designation</label>
