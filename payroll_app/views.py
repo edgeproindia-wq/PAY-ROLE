@@ -1310,7 +1310,7 @@ def scope_runs(request, queryset=None):
     qs = queryset if queryset is not None else PayrollRun.objects.all()
     user = request.user
     if user.is_superuser or user.role == 'ADMIN':
-        return qs
+        return qs.none()            # the platform admin never reads company payroll data
     if user.role == 'COMPANY_OWNER':
         return qs.filter(company=user.company)
     return qs.none()
@@ -1571,7 +1571,7 @@ def _scope_payments(request):
     qs = BankPayment.objects.select_related('payroll_line__employee', 'payroll_line__payroll_run', 'verified_by')
     user = request.user
     if user.is_superuser or user.role == 'ADMIN':
-        return qs
+        return qs.none()            # the platform admin never reads company payroll data
     if user.role == 'COMPANY_OWNER':
         return qs.filter(company=user.company)
     return qs.none()

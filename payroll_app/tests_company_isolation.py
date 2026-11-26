@@ -275,3 +275,37 @@ class FullPageCrawlTests(TwoCompanyFixture):
         leaks, errors = self._crawl(self.admin, forbidden)
         self.assertEqual(leaks, [], f'Employee/payroll data visible to platform admin on: {leaks}')
         self.assertEqual(errors, [], f'pages returned HTTP 5xx for admin: {errors}')
+
+
+class DjangoAdminIsolationTests(TestCase):
+    """/admin/ must follow the same rule as the app: one company never sees another's payroll data."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.a, cls.b = make_company('Alpha Co'), make_company('Bravo Co')
+        cls.ea = make_employee(cls.a, 'A1', 'Asha', 'Rao')
+        cls.eb = make_employee(cls.b, 'B1', 'Bala', 'Iyer')
+        cls.root = User.objects.create_superuser('root1', 'root@ex.com', PWD)
+        cls.staff = make_user('staffa', 'COMPANY_OWNER', cls.a)
+        cls.staff.is_staff = True
+        cls.staff.save()
+        from django.contrib.auth.models import Permission
+        cls.staff.user_permissions.set(Permission.objects.filter(content_type__app_label='payroll_app',
+                                                                 content_type__model='employee'))
+
+    def test_superuser_sees_no_employees_in_admin(self):
+        self.client.login(username='root1', password=PWD)
+        r = self.client.get('/admin/payroll_app/employee/')
+        self.assertNotContains(r, 'Asha', status_code=r.status_code)
+        self.assertNotContains(r, 'Bala', status_code=r.status_code)
+
+    def test_company_staff_sees_only_own_employees_in_admin(self):
+        self.client.login(username='staffa', password=PWD)
+        r = self.client.get('/admin/payroll_app/employee/')
+        self.assertContains(r, 'Asha')
+        self.assertNotContains(r, 'Bala')
+
+    def test_company_staff_cannot_open_other_company_employee_by_id(self):
+        self.client.login(username='staffa', password=PWD)
+        self.assertIn(self.client.get(f'/admin/payroll_app/employee/{self.eb.pk}/change/').status_code, (302, 403, 404))   # redirected away, never shown
+        self.assertEqual(self.client.get(f'/admin/payroll_app/employee/{self.ea.pk}/change/').status_code, 200)
