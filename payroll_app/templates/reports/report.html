@@ -18,6 +18,21 @@
   <noscript><button class="btn btn-outline btn-sm" type="submit">Show</button></noscript>
 </form></div>
 {% endif %}
+{% if head_filter %}
+<details class="card no-print" style="margin-bottom:16px;padding:10px 14px;"{% if head_filter.custom %} open{% endif %}>
+  <summary style="cursor:pointer;font-weight:700;">Edit view &mdash; choose which pay heads to show</summary>
+  <form method="get" style="margin-top:10px;">
+    {% if run %}<input type="hidden" name="run" value="{{ run.pk }}">{% endif %}<input type="hidden" name="view" value="custom">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 14px;">
+      {% for name, on in head_filter.heads %}<label style="display:flex;gap:6px;align-items:center;font-size:13px;"><input type="checkbox" name="show" value="{{ name }}"{% if on %} checked{% endif %}> {{ name }}</label>{% endfor %}
+    </div>
+    <label style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:10px;"><input type="checkbox" name="hide_zero" value="1"{% if head_filter.hide_zero %} checked{% endif %}> Hide pay heads with zero amount</label>
+    <div style="margin-top:10px;display:flex;gap:8px;"><button class="btn btn-outline btn-sm" type="submit">Apply</button>
+      <a class="btn btn-outline btn-sm" href="?{% if run %}run={{ run.pk }}{% endif %}">Show all</a></div>
+    <div class="text-sm text-muted" style="margin-top:8px;">This only changes what this page and its exports show. Payslips and totals are not changed.</div>
+  </form>
+</details>
+{% endif %}
 {% for n in notes %}<div class="card" style="padding:10px 14px;margin-bottom:8px;"><span class="text-sm text-muted">{{ n }}</span></div>{% endfor %}
 <div class="card"><div class="table-wrap">
   {% if table %}

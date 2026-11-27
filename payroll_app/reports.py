@@ -500,6 +500,14 @@ def make_view(key):
         runs, run, employee, prev_run = _selectors(request, company, spec)
         ctx = {'company': company, 'run': run, 'employee': employee, 'prev_run': prev_run}
         cols, rows, totals, notes = _result(spec, ctx)
+        head_filter = None
+        if key == 'earnings-deductions':          # "Edit view": choose which pay heads show; the totals and the payroll itself never change
+            names = [r['head'] for r in rows if r['kind'] != 'Total']
+            custom = request.GET.get('view') == 'custom'
+            shown = set(request.GET.getlist('show')) if custom else set(names)
+            hide_zero = custom and request.GET.get('hide_zero') == '1'
+            rows = [r for r in rows if r['kind'] == 'Total' or (r['head'] in shown and not (hide_zero and not r['total']))]
+            head_filter = {'heads': [(n, n in shown) for n in names], 'hide_zero': hide_zero, 'custom': custom}
         fmt = request.GET.get('export')
         if fmt in ('csv', 'xlsx'):
             log_action(request, 'EXPORT', company=company, details=f'Report exported: {spec["title"]} ({fmt}, {len(rows)} rows)')
@@ -514,7 +522,7 @@ def make_view(key):
             'spec': spec, 'cols': [(l, kind in (M, I, P)) for _k, l, kind in cols], 'table': table, 'totals': total_cells,
             'page': page, 'qs': q.urlencode(), 'notes': notes, 'runs': runs, 'run': run, 'employee': employee, 'row_count': len(rows),
             'employees': Employee.objects.filter(company=company).order_by('employee_code')[:1000] if 'employee' in spec['needs'] else [],
-            'show_run': 'run' in spec['needs'] or key == 'arrears'})
+            'show_run': 'run' in spec['needs'] or key == 'arrears', 'head_filter': head_filter})
 
     view.__name__ = 'report_' + key.replace('-', '_')
     return view

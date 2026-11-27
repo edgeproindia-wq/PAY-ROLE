@@ -158,6 +158,27 @@ class FigureTests(RepBase):
         self.assertEqual(rows['Total earnings (as per payslips)'][3][0], '65,000.00')
         self.assertEqual(rows['Total deductions (as per payslips)'][3][0], '5,285.00')
 
+    def test_earnings_and_deductions_edit_view_hides_chosen_heads_only(self):
+        r = self.get('earnings-deductions', **self.sep_params(view='custom', show=['Basic', 'PF']))
+        heads = [x[1][0] for x in rows_of(r)]
+        self.assertEqual(heads, ['Basic', 'PF', 'Total earnings (as per payslips)', 'Total deductions (as per payslips)'])
+        rows = {x[1][0]: x for x in rows_of(r)}
+        self.assertEqual(rows['Total earnings (as per payslips)'][3][0], '65,000.00')        # totals never change
+        self.assertEqual(rows['PF'][3][0], '3,000.00')
+
+    def test_earnings_and_deductions_hide_zero_rows(self):
+        full = [x[1][0] for x in rows_of(self.get('earnings-deductions', **self.sep_params()))]
+        r = self.get('earnings-deductions', **self.sep_params(view='custom', show=full, hide_zero='1'))
+        for x in rows_of(r):
+            if x[0][0] != 'Total':
+                self.assertNotEqual(x[3][0], '0.00')
+
+    def test_edit_view_applies_to_the_export_too(self):
+        r = self.get('earnings-deductions', **self.sep_params(view='custom', show=['PF'], export='csv'))
+        body = r.content.decode()
+        self.assertIn('PF', body)
+        self.assertNotIn('Basic', body)
+
     def test_pf_report_caps_the_wage_and_uses_the_employer_percentage(self):
         AccountingSettings.objects.create(company=self.co, employer_pf_percent=D('12'), employer_esi_percent=D('0'))
         r = self.get('pf', **self.sep_params())
